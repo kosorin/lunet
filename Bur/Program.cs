@@ -1,6 +1,7 @@
 ﻿using Bur.Game;
 using Bur.Net.Server.Tcp;
 using Bur.Net.Tcp;
+using LiteNetLib;
 using Serilog;
 using System;
 using System.Net;
@@ -31,6 +32,10 @@ namespace Bur
                 logger.Information("Cancel key press");
                 cancellationTokenSource.Cancel();
             };
+
+            EventBasedNetListener listener = new EventBasedNetListener();
+            NetManager server = new NetManager(listener, "BUR");
+
 
             var gameServer = new GameServer(tcpServer);
             try
