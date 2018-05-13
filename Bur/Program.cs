@@ -1,10 +1,10 @@
-﻿using Bur.Game;
-using Bur.Net.Server.Tcp;
-using Bur.Net.Tcp;
+﻿using Bur.Net.Udp;
 using LiteNetLib;
 using Serilog;
 using System;
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 
 namespace Bur
@@ -17,35 +17,35 @@ namespace Bur
         {
             Logging.Initialize();
 
-            var hostName = "127.0.0.1";
-            var port = 45698;
+            //var hostName = "127.0.0.1";
+            //var port = 45698;
 
-            var ipAddress = IPAddress.Parse(hostName);
-            var endPoint = new TcpEndPoint(ipAddress, port);
-            var tcpServer = new TcpServer(endPoint);
+            //var ipAddress = IPAddress.Parse(hostName);
+            //var endPoint = new TcpEndPoint(ipAddress, port);
+            //var tcpServer = new TcpServer(endPoint);
 
-            var cancellationTokenSource = new CancellationTokenSource();
+            //var cancellationTokenSource = new CancellationTokenSource();
 
-            Console.CancelKeyPress += (_, e) =>
-            {
-                e.Cancel = true;
-                logger.Information("Cancel key press");
-                cancellationTokenSource.Cancel();
-            };
+            //Console.CancelKeyPress += (_, e) =>
+            //{
+            //    e.Cancel = true;
+            //    logger.Information("Cancel key press");
+            //    cancellationTokenSource.Cancel();
+            //};
 
-            EventBasedNetListener listener = new EventBasedNetListener();
-            NetManager server = new NetManager(listener, "BUR");
+            //EventBasedNetListener listener = new EventBasedNetListener();
+            //NetManager server = new NetManager(listener, "BUR");
 
 
-            var gameServer = new GameServer(tcpServer);
-            try
-            {
-                gameServer.Run(cancellationTokenSource.Token);
-            }
-            catch (Exception e)
-            {
-                logger.Fatal(e, "Unhandled exception");
-            }
+            //var gameServer = new GameServer(tcpServer);
+            //try
+            //{
+            //    gameServer.Run(cancellationTokenSource.Token);
+            //}
+            //catch (Exception e)
+            //{
+            //    logger.Fatal(e, "Unhandled exception");
+            //}
         }
     }
 }

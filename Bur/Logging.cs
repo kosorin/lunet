@@ -31,7 +31,7 @@ namespace Bur
             LogEventLevel GetConsoleLogLevel()
             {
 #if DEBUG
-                return LogEventLevel.Debug;
+                return LogEventLevel.Verbose;
 #else
                 return LogEventLevel.Information;
 #endif

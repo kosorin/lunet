@@ -1,51 +1,30 @@
-﻿using System;
-using System.IO;
+﻿using Bur.Net.Udp;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 
 namespace Pur.Client
 {
     internal static class Program
     {
-        private static int Main()
+        private static void Main()
         {
-            Console.WriteLine("Client");
-
-            var hostName = "localhost";
-            var port = 45698;
+            PurLogging.Initialize("Client");
 
             Thread.Sleep(1000);
 
-            var encoding = Encoding.UTF8;
-            try
-            {
-                var client = new TcpClient();
+            var addressFamily = AddressFamily.InterNetwork;
+            var hostName = "localhost";
+            var port = 45685;
 
-                Console.WriteLine("Connecting...");
-                client.Connect(hostName, port);
-                Console.WriteLine("Connected");
+            var client = NetPeer.CreateClient(addressFamily, hostName, port);
+            client.Start();
 
-                var ns = client.GetStream();
+            client.EnqueueMessage("AHOJ!");
+            Thread.Sleep(500);
+            client.EnqueueMessage("TESTIK 2");
 
-                using (var br = new BinaryReader(ns, encoding, true))
-                using (var bw = new BinaryWriter(ns, encoding, true))
-                {
-                    bw.Write("Zdar");
-                }
-
-                Thread.Sleep(5000);
-
-                ns.Close();
-
-                client.Close();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.ToString());
-            }
-
-            return 0;
+            Thread.Sleep(100000);
+            client.Stop();
         }
     }
 }
