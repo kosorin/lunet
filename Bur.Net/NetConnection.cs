@@ -9,20 +9,20 @@ using System.Text;
 
 namespace Bur.Net.Udp
 {
-    public class NetPeer : Runnable
+    public class NetConnection
     {
         public const int StopTimeout = 1; // 1 second
 
         public const int ReceiveBufferSize = 64 * 1024; // 64 kB
 
 
-        private static readonly ILogger logger = Log.ForContext<NetPeer>();
+        private static readonly ILogger logger = Log.ForContext<NetConnection>();
 
         private byte[] receiveBuffer = new byte[ReceiveBufferSize];
 
         private readonly Socket socket;
 
-        private NetPeer(Socket socket)
+        private NetConnection(Socket socket)
         {
             this.socket = socket;
         }
@@ -30,11 +30,11 @@ namespace Bur.Net.Udp
 
 
 
-        public static NetPeer CreateClient(AddressFamily family, string hostName, int port)
+        public static NetConnection CreateClient(AddressFamily family, string hostName, int port)
         {
             if (!AddressHelpers.ValidateAddressFamily(family))
             {
-                throw new ArgumentException($"{nameof(NetPeer)} only accept {AddressFamily.InterNetwork} or {AddressFamily.InterNetworkV6} addresses.", nameof(family));
+                throw new ArgumentException($"{nameof(NetConnection)} only accept {AddressFamily.InterNetwork} or {AddressFamily.InterNetworkV6} addresses.", nameof(family));
             }
 
             if (hostName == null)
@@ -74,18 +74,18 @@ namespace Bur.Net.Udp
                 throw new SocketException((int)SocketError.NotConnected);
             }
 
-            return new NetPeer(socket);
+            return new NetConnection(socket);
         }
 
 
 
 
 
-        public static NetPeer CreateServer(AddressFamily family, int port)
+        public static NetConnection CreateServer(AddressFamily family, int port)
         {
             if (!AddressHelpers.ValidateAddressFamily(family))
             {
-                throw new ArgumentException($"{nameof(NetPeer)} only accept {AddressFamily.InterNetwork} or {AddressFamily.InterNetworkV6} addresses.", nameof(family));
+                throw new ArgumentException($"{nameof(NetConnection)} only accept {AddressFamily.InterNetwork} or {AddressFamily.InterNetworkV6} addresses.", nameof(family));
             }
 
             if (!EndPointHelpers.ValidatePortNumber(port))
@@ -103,7 +103,7 @@ namespace Bur.Net.Udp
             }
             socket.Bind(localEndPoint);
 
-            return new NetPeer(socket);
+            return new NetConnection(socket);
         }
 
 
@@ -113,25 +113,25 @@ namespace Bur.Net.Udp
 
 
 
-        public override void Start()
+        public void Start()
         {
-            if (IsRunning)
-            {
-                return;
-            }
-            IsRunning = true;
+            //if (IsRunning)
+            //{
+            //    return;
+            //}
+            //IsRunning = true;
 
             logger.Verbose("Peer started");
             BeginReceive();
         }
 
-        public override void Stop()
+        public void Stop()
         {
-            if (!IsRunning)
-            {
-                return;
-            }
-            IsRunning = false;
+            //if (!IsRunning)
+            //{
+            //    return;
+            //}
+            //IsRunning = false;
 
             logger.Verbose("Stopping peer");
             try
@@ -159,10 +159,10 @@ namespace Bur.Net.Udp
 
         private void BeginReceive()
         {
-            if (!IsRunning)
-            {
-                return;
-            }
+            //if (!IsRunning)
+            //{
+            //    return;
+            //}
 
             var remoteEndPoint = (EndPoint)EndPointHelpers.GetAny(socket.AddressFamily);
             socket.BeginReceiveFrom(receiveBuffer, 0, receiveBuffer.Length, SocketFlags.None, ref remoteEndPoint, ReceiveCallback, null);
@@ -170,10 +170,10 @@ namespace Bur.Net.Udp
 
         private void ReceiveCallback(IAsyncResult ar)
         {
-            if (!IsRunning)
-            {
-                return;
-            }
+            //if (!IsRunning)
+            //{
+            //    return;
+            //}
 
             var remoteEndPoint = (EndPoint)EndPointHelpers.GetAny(socket.AddressFamily);
             try
@@ -221,10 +221,10 @@ namespace Bur.Net.Udp
 
         private void SendCallback(IAsyncResult ar)
         {
-            if (!IsRunning)
-            {
-                return;
-            }
+            //if (!IsRunning)
+            //{
+            //    return;
+            //}
 
             try
             {
@@ -245,10 +245,10 @@ namespace Bur.Net.Udp
 
         private void SendToCallback(IAsyncResult ar)
         {
-            if (!IsRunning)
-            {
-                return;
-            }
+            //if (!IsRunning)
+            //{
+            //    return;
+            //}
 
             var remoteEndPoint = (IPEndPoint)ar.AsyncState;
             try

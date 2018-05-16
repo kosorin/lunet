@@ -1,11 +1,26 @@
-﻿namespace Bur.Common.Extensions
+﻿using System.Collections.Generic;
+
+namespace Bur.Common.Extensions
 {
     public static class ObjectExtensions
     {
         private const int seedPrimeNumber = 17;
-
         private const int fieldPrimeNumber = 23;
 
+
+        public static int GetHashCodeFromArray<T>(this object obj, T[] array, IEqualityComparer<T> elementComparer = null)
+        {
+            unchecked
+            {
+                elementComparer = elementComparer ?? EqualityComparer<T>.Default;
+                int hash = seedPrimeNumber;
+                foreach (T element in array)
+                {
+                    hash = (hash * fieldPrimeNumber) + elementComparer.GetHashCode(element);
+                }
+                return hash;
+            }
+        }
 
         public static int GetHashCodeFromFields<T>(this object obj, T field)
         {

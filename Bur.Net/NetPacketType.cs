@@ -4,12 +4,8 @@ using System.Text;
 
 namespace Bur.Net
 {
-    public abstract class NetMessage
-    {
-        public NetMessageType Type { get; set; }
-    }
 
-    public enum NetMessageType
+    public enum NetPacketType
     {
         Quick,
         Ping,

@@ -1,7 +1,10 @@
-﻿using System;
+﻿using Bur.Common;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
+using DataElement = System.Int32;
 
 namespace Bur.Net
 {
@@ -11,13 +14,33 @@ namespace Bur.Net
     /// <remarks>
     /// Source: https://github.com/lidgren/lidgren-network-gen3
     /// </remarks>
-    public sealed class NetBitVector
+    public sealed class NetBitVector : IEnumerable<bool>, IEquatable<NetBitVector>
     {
-        private const int byteSize = 8 * sizeof(int);
+        private const int byteSize = 8 * sizeof(byte);
+        private const int dataElementSize = 8 * sizeof(DataElement);
+
+        private static readonly ArrayEqualityComparer<int> dataComparer = new ArrayEqualityComparer<DataElement>();
 
         private readonly int capacity;
-        private readonly int[] data;
+        private readonly DataElement[] data;
         private int setBitCount;
+
+        /// <summary>
+        /// NetBitVector constructor.
+        /// </summary>
+        /// <param name="capacity">Number of bits.</param>
+        public NetBitVector(int capacity)
+        {
+            if (capacity < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(capacity));
+            }
+
+            this.capacity = capacity;
+            this.data = new DataElement[(capacity + (dataElementSize - 1)) / dataElementSize];
+
+            ByteCapacity = (this.capacity + (byteSize - 1)) / byteSize;
+        }
 
         /// <summary>
         /// Gets the number of bits/booleans stored in this vector.
@@ -25,28 +48,50 @@ namespace Bur.Net
         public int Capacity => capacity;
 
         /// <summary>
-        /// NetBitVector constructor.
+        /// Gets the number of bytes to store all bits.
         /// </summary>
-        public NetBitVector(int bitsCapacity)
-        {
-            capacity = bitsCapacity;
-            data = new int[(bitsCapacity + (byteSize - 1)) / byteSize];
-        }
+        public int ByteCapacity { get; }
 
         /// <summary>
         /// Returns true if all bits/booleans are set to zero/false.
         /// </summary>
-        public bool IsEmpty()
-        {
-            return setBitCount == 0;
-        }
+        public bool IsEmpty => setBitCount == 0;
 
         /// <summary>
         /// Returns the number of bits/booleans set to one/true.
         /// </summary>
-        public int Count()
+        public int Count => setBitCount;
+
+        /// <summary>
+        /// Gets the bit/bool at the specified index.
+        /// </summary>
+        [IndexerName("Bit")]
+        public bool this[int bitIndex]
         {
-            return setBitCount;
+            get { return Get(bitIndex); }
+            set { Set(bitIndex, value); }
+        }
+
+        public static bool operator ==(NetBitVector left, NetBitVector right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return true;
+            }
+            if (ReferenceEquals(left, null))
+            {
+                return false;
+            }
+            if (ReferenceEquals(right, null))
+            {
+                return false;
+            }
+            return left.EqualsCore(right);
+        }
+
+        public static bool operator !=(NetBitVector left, NetBitVector right)
+        {
+            return !(left == right);
         }
 
         /// <summary>
@@ -59,10 +104,10 @@ namespace Bur.Net
             var firstBit = data[0] & 1;
             for (int i = 0; i < lengthMinusOne; i++)
             {
-                data[i] = ((data[i] >> 1) & ~(1 << (byteSize - 1))) | data[i + 1] << (byteSize - 1);
+                data[i] = ((data[i] >> 1) & ~(1 << (dataElementSize - 1))) | data[i + 1] << (dataElementSize - 1);
             }
 
-            var lastIndex = capacity - 1 - (byteSize * lengthMinusOne);
+            var lastIndex = capacity - 1 - (dataElementSize * lengthMinusOne);
 
             // Special handling of last int
             var cur = data[lengthMinusOne];
@@ -92,7 +137,7 @@ namespace Bur.Net
                 bitIndex++;
             }
 
-            return (byteIndex * byteSize) + bitIndex;
+            return (byteIndex * dataElementSize) + bitIndex;
         }
 
         /// <summary>
@@ -102,7 +147,7 @@ namespace Bur.Net
         {
             NetException.Assert(bitIndex >= 0 && bitIndex < capacity);
 
-            return (data[bitIndex / byteSize] & (1 << (bitIndex % byteSize))) != 0;
+            return (data[bitIndex / dataElementSize] & (1 << (bitIndex % dataElementSize))) != 0;
         }
 
         /// <summary>
@@ -112,33 +157,23 @@ namespace Bur.Net
         {
             NetException.Assert(bitIndex >= 0 && bitIndex < capacity);
 
-            var byteIndex = bitIndex / byteSize;
+            var byteIndex = bitIndex / dataElementSize;
             if (value)
             {
-                if ((data[byteIndex] & (1 << (bitIndex % byteSize))) == 0)
+                if ((data[byteIndex] & (1 << (bitIndex % dataElementSize))) == 0)
                 {
                     setBitCount++;
                 }
-                data[byteIndex] |= (1 << (bitIndex % byteSize));
+                data[byteIndex] |= (1 << (bitIndex % dataElementSize));
             }
             else
             {
-                if ((data[byteIndex] & (1 << (bitIndex % byteSize))) != 0)
+                if ((data[byteIndex] & (1 << (bitIndex % dataElementSize))) != 0)
                 {
                     setBitCount--;
                 }
-                data[byteIndex] &= (~(1 << (bitIndex % byteSize)));
+                data[byteIndex] &= (~(1 << (bitIndex % dataElementSize)));
             }
-        }
-
-        /// <summary>
-        /// Gets the bit/bool at the specified index.
-        /// </summary>
-        [IndexerName("Bit")]
-        public bool this[int bitIndex]
-        {
-            get { return Get(bitIndex); }
-            set { Set(bitIndex, value); }
         }
 
         /// <summary>
@@ -163,6 +198,85 @@ namespace Bur.Net
             }
             sb.Append(']');
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Returns a byte array.
+        /// </summary>
+        public byte[] ToBytes()
+        {
+            var bytes = new byte[ByteCapacity];
+            var b = 0;
+            for (int i = 0; i < data.Length; i++)
+            {
+                for (int j = 0; j < sizeof(DataElement); j++)
+                {
+                    bytes[b++] = (byte)((data[i] >> (j * 8)) & 0xFF);
+                    if (b * 8 >= capacity)
+                    {
+                        goto End;
+                    }
+                }
+            }
+            End: return bytes;
+        }
+
+        public bool Equals(NetBitVector other)
+        {
+            if (ReferenceEquals(other, this))
+            {
+                return true;
+            }
+            if (ReferenceEquals(other, null))
+            {
+                return false;
+            }
+            return EqualsCore(other);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(obj, this))
+            {
+                return true;
+            }
+            if (ReferenceEquals(obj, null))
+            {
+                return false;
+            }
+            return obj is NetBitVector other && EqualsCore(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return dataComparer.GetHashCode(data);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        IEnumerator<bool> IEnumerable<bool>.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        private bool EqualsCore(NetBitVector other)
+        {
+            if (capacity != other.capacity)
+            {
+                return false;
+            }
+            return dataComparer.Equals(data, other.data);
+        }
+
+        private IEnumerator<bool> GetEnumerator()
+        {
+            for (int i = 0; i < capacity; i++)
+            {
+                yield return Get(i);
+            }
         }
     }
 }

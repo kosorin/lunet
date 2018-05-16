@@ -16,7 +16,7 @@ namespace Pur.Client
             var hostName = "localhost";
             var port = 45685;
 
-            var client = NetPeer.CreateClient(addressFamily, hostName, port);
+            var client = NetConnection.CreateClient(addressFamily, hostName, port);
             client.Start();
 
             client.EnqueueMessage("AHOJ!");
