@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -10,22 +11,38 @@ namespace Bur.Net
     /// <summary>
     /// Fixed size vector of booleans.
     /// </summary>
-    /// <remarks>
-    /// Source: https://github.com/lidgren/lidgren-network-gen3
-    /// </remarks>
     public sealed class NetBitVector : IEnumerable<bool>, IEquatable<NetBitVector>
     {
-        private const int DataElementSize = 8 * sizeof(int);
+        private const int BitsPerInt32 = 8 * sizeof(int);
+        private const int BitsPerByte = 8;
+        private const int BytesPerInt32 = 4;
 
-        private readonly int capacity;
         private readonly int[] data;
-        private int setBitCount;
+        private readonly int capacity;
 
         /// <summary>
-        /// Creates bit vector.
+        /// Creates a bit vector with capacity for one byte.
+        /// </summary>
+        public NetBitVector()
+            : this(BitsPerByte, false)
+        {
+        }
+
+        /// <summary>
+        /// Creates a bit vector.
         /// </summary>
         /// <param name="capacity">Number of bits.</param>
         public NetBitVector(int capacity)
+            : this(capacity, false)
+        {
+        }
+
+        /// <summary>
+        /// Creates a bit vector with default value.
+        /// </summary>
+        /// <param name="capacity">Number of bits.</param>
+        /// <param name="defaultValue">Value to assign to each bit.</param>
+        public NetBitVector(int capacity, bool defaultValue)
         {
             if (capacity < 0)
             {
@@ -33,25 +50,35 @@ namespace Bur.Net
             }
 
             this.capacity = capacity;
-            this.data = new int[(capacity + (DataElementSize - 1)) / DataElementSize];
+            ByteCapacity = GetCapacity(capacity, BitsPerByte);
 
-            var byteSize = 8 * sizeof(byte);
-            ByteCapacity = (this.capacity + (byteSize - 1)) / byteSize;
+            data = new int[GetCapacity(capacity, BitsPerInt32)];
+
+            SetAll(defaultValue);
         }
 
         /// <summary>
-        /// Creates bit vector from bytes.
+        /// Creates a bit vector from bytes.
         /// </summary>
         /// <param name="bytes">Source bytes.</param>
-        public NetBitVector(byte[] bytes) : this(8 * bytes.Length)
+        public NetBitVector(byte[] bytes)
         {
-            var b = 0;
-            for (int i = 0; i < data.Length; i++)
+            if (bytes == null)
             {
-                for (int j = 0; j < sizeof(int); j++)
+                throw new ArgumentNullException(nameof(bytes));
+            }
+
+            capacity = bytes.Length * BitsPerByte;
+            ByteCapacity = GetCapacity(capacity, BitsPerByte);
+
+            data = new int[GetCapacity(capacity, BitsPerInt32)];
+
+            for (int i = 0, b = 0; i < data.Length; i++)
+            {
+                for (int j = 0; j < BytesPerInt32; j++)
                 {
-                    data[i] |= bytes[b++] << (j * 8);
-                    if (b * 8 >= capacity)
+                    data[i] |= bytes[b++] << (j * BitsPerByte);
+                    if (b >= capacity / BitsPerByte)
                     {
                         goto End;
                     }
@@ -61,7 +88,26 @@ namespace Bur.Net
         }
 
         /// <summary>
-        /// Gets the number of bits/booleans stored in this vector.
+        /// Creates a bit vector from another bit vector.
+        /// </summary>
+        /// <param name="source">Source bit vector.</param>
+        public NetBitVector(NetBitVector source)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            capacity = source.capacity;
+            ByteCapacity = GetCapacity(capacity, BitsPerByte);
+
+            data = new int[source.data.Length];
+
+            Array.Copy(source.data, 0, data, 0, data.Length);
+        }
+
+        /// <summary>
+        /// Gets the number of bits stored in this vector.
         /// </summary>
         public int Capacity => capacity;
 
@@ -71,17 +117,7 @@ namespace Bur.Net
         public int ByteCapacity { get; }
 
         /// <summary>
-        /// Returns true if all bits/booleans are set to zero/false.
-        /// </summary>
-        public bool IsEmpty => setBitCount == 0;
-
-        /// <summary>
-        /// Returns the number of bits/booleans set to one/true.
-        /// </summary>
-        public int Count => setBitCount;
-
-        /// <summary>
-        /// Gets the bit/bool at the specified index.
+        /// Gets the bit at the specified index.
         /// </summary>
         [IndexerName("Bit")]
         public bool this[int bitIndex]
@@ -90,37 +126,142 @@ namespace Bur.Net
             set { Set(bitIndex, value); }
         }
 
+
         /// <summary>
-        /// Shift all bits one step down, cycling the first bit to the top.
+        /// Shift all the bits to left on count bits.
         /// </summary>
-        public void RotateDown()
+        public void LeftShift(int count)
+        {
+            if (count < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+            if (count == 0)
+            {
+                return;
+            }
+
+            var lengthToClear = data.Length;
+            if (count < capacity)
+            {
+                lengthToClear = count / BitsPerInt32;
+
+                var lastIndex = (capacity - 1) / BitsPerInt32;
+                var shiftCount = count - (lengthToClear * BitsPerInt32);
+
+                if (shiftCount == 0)
+                {
+                    Array.Copy(data, 0, data, lengthToClear, lastIndex + 1 - lengthToClear);
+                }
+                else
+                {
+                    var fromIndex = lastIndex - lengthToClear;
+                    unchecked
+                    {
+                        while (fromIndex > 0)
+                        {
+                            int left = data[fromIndex] << shiftCount;
+                            uint right = (uint)data[--fromIndex] >> (BitsPerInt32 - shiftCount);
+                            data[lastIndex] = left | (int)right;
+                            lastIndex--;
+                        }
+                        data[lastIndex] = data[fromIndex] << shiftCount;
+                    }
+                }
+            }
+
+            if (lengthToClear > 0)
+            {
+                Array.Clear(data, 0, lengthToClear);
+            }
+        }
+
+        /// <summary>
+        /// Shift all the bits to right on count bits.
+        /// </summary>
+        public void RightShift(int count)
+        {
+            if (count < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+            if (count == 0)
+            {
+                return;
+            }
+
+            var clearToIndex = 0;
+            var length = data.Length;
+            if (count < capacity)
+            {
+                var fromIndex = count / BitsPerInt32;
+                var shiftCount = count - (fromIndex * BitsPerInt32);
+
+                if (shiftCount == 0)
+                {
+                    unchecked
+                    {
+                        uint mask = uint.MaxValue >> (BitsPerInt32 - (capacity % BitsPerInt32));
+                        data[length - 1] &= (int)mask;
+                    }
+                    Array.Copy(data, fromIndex, data, 0, length - fromIndex);
+                    clearToIndex = length - fromIndex;
+                }
+                else
+                {
+                    var lastIndex = length - 1;
+                    unchecked
+                    {
+                        while (fromIndex < lastIndex)
+                        {
+                            uint right = (uint)data[fromIndex] >> shiftCount;
+                            int left = data[++fromIndex] << (BitsPerInt32 - shiftCount);
+                            data[clearToIndex++] = left | (int)right;
+                        }
+                        uint mask = uint.MaxValue >> (BitsPerInt32 - (capacity % BitsPerInt32));
+                        mask &= (uint)data[fromIndex];
+                        data[clearToIndex++] = (int)(mask >> shiftCount);
+                    }
+                }
+            }
+
+            var lengthToClear = length - clearToIndex;
+            if (lengthToClear > 0)
+            {
+                Array.Clear(data, clearToIndex, lengthToClear);
+            }
+        }
+
+        /// <summary>
+        /// Rotate all bits to right.
+        /// </summary>
+        public void RightRotate()
         {
             var lengthMinusOne = data.Length - 1;
 
-            var firstBit = data[0] & 1;
+            int firstBit = data[0] & 1;
             for (int i = 0; i < lengthMinusOne; i++)
             {
-                data[i] = ((data[i] >> 1) & ~(1 << (DataElementSize - 1))) | data[i + 1] << (DataElementSize - 1);
+                data[i] = ((data[i] >> 1) & ~(1 << (BitsPerInt32 - 1))) | data[i + 1] << (BitsPerInt32 - 1);
             }
 
-            var lastIndex = capacity - 1 - (DataElementSize * lengthMinusOne);
+            var lastIndex = capacity - 1 - (BitsPerInt32 * lengthMinusOne);
 
-            // Special handling of last int
-            var cur = data[lengthMinusOne];
-            cur >>= 1;
-            cur |= firstBit << lastIndex;
+            int last = data[lengthMinusOne];
+            last >>= 1;
+            last |= firstBit << lastIndex;
 
-            data[lengthMinusOne] = cur;
+            data[lengthMinusOne] = last;
         }
 
         /// <summary>
         /// Gets the first (lowest) index set to true.
         /// </summary>
-        public int GetFirstSetIndex()
+        public int GetFirstSetBitIndex()
         {
             var byteIndex = 0;
 
-            var @byte = data[0];
+            int @byte = data[0];
             while (@byte == 0)
             {
                 byteIndex++;
@@ -133,99 +274,149 @@ namespace Bur.Net
                 bitIndex++;
             }
 
-            return (byteIndex * DataElementSize) + bitIndex;
+            return (byteIndex * BitsPerInt32) + bitIndex;
         }
 
         /// <summary>
-        /// Gets the bit/bool at the specified index.
+        /// Gets the number of set bits in vector.
         /// </summary>
-        public bool Get(int bitIndex)
+        public int GetNumberOfSetBits()
         {
-            NetException.Assert(bitIndex >= 0 && bitIndex < capacity);
-
-            return (data[bitIndex / DataElementSize] & (1 << (bitIndex % DataElementSize))) != 0;
+            var count = 0;
+            for (int i = 0; i < data.Length; i++)
+            {
+                int x = data[i];
+#pragma warning disable RCS1058 // Use compound assignment.
+                x = x - ((x >> 1) & 0x55555555);
+                x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+                x = (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+#pragma warning restore RCS1058 // Use compound assignment.
+                count += x;
+            }
+            return count;
         }
 
         /// <summary>
-        /// Sets or clears the bit/bool at the specified index.
+        /// Gets the number of clear bits in vector.
         /// </summary>
-        public void Set(int bitIndex, bool value)
+        public int GetNumberOfClearBits()
         {
-            NetException.Assert(bitIndex >= 0 && bitIndex < capacity);
+            return capacity - GetNumberOfSetBits();
+        }
 
-            var byteIndex = bitIndex / DataElementSize;
+        /// <summary>
+        /// Checks whether all bits are cleared.
+        /// </summary>
+        public bool IsEmpty()
+        {
+            return GetNumberOfSetBits() == 0;
+        }
+
+        /// <summary>
+        /// Checks whether all bits are set.
+        /// </summary>
+        public bool IsFull()
+        {
+            return GetNumberOfSetBits() == capacity;
+        }
+
+        /// <summary>
+        /// Gets the bit at the specified index.
+        /// </summary>
+        public bool Get(int index)
+        {
+            if (index < 0 || index > capacity)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            return (data[index / BitsPerInt32] & (1 << (index % BitsPerInt32))) != 0;
+        }
+
+        /// <summary>
+        /// Sets or clears the bit at the specified index.
+        /// </summary>
+        public void Set(int index, bool value)
+        {
+            if (index < 0 || index > capacity)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
             if (value)
             {
-                if ((data[byteIndex] & (1 << (bitIndex % DataElementSize))) == 0)
-                {
-                    setBitCount++;
-                }
-                data[byteIndex] |= (1 << (bitIndex % DataElementSize));
+                data[index / BitsPerInt32] |= (1 << (index % BitsPerInt32));
             }
             else
             {
-                if ((data[byteIndex] & (1 << (bitIndex % DataElementSize))) != 0)
-                {
-                    setBitCount--;
-                }
-                data[byteIndex] &= (~(1 << (bitIndex % DataElementSize)));
+                data[index / BitsPerInt32] &= ~(1 << (index % BitsPerInt32));
             }
         }
 
         /// <summary>
-        /// Sets the bit/bool at the specified index.
+        /// Sets the bit at the specified index.
         /// </summary>
-        public void Set(int bitIndex)
+        public void Set(int index)
         {
-            Set(bitIndex, true);
+            Set(index, true);
         }
 
         /// <summary>
-        /// Clears the bit/bool at the specified index.
+        /// Clears the bit at the specified index.
         /// </summary>
-        public void Clear(int bitIndex)
+        public void Clear(int index)
         {
-            Set(bitIndex, false);
+            Set(index, false);
         }
 
         /// <summary>
-        /// Sets bits/bools at the specified indexes.
+        /// Sets bits at the specified indexes.
         /// </summary>
-        public void Set(params int[] bitIndexes)
+        public void SetAll(params int[] indexes)
         {
-            foreach (var bitIndex in bitIndexes)
+            foreach (var index in indexes)
             {
-                Set(bitIndex, true);
+                Set(index, true);
             }
         }
 
         /// <summary>
-        /// Clears bits/bools at the specified indexes.
+        /// Clears bits at the specified indexes.
         /// </summary>
-        public void Clear(params int[] bitIndexes)
+        public void ClearAll(params int[] indexes)
         {
-            foreach (var bitIndex in bitIndexes)
+            foreach (var index in indexes)
             {
-                Set(bitIndex, false);
+                Set(index, false);
             }
         }
 
         /// <summary>
-        /// Sets all bits/booleans to one/true.
+        /// Sets all bits to the value.
+        /// </summary>
+        public void SetAll(bool value)
+        {
+            int fillValue = value ? unchecked((int)0xFFFFFFFF) : 0;
+            for (int i = 0; i < data.Length; i++)
+            {
+                data[i] = fillValue;
+            }
+        }
+
+        /// <summary>
+        /// Sets all bits.
         /// </summary>
         public void SetAll()
         {
-            Array.Fill(data, int.MaxValue);
-            setBitCount = capacity;
+            SetAll(true);
         }
 
         /// <summary>
-        /// Sets all bits/booleans to zero/false.
+        /// Clears all bits.
         /// </summary>
         public void ClearAll()
         {
-            Array.Clear(data, 0, data.Length);
-            setBitCount = 0;
+            SetAll(false);
         }
 
         /// <summary>
@@ -249,19 +440,27 @@ namespace Bur.Net
         public byte[] ToBytes()
         {
             var bytes = new byte[ByteCapacity];
-            var b = 0;
-            for (int i = 0; i < data.Length; i++)
+            for (int i = 0, b = 0; i < data.Length; i++)
             {
-                for (int j = 0; j < sizeof(int); j++)
+                for (int j = 0; j < BytesPerInt32; j++)
                 {
-                    bytes[b++] = (byte)((data[i] >> (j * 8)) & 0xFF);
-                    if (b * 8 >= capacity)
+                    bytes[b++] = (byte)((data[i] >> (j * BitsPerByte)) & 0xFF);
+                    if (b >= capacity / BitsPerByte)
                     {
                         goto End;
                     }
                 }
             }
             End: return bytes;
+        }
+
+        private static int GetCapacity(int n, int div)
+        {
+            Debug.Assert(div > 0, $"{nameof(GetCapacity)}: {nameof(div)} argument must be greater than 0");
+
+            return n > 0
+                ? ((n - 1) / div) + 1
+                : 0;
         }
 
         #region IEnumerable
@@ -296,11 +495,11 @@ namespace Bur.Net
             {
                 return true;
             }
-            if (ReferenceEquals(left, null))
+            if (left is null)
             {
                 return false;
             }
-            if (ReferenceEquals(right, null))
+            if (right is null)
             {
                 return false;
             }
@@ -314,11 +513,11 @@ namespace Bur.Net
 
         public bool Equals(NetBitVector other)
         {
-            if (ReferenceEquals(other, this))
+            if (ReferenceEquals(this, other))
             {
                 return true;
             }
-            if (ReferenceEquals(other, null))
+            if (other is null)
             {
                 return false;
             }
@@ -327,11 +526,11 @@ namespace Bur.Net
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(obj, this))
+            if (ReferenceEquals(this, obj))
             {
                 return true;
             }
-            if (ReferenceEquals(obj, null))
+            if (obj is null)
             {
                 return false;
             }
@@ -358,7 +557,7 @@ namespace Bur.Net
 
         public static explicit operator sbyte(NetBitVector vector)
         {
-            NetException.Assert(vector.ByteCapacity <= sizeof(sbyte));
+            Debug.Assert(vector.ByteCapacity <= sizeof(sbyte));
 
             if (vector.data.Length == 0)
             {
@@ -369,7 +568,7 @@ namespace Bur.Net
 
         public static explicit operator byte(NetBitVector vector)
         {
-            NetException.Assert(vector.ByteCapacity <= sizeof(byte));
+            Debug.Assert(vector.ByteCapacity <= sizeof(byte));
 
             if (vector.data.Length == 0)
             {
@@ -380,7 +579,7 @@ namespace Bur.Net
 
         public static explicit operator short(NetBitVector vector)
         {
-            NetException.Assert(vector.ByteCapacity <= sizeof(short));
+            Debug.Assert(vector.ByteCapacity <= sizeof(short));
 
             if (vector.data.Length == 0)
             {
@@ -391,7 +590,7 @@ namespace Bur.Net
 
         public static explicit operator ushort(NetBitVector vector)
         {
-            NetException.Assert(vector.ByteCapacity <= sizeof(ushort));
+            Debug.Assert(vector.ByteCapacity <= sizeof(ushort));
 
             if (vector.data.Length == 0)
             {
@@ -402,7 +601,7 @@ namespace Bur.Net
 
         public static explicit operator int(NetBitVector vector)
         {
-            NetException.Assert(vector.ByteCapacity <= sizeof(int));
+            Debug.Assert(vector.ByteCapacity <= sizeof(int));
 
             if (vector.data.Length == 0)
             {
@@ -413,7 +612,7 @@ namespace Bur.Net
 
         public static explicit operator uint(NetBitVector vector)
         {
-            NetException.Assert(vector.ByteCapacity <= sizeof(uint));
+            Debug.Assert(vector.ByteCapacity <= sizeof(uint));
 
             if (vector.data.Length == 0)
             {
@@ -424,7 +623,7 @@ namespace Bur.Net
 
         public static explicit operator long(NetBitVector vector)
         {
-            NetException.Assert(vector.ByteCapacity <= sizeof(long));
+            Debug.Assert(vector.ByteCapacity <= sizeof(long));
 
             if (vector.data.Length == 0)
             {
@@ -439,7 +638,7 @@ namespace Bur.Net
 
         public static explicit operator ulong(NetBitVector vector)
         {
-            NetException.Assert(vector.ByteCapacity <= sizeof(ulong));
+            Debug.Assert(vector.ByteCapacity <= sizeof(ulong));
 
             if (vector.data.Length == 0)
             {

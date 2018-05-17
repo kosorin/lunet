@@ -25,29 +25,5 @@ namespace Bur.Net
             : base(info, context)
         {
         }
-
-        /// <summary>
-        /// Throws an exception (in DEBUG only) if condition is false.
-        /// </summary>
-        [Conditional("DEBUG")]
-        public static void Assert(bool condition, string message)
-        {
-            if (!condition)
-            {
-                throw new NetException(message);
-            }
-        }
-
-        /// <summary>
-        /// Throws an exception (in DEBUG only) if condition is false.
-        /// </summary>
-        [Conditional("DEBUG")]
-        public static void Assert(bool condition)
-        {
-            if (!condition)
-            {
-                throw new NetException();
-            }
-        }
     }
 }
