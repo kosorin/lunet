@@ -4,7 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
-using DataElement = System.Int32;
 
 namespace Bur.Net
 {
@@ -16,17 +15,14 @@ namespace Bur.Net
     /// </remarks>
     public sealed class NetBitVector : IEnumerable<bool>, IEquatable<NetBitVector>
     {
-        private const int byteSize = 8 * sizeof(byte);
-        private const int dataElementSize = 8 * sizeof(DataElement);
-
-        private static readonly ArrayEqualityComparer<int> dataComparer = new ArrayEqualityComparer<DataElement>();
+        private const int DataElementSize = 8 * sizeof(int);
 
         private readonly int capacity;
-        private readonly DataElement[] data;
+        private readonly int[] data;
         private int setBitCount;
 
         /// <summary>
-        /// NetBitVector constructor.
+        /// Creates bit vector.
         /// </summary>
         /// <param name="capacity">Number of bits.</param>
         public NetBitVector(int capacity)
@@ -37,9 +33,31 @@ namespace Bur.Net
             }
 
             this.capacity = capacity;
-            this.data = new DataElement[(capacity + (dataElementSize - 1)) / dataElementSize];
+            this.data = new int[(capacity + (DataElementSize - 1)) / DataElementSize];
 
+            var byteSize = 8 * sizeof(byte);
             ByteCapacity = (this.capacity + (byteSize - 1)) / byteSize;
+        }
+
+        /// <summary>
+        /// Creates bit vector from bytes.
+        /// </summary>
+        /// <param name="bytes">Source bytes.</param>
+        public NetBitVector(byte[] bytes) : this(8 * bytes.Length)
+        {
+            var b = 0;
+            for (int i = 0; i < data.Length; i++)
+            {
+                for (int j = 0; j < sizeof(int); j++)
+                {
+                    data[i] |= bytes[b++] << (j * 8);
+                    if (b * 8 >= capacity)
+                    {
+                        goto End;
+                    }
+                }
+            }
+            End: return;
         }
 
         /// <summary>
@@ -72,28 +90,6 @@ namespace Bur.Net
             set { Set(bitIndex, value); }
         }
 
-        public static bool operator ==(NetBitVector left, NetBitVector right)
-        {
-            if (ReferenceEquals(left, right))
-            {
-                return true;
-            }
-            if (ReferenceEquals(left, null))
-            {
-                return false;
-            }
-            if (ReferenceEquals(right, null))
-            {
-                return false;
-            }
-            return left.EqualsCore(right);
-        }
-
-        public static bool operator !=(NetBitVector left, NetBitVector right)
-        {
-            return !(left == right);
-        }
-
         /// <summary>
         /// Shift all bits one step down, cycling the first bit to the top.
         /// </summary>
@@ -104,14 +100,14 @@ namespace Bur.Net
             var firstBit = data[0] & 1;
             for (int i = 0; i < lengthMinusOne; i++)
             {
-                data[i] = ((data[i] >> 1) & ~(1 << (dataElementSize - 1))) | data[i + 1] << (dataElementSize - 1);
+                data[i] = ((data[i] >> 1) & ~(1 << (DataElementSize - 1))) | data[i + 1] << (DataElementSize - 1);
             }
 
-            var lastIndex = capacity - 1 - (dataElementSize * lengthMinusOne);
+            var lastIndex = capacity - 1 - (DataElementSize * lengthMinusOne);
 
             // Special handling of last int
             var cur = data[lengthMinusOne];
-            cur = cur >> 1;
+            cur >>= 1;
             cur |= firstBit << lastIndex;
 
             data[lengthMinusOne] = cur;
@@ -137,7 +133,7 @@ namespace Bur.Net
                 bitIndex++;
             }
 
-            return (byteIndex * dataElementSize) + bitIndex;
+            return (byteIndex * DataElementSize) + bitIndex;
         }
 
         /// <summary>
@@ -147,7 +143,7 @@ namespace Bur.Net
         {
             NetException.Assert(bitIndex >= 0 && bitIndex < capacity);
 
-            return (data[bitIndex / dataElementSize] & (1 << (bitIndex % dataElementSize))) != 0;
+            return (data[bitIndex / DataElementSize] & (1 << (bitIndex % DataElementSize))) != 0;
         }
 
         /// <summary>
@@ -157,29 +153,76 @@ namespace Bur.Net
         {
             NetException.Assert(bitIndex >= 0 && bitIndex < capacity);
 
-            var byteIndex = bitIndex / dataElementSize;
+            var byteIndex = bitIndex / DataElementSize;
             if (value)
             {
-                if ((data[byteIndex] & (1 << (bitIndex % dataElementSize))) == 0)
+                if ((data[byteIndex] & (1 << (bitIndex % DataElementSize))) == 0)
                 {
                     setBitCount++;
                 }
-                data[byteIndex] |= (1 << (bitIndex % dataElementSize));
+                data[byteIndex] |= (1 << (bitIndex % DataElementSize));
             }
             else
             {
-                if ((data[byteIndex] & (1 << (bitIndex % dataElementSize))) != 0)
+                if ((data[byteIndex] & (1 << (bitIndex % DataElementSize))) != 0)
                 {
                     setBitCount--;
                 }
-                data[byteIndex] &= (~(1 << (bitIndex % dataElementSize)));
+                data[byteIndex] &= (~(1 << (bitIndex % DataElementSize)));
             }
+        }
+
+        /// <summary>
+        /// Sets the bit/bool at the specified index.
+        /// </summary>
+        public void Set(int bitIndex)
+        {
+            Set(bitIndex, true);
+        }
+
+        /// <summary>
+        /// Clears the bit/bool at the specified index.
+        /// </summary>
+        public void Clear(int bitIndex)
+        {
+            Set(bitIndex, false);
+        }
+
+        /// <summary>
+        /// Sets bits/bools at the specified indexes.
+        /// </summary>
+        public void Set(params int[] bitIndexes)
+        {
+            foreach (var bitIndex in bitIndexes)
+            {
+                Set(bitIndex, true);
+            }
+        }
+
+        /// <summary>
+        /// Clears bits/bools at the specified indexes.
+        /// </summary>
+        public void Clear(params int[] bitIndexes)
+        {
+            foreach (var bitIndex in bitIndexes)
+            {
+                Set(bitIndex, false);
+            }
+        }
+
+        /// <summary>
+        /// Sets all bits/booleans to one/true.
+        /// </summary>
+        public void SetAll()
+        {
+            Array.Fill(data, int.MaxValue);
+            setBitCount = capacity;
         }
 
         /// <summary>
         /// Sets all bits/booleans to zero/false.
         /// </summary>
-        public void Clear()
+        public void ClearAll()
         {
             Array.Clear(data, 0, data.Length);
             setBitCount = 0;
@@ -209,7 +252,7 @@ namespace Bur.Net
             var b = 0;
             for (int i = 0; i < data.Length; i++)
             {
-                for (int j = 0; j < sizeof(DataElement); j++)
+                for (int j = 0; j < sizeof(int); j++)
                 {
                     bytes[b++] = (byte)((data[i] >> (j * 8)) & 0xFF);
                     if (b * 8 >= capacity)
@@ -219,6 +262,54 @@ namespace Bur.Net
                 }
             }
             End: return bytes;
+        }
+
+        #region IEnumerable
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        IEnumerator<bool> IEnumerable<bool>.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        private IEnumerator<bool> GetEnumerator()
+        {
+            for (int i = 0; i < capacity; i++)
+            {
+                yield return Get(i);
+            }
+        }
+
+        #endregion IEnumerable
+
+        #region IEquatable
+
+        private static readonly ArrayEqualityComparer<int> dataComparer = new ArrayEqualityComparer<int>();
+
+        public static bool operator ==(NetBitVector left, NetBitVector right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return true;
+            }
+            if (ReferenceEquals(left, null))
+            {
+                return false;
+            }
+            if (ReferenceEquals(right, null))
+            {
+                return false;
+            }
+            return left.EqualsCore(right);
+        }
+
+        public static bool operator !=(NetBitVector left, NetBitVector right)
+        {
+            return !(left == right);
         }
 
         public bool Equals(NetBitVector other)
@@ -252,16 +343,6 @@ namespace Bur.Net
             return dataComparer.GetHashCode(data);
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        IEnumerator<bool> IEnumerable<bool>.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
         private bool EqualsCore(NetBitVector other)
         {
             if (capacity != other.capacity)
@@ -271,12 +352,111 @@ namespace Bur.Net
             return dataComparer.Equals(data, other.data);
         }
 
-        private IEnumerator<bool> GetEnumerator()
+        #endregion IEquatable
+
+        #region Explicit operators
+
+        public static explicit operator sbyte(NetBitVector vector)
         {
-            for (int i = 0; i < capacity; i++)
+            NetException.Assert(vector.ByteCapacity <= sizeof(sbyte));
+
+            if (vector.data.Length == 0)
             {
-                yield return Get(i);
+                return default;
             }
+            return (sbyte)(vector.data[0] & 0xFF);
         }
+
+        public static explicit operator byte(NetBitVector vector)
+        {
+            NetException.Assert(vector.ByteCapacity <= sizeof(byte));
+
+            if (vector.data.Length == 0)
+            {
+                return default;
+            }
+            return (byte)(vector.data[0] & 0xFF);
+        }
+
+        public static explicit operator short(NetBitVector vector)
+        {
+            NetException.Assert(vector.ByteCapacity <= sizeof(short));
+
+            if (vector.data.Length == 0)
+            {
+                return default;
+            }
+            return (short)(vector.data[0] & 0xFFFF);
+        }
+
+        public static explicit operator ushort(NetBitVector vector)
+        {
+            NetException.Assert(vector.ByteCapacity <= sizeof(ushort));
+
+            if (vector.data.Length == 0)
+            {
+                return default;
+            }
+            return (ushort)(vector.data[0] & 0xFFFF);
+        }
+
+        public static explicit operator int(NetBitVector vector)
+        {
+            NetException.Assert(vector.ByteCapacity <= sizeof(int));
+
+            if (vector.data.Length == 0)
+            {
+                return default;
+            }
+            return (int)vector.data[0];
+        }
+
+        public static explicit operator uint(NetBitVector vector)
+        {
+            NetException.Assert(vector.ByteCapacity <= sizeof(uint));
+
+            if (vector.data.Length == 0)
+            {
+                return default;
+            }
+            return (uint)vector.data[0];
+        }
+
+        public static explicit operator long(NetBitVector vector)
+        {
+            NetException.Assert(vector.ByteCapacity <= sizeof(long));
+
+            if (vector.data.Length == 0)
+            {
+                return default;
+            }
+            if (vector.data.Length == 1)
+            {
+                return (uint)vector.data[0];
+            }
+            return ((long)vector.data[1] << 32) | (uint)vector.data[0];
+        }
+
+        public static explicit operator ulong(NetBitVector vector)
+        {
+            NetException.Assert(vector.ByteCapacity <= sizeof(ulong));
+
+            if (vector.data.Length == 0)
+            {
+                return default;
+            }
+            if (vector.data.Length == 1)
+            {
+                return (uint)vector.data[0];
+            }
+            return ((ulong)vector.data[1] << 32) | (uint)vector.data[0];
+        }
+
+        public static explicit operator string(NetBitVector vector)
+        {
+            return vector.ToString();
+        }
+
+        #endregion Explicit operators
     }
 }

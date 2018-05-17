@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Playground", "Playground", "{62B16089-7872-4EB3-BAB6-60E43DA03545}"
+	ProjectSection(SolutionItems) = preProject
+		PurLogging.cs = PurLogging.cs
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pur.Client", "Playground\Pur.Client\Pur.Client.csproj", "{FE46E88C-3CEA-4BD3-9660-059B00A50A84}"
 EndProject
@@ -16,10 +19,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7E174BE4-5281-4B14-8FC0-B57868B475FE}"
 	ProjectSection(SolutionItems) = preProject
 		GlobalSuppressions.cs = GlobalSuppressions.cs
-		PurLogging.cs = PurLogging.cs
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pur.Server", "Playground\Pur.Server\Pur.Server.csproj", "{922B6C61-8C68-4699-8F7C-6F571F6A8375}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pur.Server", "Playground\Pur.Server\Pur.Server.csproj", "{922B6C61-8C68-4699-8F7C-6F571F6A8375}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

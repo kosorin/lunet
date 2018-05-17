@@ -59,7 +59,7 @@ namespace Bur.Net.Udp
                     logger.Debug("Connect from {LocalEndPoint} to {RemoteEndPoint}", socket.LocalEndPoint, socket.RemoteEndPoint);
                     break;
                 }
-                catch (Exception e)
+                catch
                 {
                     if (socket != null)
                     {

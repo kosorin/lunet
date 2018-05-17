@@ -1,5 +1,8 @@
 ﻿using System.Collections.Generic;
 
+#pragma warning disable RCS1175 // Unused this parameter.
+#pragma warning disable RCS1212 // Remove redundant assignment.
+
 namespace Bur.Common.Extensions
 {
     public static class ObjectExtensions
