@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Bur.Net
+﻿namespace Bur.Net
 {
-
-    public enum NetPacketType
+    public enum NetPacketType : byte
     {
-        Quick,
+        None,
         Ping,
         Pong,
         ConnectRequest,
         ConnectAccept,
+        ConnectDeny,
+        KeepAlive,
         Disconnect,
     }
 }

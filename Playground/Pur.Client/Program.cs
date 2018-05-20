@@ -1,4 +1,4 @@
-﻿using Bur.Net.Udp;
+﻿using Bur.Net;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -12,18 +12,15 @@ namespace Pur.Client
 
             Thread.Sleep(1000);
 
-            var addressFamily = AddressFamily.InterNetwork;
-            var hostName = "localhost";
-            var port = 45685;
-
-            var client = NetConnection.CreateClient(addressFamily, hostName, port);
+            var client = new NetClient("localhost", 45685, AddressFamily.InterNetwork);
             client.Start();
 
-            client.EnqueueMessage("AHOJ!");
+            client.SendMessage("AHOJ!");
             Thread.Sleep(500);
-            client.EnqueueMessage("TESTIK 2");
+            client.SendMessage("TESTIK 2");
 
-            Thread.Sleep(100000);
+            Thread.Sleep(100);
+
             client.Stop();
         }
     }

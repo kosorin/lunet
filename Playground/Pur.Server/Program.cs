@@ -1,4 +1,4 @@
-﻿using Bur.Net.Udp;
+﻿using Bur.Net;
 using Serilog;
 using System.Net.Sockets;
 using System.Threading;
@@ -13,13 +13,11 @@ namespace Pur.Server
         {
             PurLogging.Initialize("Server");
 
-            var addressFamily = AddressFamily.InterNetwork;
-            var port = 45685;
-
-            var server = NetConnection.CreateServer(addressFamily, port);
+            var server = new NetServer(45685, AddressFamily.InterNetwork);
             server.Start();
 
-            Thread.Sleep(200000);
+            Thread.Sleep(2000);
+
             server.Stop();
         }
     }

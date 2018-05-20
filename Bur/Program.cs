@@ -1,14 +1,14 @@
-﻿using Bur.Net;
+﻿using Bur.Common.Extensions;
+using Bur.Net;
 using Serilog;
-using System;
-using System.Collections;
-using System.Linq;
+using System.Diagnostics;
+using System.Text;
 
 namespace Bur
 {
     internal static class Program
     {
-        private static readonly ILogger logger = Log.ForContext(typeof(Program));
+        private static readonly ILogger Logger = Log.ForContext(typeof(Program));
 
         private static void Main()
         {
