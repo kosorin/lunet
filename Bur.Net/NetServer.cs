@@ -35,7 +35,7 @@ namespace Bur.Net
 
             if (_family == AddressFamily.InterNetworkV6)
             {
-                socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+                socket.DualMode = true;
             }
 
             socket.Bind(localEndPoint);
