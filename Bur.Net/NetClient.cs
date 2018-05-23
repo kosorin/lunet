@@ -1,10 +1,6 @@
 ﻿using Serilog;
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Sockets;
-using System.Text;
 
 namespace Bur.Net
 {
@@ -12,26 +8,22 @@ namespace Bur.Net
     {
         private static readonly ILogger Logger = Log.ForContext<NetClient>();
 
-        private readonly string _hostName;
-        private readonly int _port;
-
+        private readonly NetClientConfiguration _config;
         private NetConnection _connection;
 
-
-        public NetClient(string hostName, int port, AddressFamily family = AddressFamily.InterNetwork)
-            : base(family)
+        public NetClient(string hostname, int port)
+            : this(new NetClientConfiguration
+            {
+                Hostname = hostname,
+                Port = port,
+            })
         {
-            if (hostName == null)
-            {
-                throw new ArgumentNullException(nameof(hostName));
-            }
-            if (!EndPointHelpers.ValidatePortNumber(port))
-            {
-                throw new ArgumentOutOfRangeException(nameof(port));
-            }
+        }
 
-            _hostName = hostName;
-            _port = port;
+        public NetClient(NetClientConfiguration config)
+            : base(config)
+        {
+            _config = config;
         }
 
 
@@ -40,37 +32,22 @@ namespace Bur.Net
             _connection.SendMessage(message);
         }
 
-
-        protected override Socket CreateSocket()
-        {
-            Socket socket = null;
-
-            var addresses = Dns.GetHostAddresses(_hostName);
-            foreach (var address in addresses.Where(x => x.AddressFamily == _family))
-            {
-                try
-                {
-                    socket = new Socket(address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-                    socket.Connect(address, _port);
-                    Logger.Debug("Connect from {LocalEndPoint} to {RemoteEndPoint}", socket.LocalEndPoint, socket.RemoteEndPoint);
-                    break;
-                }
-                catch
-                {
-                    if (socket != null)
-                    {
-                        socket.Close();
-                        socket = null;
-                    }
-                }
-            }
-
-            return socket;
-        }
-
         protected override void OnStart()
         {
-            _connection = new NetConnection(_socket, (IPEndPoint)_socket.RemoteEndPoint);
+            IPAddress hostAddress;
+            if (!IPAddress.TryParse(_config.Hostname, out hostAddress))
+            {
+                hostAddress = Dns
+                    .GetHostAddresses(_config.Hostname)
+                    .FirstOrDefault(x => x.AddressFamily == _config.AddressFamily);
+            }
+
+            if (hostAddress == null)
+            {
+            }
+
+            var remoteEndPoint = new IPEndPoint(hostAddress, _config.Port);
+            _connection = new NetConnection(_socket, remoteEndPoint);
 
             base.OnStart();
         }

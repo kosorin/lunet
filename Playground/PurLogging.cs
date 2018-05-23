@@ -1,5 +1,6 @@
 ﻿using Serilog;
 using Serilog.Events;
+using System.Reflection;
 
 namespace Pur
 {
@@ -13,11 +14,12 @@ namespace Pur
 
         public static void Initialize(string name)
         {
+            var version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
                 .WriteTo.Console(LogEventLevel.Verbose, $"{name}: [{{Timestamp:{ShortTimeFormatString}}} {{Level:u3}}] {{Message:lj}}{{NewLine}}{{Exception}}")
                 .CreateLogger();
-            Log.Logger.Information("Start");
+            Log.Logger.Information("{AppName} v{Version}", name, version);
         }
     }
 }

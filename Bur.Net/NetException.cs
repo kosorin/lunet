@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace Bur.Net
 {
@@ -17,11 +16,6 @@ namespace Bur.Net
 
         public NetException(string message, Exception inner)
             : base(message, inner)
-        {
-        }
-
-        private NetException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
         {
         }
     }

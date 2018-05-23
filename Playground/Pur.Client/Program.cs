@@ -1,5 +1,6 @@
 ﻿using Bur.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 
 namespace Pur.Client
@@ -10,18 +11,23 @@ namespace Pur.Client
         {
             PurLogging.Initialize("Client");
 
-            Thread.Sleep(1000);
+            Thread.Sleep(5000);
 
-            var client = new NetClient("localhost", 45685, AddressFamily.InterNetwork);
+            var client = new NetClient("localhost", 45685);
             client.Start();
 
-            client.SendMessage("AHOJ!");
-            Thread.Sleep(500);
-            client.SendMessage("TESTIK 2");
+            var bytes = new byte[2 * 1024];
+            var message = Encoding.UTF8.GetString(bytes);
+            for (int i = 0; i < 3; i++)
+            {
+                client.SendMessage(message);
+            }
 
-            Thread.Sleep(100);
+            Thread.Sleep(1000);
 
             client.Stop();
+
+            Thread.Sleep(1000);
         }
     }
 }

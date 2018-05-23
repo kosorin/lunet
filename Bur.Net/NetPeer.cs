@@ -1,41 +1,37 @@
-﻿using Serilog;
+﻿using Bur.Common;
+using Serilog;
 using System;
 using System.Net;
 using System.Net.Sockets;
 
 namespace Bur.Net
 {
-    public abstract class NetPeer
+    public abstract class NetPeer : IDisposable
     {
-        private const int StopTimeout = 1; // 1 second
-        private const int ReceiveBufferSize = 4 * 1024; // 4 kB
-
-        private static readonly ILogger Logger = Log.ForContext<NetPeer>();
-
-        protected volatile bool _isRunning;
-
-        protected readonly AddressFamily _family;
         protected Socket _socket;
-        protected IPEndPoint _localEndPoint;
+        private static readonly ILogger Logger = Log.ForContext<NetPeer>();
+        private readonly NetPeerConfiguration _config;
+        private readonly ObjectPool<SocketAsyncEventArgs> _argsPool;
+        private readonly SocketBufferManager _bufferManager;
+        private volatile bool _isRunning;
+        private bool _disposed;
 
-        private byte[] _receiveBuffer = new byte[ReceiveBufferSize];
-
-
-        protected NetPeer(AddressFamily family)
+        protected NetPeer(NetPeerConfiguration config)
         {
-            if (!AddressHelpers.ValidateAddressFamily(family))
+            if (!config.IsLocked)
             {
-                throw new ArgumentException($"{nameof(NetConnection)} only accept {AddressFamily.InterNetwork} or {AddressFamily.InterNetworkV6} addresses.", nameof(family));
+                config.Lock();
             }
+            _config = config;
 
-            _family = family;
+            const int channelCount = 2; // receive + send
+            _argsPool = new ObjectPool<SocketAsyncEventArgs>(channelCount, CreateArgs);
+            _bufferManager = new SocketBufferManager(channelCount, _config.PacketBufferSize);
         }
 
+        public bool IsRunning => _isRunning;
 
-        public bool IsRunning
-        {
-            get => _isRunning;
-        }
+        public IPEndPoint LocalEndPoint => (IPEndPoint)_socket.LocalEndPoint;
 
         public void Start()
         {
@@ -45,7 +41,9 @@ namespace Bur.Net
             }
             _isRunning = true;
 
-            _socket = CreateSocket() ?? throw new SocketException((int)SocketError.NotConnected);
+            Logger.Verbose("Starting peer");
+
+            BindSocket();
 
             OnStart();
 
@@ -63,79 +61,138 @@ namespace Bur.Net
             Logger.Verbose("Stopping peer");
             try
             {
-                _socket.Close(StopTimeout);
+                _socket.Close(_config.CloseTimeout);
                 Logger.Debug("Peer stopped");
             }
             catch (Exception e)
             {
                 Logger.Error(e, "Stop peer");
             }
+            finally
+            {
+                _socket = null;
+            }
         }
 
-
-        protected abstract Socket CreateSocket();
+        public void Dispose()
+        {
+            Dispose(true);
+        }
 
         protected virtual void OnStart()
         {
-            BeginReceive();
+            StartReceive();
         }
 
-
-        private void BeginReceive()
+        protected virtual void Dispose(bool disposing)
         {
-            var remoteEndPoint = (EndPoint)EndPointHelpers.GetAny(_socket.AddressFamily);
-            _socket.BeginReceiveFrom(_receiveBuffer, 0, _receiveBuffer.Length, SocketFlags.None, ref remoteEndPoint, ReceiveCallback, null);
-        }
-
-        private void ReceiveCallback(IAsyncResult ar)
-        {
-            if (!_isRunning)
+            if (!_disposed)
             {
-                return;
+                if (disposing)
+                {
+                    _argsPool.Dispose();
+                    _socket?.Close();
+                }
+                _disposed = true;
             }
+        }
 
-            var remoteEndPoint = (EndPoint)EndPointHelpers.GetAny(_socket.AddressFamily);
+        private void BindSocket()
+        {
             try
             {
-                var size = _socket.EndReceiveFrom(ar, ref remoteEndPoint);
-                Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size})", remoteEndPoint, size);
+                _socket = new Socket(_config.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+                _socket.SendBufferSize = _config.SendBufferSize;
+                _socket.ReceiveBufferSize = _config.ReceiveBufferSize;
+                if (_config.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    _socket.DualMode = _config.DualMode;
+                }
 
-                if (size > 0)
-                {
-                    var data = new byte[size];
-                    Array.Copy(_receiveBuffer, 0, data, 0, size);
-                }
-                else
-                {
-                    Logger.Verbose("[{RemoteEndPoint}] Channel closed by a remote host", remoteEndPoint);
-                    Stop();
-                }
+                var address = _config.AddressFamily.GetAnyAddress();
+                var localEndPoint = new IPEndPoint(address, _config.LocalPort ?? IPEndPoint.MinPort);
+                _socket.Bind(localEndPoint);
             }
-            catch (SocketException e)
+            catch (Exception e)
+            {
+                throw new NetException("Could not bind socket.", e);
+            }
+        }
+
+        private SocketAsyncEventArgs CreateArgs()
+        {
+            var args = new SocketAsyncEventArgs();
+            args.Completed += IO_Completed;
+            args.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
+            _bufferManager.SetBuffer(args);
+            return args;
+        }
+
+        private void StartReceive()
+        {
+            StartReceive(_argsPool.Rent());
+        }
+
+        private void StartReceive(SocketAsyncEventArgs args)
+        {
+            if (!_socket.ReceiveFromAsync(args))
+            {
+                ProcessReceive(args);
+            }
+        }
+
+        private void ProcessReceive(SocketAsyncEventArgs args)
+        {
+            if (args.BytesTransferred > 0 && args.SocketError == SocketError.Success)
+            {
+                Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size})", args.RemoteEndPoint, args.BytesTransferred);
+
+                StartReceive(args);
+            }
+            else
             {
                 var isError = true;
-                switch (e.SocketErrorCode)
+                switch (args.SocketError)
                 {
                 case SocketError.MessageSize:
-                    Logger.Warning("[{RemoteEndPoint}] Received data are too big (size>{ReceiveBufferSize})", remoteEndPoint, ReceiveBufferSize);
+                    Logger.Warning("[{RemoteEndPoint}] Received data are too big (size>{ReceiveBufferSize})", args.RemoteEndPoint, _config.PacketBufferSize);
+                    args.SocketError = SocketError.Success;
+                    isError = false;
+                    break;
+
+                case SocketError.Success:
                     isError = false;
                     break;
                 }
 
                 if (isError)
                 {
-                    Logger.Error(e, "[{RemoteEndPoint}] Unable to receive data ({SocketErrorCode}:{ErrorCode})", remoteEndPoint, e.SocketErrorCode, e.ErrorCode);
+                    Logger.Error("[{RemoteEndPoint}] Unable to receive data ({SocketErrorCode}:{ErrorCode})", args.RemoteEndPoint, args.SocketError, (int)args.SocketError);
                     Stop();
                 }
             }
-            catch (Exception e)
-            {
-                Logger.Error(e, "[{RemoteEndPoint}] Unable to receive data", remoteEndPoint);
-                Stop();
-            }
-
-            BeginReceive();
         }
 
+        private void IO_Completed(object sender, SocketAsyncEventArgs args)
+        {
+            if (args.SocketError == SocketError.OperationAborted)
+            {
+                return;
+            }
+
+            switch (args.LastOperation)
+            {
+            case SocketAsyncOperation.ReceiveFrom:
+                ProcessReceive(args);
+                break;
+
+            case SocketAsyncOperation.Send:
+                //this.ProcessSend(e);
+                break;
+
+            default:
+                throw new InvalidOperationException("Unexpected socket async operation.");
+            }
+        }
     }
 }

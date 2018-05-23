@@ -6,6 +6,9 @@ using System.Text;
 
 namespace Bur.Net
 {
+    /// <summary>
+    /// Represents a connection to remote peer.
+    /// </summary>
     internal class NetConnection
     {
         private static readonly ILogger Logger = Log.ForContext<NetConnection>();
@@ -22,16 +25,11 @@ namespace Bur.Net
         public void SendMessage(string message)
         {
             var sendBuffer = Encoding.UTF8.GetBytes(message);
-            _socket.BeginSend(sendBuffer, 0, sendBuffer.Length, SocketFlags.None, SendCallback, null);
+            _socket.BeginSendTo(sendBuffer, 0, sendBuffer.Length, SocketFlags.None, _remoteEndPoint, SendCallback, null);
         }
 
         private void SendCallback(IAsyncResult ar)
         {
-            //if (!IsRunning)
-            //{
-            //    return;
-            //}
-
             try
             {
                 var size = _socket.EndSendTo(ar);
@@ -40,12 +38,10 @@ namespace Bur.Net
             catch (SocketException e)
             {
                 Logger.Error(e, "[{RemoteEndPoint}] Unable to send data ({SocketErrorCode}={ErrorCode})", _remoteEndPoint, e.SocketErrorCode, e.ErrorCode);
-                //Stop();
             }
             catch (Exception e)
             {
                 Logger.Error(e, "[{RemoteEndPoint}] Unable to send data", _remoteEndPoint);
-                //Stop();
             }
         }
     }

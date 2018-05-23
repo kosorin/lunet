@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace Bur.Net
 {
@@ -11,36 +12,21 @@ namespace Bur.Net
     {
         private static readonly ILogger Logger = Log.ForContext<NetServer>();
 
-        private readonly int _port;
+        private readonly NetServerConfiguration _config;
 
-
-        public NetServer(int port, AddressFamily family = AddressFamily.InterNetwork)
-            : base(family)
-        {
-            if (!EndPointHelpers.ValidatePortNumber(port))
+        public NetServer(int port, AddressFamily addressFamily = AddressFamily.InterNetwork)
+            : this(new NetServerConfiguration
             {
-                throw new ArgumentOutOfRangeException(nameof(port));
-            }
-
-            _port = port;
+                LocalPort = port,
+                AddressFamily = addressFamily,
+            })
+        {
         }
 
-
-        protected override Socket CreateSocket()
+        public NetServer(NetServerConfiguration config)
+            : base(config)
         {
-            var address = AddressHelpers.GetAny(_family);
-            var localEndPoint = new IPEndPoint(address, _port);
-
-            var socket = new Socket(_family, SocketType.Dgram, ProtocolType.Udp);
-
-            if (_family == AddressFamily.InterNetworkV6)
-            {
-                socket.DualMode = true;
-            }
-
-            socket.Bind(localEndPoint);
-
-            return socket;
+            _config = config;
         }
     }
 }
