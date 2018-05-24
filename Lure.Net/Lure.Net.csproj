@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
 
@@ -14,14 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Serilog.Enrichers.Thread" Version="3.0.0" />
-    <PackageReference Include="Serilog.Sinks.Async" Version="1.1.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="4.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Lure\Lure.csproj" />
-    <ProjectReference Include="..\Lure.Net\Lure.Net.csproj" />
   </ItemGroup>
 
 </Project>

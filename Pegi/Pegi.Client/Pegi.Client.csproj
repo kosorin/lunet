@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\PegiLogging.cs" Link="PegiLogging.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Lure\Lure.csproj" />
+    <ProjectReference Include="..\..\Lure.Net\Lure.Net.csproj" />
+  </ItemGroup>
+
+</Project>

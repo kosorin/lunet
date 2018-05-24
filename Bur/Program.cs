@@ -1,4 +1,4 @@
-﻿using Bur.Common;
+﻿using Lure;
 using Serilog;
 using Serilog.Events;
 
