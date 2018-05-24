@@ -8,11 +8,9 @@ namespace Pur.Server
 {
     internal static class Program
     {
-        private static readonly ILogger Logger = Log.ForContext(typeof(Program));
-
         private static void Main()
         {
-            PurLogging.Initialize("Server");
+            PurLogging.Configure("Server");
 
             var server = new NetServer(45685, AddressFamily.InterNetwork);
 
@@ -20,7 +18,7 @@ namespace Pur.Server
             Console.CancelKeyPress += (_, e) =>
             {
                 e.Cancel = true;
-                Logger.Information("Ctrl+C");
+                Log.Information("Ctrl+C");
 
                 server.Stop();
                 resetEvent.Set();

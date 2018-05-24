@@ -9,7 +9,7 @@ namespace Pur.Client
     {
         private static void Main()
         {
-            PurLogging.Initialize("Client");
+            PurLogging.Configure("Client");
 
             Thread.Sleep(5000);
 

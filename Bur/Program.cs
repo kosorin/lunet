@@ -1,8 +1,6 @@
-﻿using Bur.Common.Extensions;
-using Bur.Net;
+﻿using Bur.Common;
 using Serilog;
-using System.Diagnostics;
-using System.Text;
+using Serilog.Events;
 
 namespace Bur
 {
@@ -12,7 +10,39 @@ namespace Bur
 
         private static void Main()
         {
-            Logging.Initialize();
+            Logging.Configure(LoggerConfigurator);
+        }
+
+        private static void LoggerConfigurator(LoggerConfiguration config)
+        {
+            config
+                .MinimumLevel.Verbose()
+                .Enrich.WithThreadId()
+
+                .WriteTo.Console(
+                    restrictedToMinimumLevel: GetConsoleLogLevel(),
+                    outputTemplate: $"[{{Timestamp:{Logging.ShortTimeFormatString}}} {{Level:u3}}] {{Message:lj}}{{NewLine}}{{Exception}}")
+
+                .WriteTo.Async(x => x.File(
+                    path: Logging.FileName,
+                    restrictedToMinimumLevel: GetFileLogLevel(),
+                    outputTemplate: $"{{Timestamp:{Logging.LongTimeFormatString}}}|{{Level:u3}}|{{ThreadId}}|{{SourceContext}}|{{Message}}{{NewLine}}{{Exception}}"))
+
+                ;
+
+            LogEventLevel GetConsoleLogLevel()
+            {
+#if DEBUG
+                return LogEventLevel.Verbose;
+#else
+                return LogEventLevel.Information;
+#endif
+            }
+
+            LogEventLevel GetFileLogLevel()
+            {
+                return LogEventLevel.Verbose;
+            }
         }
     }
 }
