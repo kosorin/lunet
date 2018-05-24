@@ -22,10 +22,14 @@ namespace Bur.Net
             _remoteEndPoint = remoteEndPoint;
         }
 
+
+        public IPEndPoint RemoteEndPoint => _remoteEndPoint;
+
+
         public void SendMessage(string message)
         {
             var sendBuffer = Encoding.UTF8.GetBytes(message);
-            _socket.BeginSendTo(sendBuffer, 0, sendBuffer.Length, SocketFlags.None, _remoteEndPoint, SendCallback, null);
+            _socket.BeginSendTo(sendBuffer, 0, sendBuffer.Length, SocketFlags.None, RemoteEndPoint, SendCallback, null);
         }
 
         private void SendCallback(IAsyncResult ar)
@@ -33,15 +37,15 @@ namespace Bur.Net
             try
             {
                 var size = _socket.EndSendTo(ar);
-                Logger.Verbose("[{RemoteEndPoint}] Sent data (size={Size})", _remoteEndPoint, size);
+                Logger.Verbose("[{RemoteEndPoint}] Sent data (size={Size})", RemoteEndPoint, size);
             }
             catch (SocketException e)
             {
-                Logger.Error(e, "[{RemoteEndPoint}] Unable to send data ({SocketErrorCode}={ErrorCode})", _remoteEndPoint, e.SocketErrorCode, e.ErrorCode);
+                Logger.Error(e, "[{RemoteEndPoint}] Unable to send data ({SocketErrorCode}={ErrorCode})", RemoteEndPoint, e.SocketErrorCode, e.ErrorCode);
             }
             catch (Exception e)
             {
-                Logger.Error(e, "[{RemoteEndPoint}] Unable to send data", _remoteEndPoint);
+                Logger.Error(e, "[{RemoteEndPoint}] Unable to send data", RemoteEndPoint);
             }
         }
     }

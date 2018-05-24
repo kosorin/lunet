@@ -14,6 +14,7 @@ namespace Bur.Net
         private int _packetBufferSize = 4 * 1024; // 4 kB
         private int _closeTimeout = 2; // 2 seconds
 
+
         public int? LocalPort
         {
             get => _localPort;
@@ -55,6 +56,7 @@ namespace Bur.Net
             get => _closeTimeout;
             set => Set(ref _closeTimeout, value);
         }
+
 
         public override void Validate()
         {

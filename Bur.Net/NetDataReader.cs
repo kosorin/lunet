@@ -14,7 +14,6 @@ namespace Bur.Net
         private int _position;
         private int _bitOffset;
 
-
         public NetDataReader(byte[] data)
         {
             _data = data;

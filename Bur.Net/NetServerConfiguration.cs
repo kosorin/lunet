@@ -11,6 +11,7 @@ namespace Bur.Net
             set => base.LocalPort = value;
         }
 
+
         public override void Validate()
         {
             if (!base.LocalPort.HasValue)

@@ -8,13 +8,19 @@ namespace Bur.Net
 {
     public abstract class NetPeer : IDisposable
     {
-        protected Socket _socket;
+        /// <summary>
+        /// Number of channels (Receive + Send).
+        /// </summary>
+        private const int SocketChannelCount = 2;
+
         private static readonly ILogger Logger = Log.ForContext<NetPeer>();
+
         private readonly NetPeerConfiguration _config;
-        private readonly ObjectPool<SocketAsyncEventArgs> _argsPool;
+        private readonly ObjectPool<SocketAsyncEventArgs> _tokenPool;
         private readonly SocketBufferManager _bufferManager;
         private volatile bool _isRunning;
         private bool _disposed;
+        private Socket _socket;
 
         protected NetPeer(NetPeerConfiguration config)
         {
@@ -24,14 +30,17 @@ namespace Bur.Net
             }
             _config = config;
 
-            const int channelCount = 2; // receive + send
-            _argsPool = new ObjectPool<SocketAsyncEventArgs>(channelCount, CreateArgs);
-            _bufferManager = new SocketBufferManager(channelCount, _config.PacketBufferSize);
+            _tokenPool = new ObjectPool<SocketAsyncEventArgs>(SocketChannelCount, TokenFactory);
+            _bufferManager = new SocketBufferManager(SocketChannelCount, _config.PacketBufferSize);
         }
+
 
         public bool IsRunning => _isRunning;
 
         public IPEndPoint LocalEndPoint => (IPEndPoint)_socket.LocalEndPoint;
+
+        protected Socket Socket => _socket;
+
 
         public void Start()
         {
@@ -59,8 +68,11 @@ namespace Bur.Net
             _isRunning = false;
 
             Logger.Verbose("Stopping peer");
+
             try
             {
+                OnStop();
+
                 _socket.Close(_config.CloseTimeout);
                 Logger.Debug("Peer stopped");
             }
@@ -84,13 +96,17 @@ namespace Bur.Net
             StartReceive();
         }
 
+        protected virtual void OnStop()
+        {
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {
                 if (disposing)
                 {
-                    _argsPool.Dispose();
+                    _tokenPool.Dispose();
                     _socket?.Close();
                 }
                 _disposed = true;
@@ -119,18 +135,18 @@ namespace Bur.Net
             }
         }
 
-        private SocketAsyncEventArgs CreateArgs()
+        private SocketAsyncEventArgs TokenFactory()
         {
-            var args = new SocketAsyncEventArgs();
-            args.Completed += IO_Completed;
-            args.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
-            _bufferManager.SetBuffer(args);
-            return args;
+            var token = new SocketAsyncEventArgs();
+            token.Completed += IO_Completed;
+            token.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
+            _bufferManager.SetBuffer(token);
+            return token;
         }
 
         private void StartReceive()
         {
-            StartReceive(_argsPool.Rent());
+            StartReceive(_tokenPool.Rent());
         }
 
         private void StartReceive(SocketAsyncEventArgs args)

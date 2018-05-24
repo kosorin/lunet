@@ -15,7 +15,6 @@ namespace Bur.Net
         private int _buffer;
         private int _bufferBitLength;
 
-
         /// <summary>
         /// Initializes a new instance of the <see cref="NetDataWriter"/> class.
         /// </summary>

@@ -47,7 +47,7 @@ namespace Bur.Net
             }
 
             var remoteEndPoint = new IPEndPoint(hostAddress, _config.Port);
-            _connection = new NetConnection(_socket, remoteEndPoint);
+            _connection = new NetConnection(Socket, remoteEndPoint);
 
             base.OnStart();
         }

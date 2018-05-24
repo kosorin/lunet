@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace Bur.Common
 {
-    public class ObjectPool<TItem> : IDisposable
+    public class ObjectPool<TItem> : IObjectPool<TItem>
     {
         private readonly int _capacity;
         private readonly Func<TItem> _factory;
@@ -26,6 +26,7 @@ namespace Bur.Common
             _factory = factory;
             _objects = new ConcurrentQueue<TItem>();
         }
+
 
         public TItem Rent()
         {

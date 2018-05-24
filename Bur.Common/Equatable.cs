@@ -6,11 +6,11 @@ namespace Bur.Common
     {
         public static bool operator ==(Equatable<T> a, Equatable<T> b)
         {
-            if (ReferenceEquals(a, null) && ReferenceEquals(b, null))
+            if (a is null && b is null)
             {
                 return true;
             }
-            else if (ReferenceEquals(a, null) || ReferenceEquals(b, null))
+            else if (a is null || b is null)
             {
                 return false;
             }
@@ -27,7 +27,7 @@ namespace Bur.Common
 
         public bool Equals(T other)
         {
-            if (ReferenceEquals(other, null))
+            if (other == null)
             {
                 return false;
             }

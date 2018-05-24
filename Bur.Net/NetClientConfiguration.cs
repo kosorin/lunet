@@ -8,6 +8,7 @@ namespace Bur.Net
         private string _hostname;
         private int _port;
 
+
         public string Hostname
         {
             get => _hostname;
@@ -19,6 +20,7 @@ namespace Bur.Net
             get => _port;
             set => Set(ref _port, value);
         }
+
 
         public override void Validate()
         {

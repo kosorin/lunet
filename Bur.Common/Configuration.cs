@@ -1,13 +1,15 @@
 ﻿namespace Bur.Common
 {
-    public abstract class Configuration
+    public abstract class Configuration : IConfiguration
     {
         private bool _isLocked;
+
 
         /// <summary>
         /// Gets lock status.
         /// </summary>
         public bool IsLocked => _isLocked;
+
 
         /// <summary>
         /// Validates and locks configuration and prevents any further changes to the configuration.

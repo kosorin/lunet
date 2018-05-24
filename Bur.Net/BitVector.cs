@@ -1,7 +1,5 @@
 ﻿using Bur.Common;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -15,7 +13,6 @@ namespace Bur.Net
     {
         private readonly int[] _data;
         private readonly int _capacity;
-
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BitVector"/> class with capacity for one byte.

@@ -7,7 +7,7 @@ namespace Bur.Common
     {
         private static readonly EqualityComparer<T> DefaultElementComparer = EqualityComparer<T>.Default;
 
-        private readonly IEqualityComparer<T> elementComparer;
+        private readonly IEqualityComparer<T> _elementComparer;
 
         public ArrayEqualityComparer() : this(DefaultElementComparer)
         {
@@ -15,8 +15,9 @@ namespace Bur.Common
 
         public ArrayEqualityComparer(IEqualityComparer<T> elementComparer)
         {
-            this.elementComparer = elementComparer;
+            this._elementComparer = elementComparer;
         }
+
 
         public bool Equals(T[] x, T[] y)
         {
@@ -38,7 +39,7 @@ namespace Bur.Common
             }
             for (int i = 0; i < x.Length; i++)
             {
-                if (!elementComparer.Equals(x[i], y[i]))
+                if (!_elementComparer.Equals(x[i], y[i]))
                 {
                     return false;
                 }
@@ -54,7 +55,7 @@ namespace Bur.Common
                 {
                     return default;
                 }
-                return this.GetHashCodeFromArray(obj, elementComparer);
+                return this.GetHashCodeFromArray(obj, _elementComparer);
             }
         }
     }

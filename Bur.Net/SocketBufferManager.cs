@@ -8,46 +8,46 @@ namespace Bur.Net
         private readonly byte[] _buffer;
         private readonly int _bufferSize;
         private readonly int _capacity;
-        private readonly Stack<int> _freeIndexPool;
+        private readonly Queue<int> _freeIndexPool;
         private int _currentIndex;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SocketBufferManager" /> class.
         /// </summary>
         /// <param name="count">Number of buffers.</param>
-        /// <param name="size">Size of one buffer in bytes.</param>
-        public SocketBufferManager(int count, int size)
+        /// <param name="bufferSize">Size of one buffer in bytes.</param>
+        public SocketBufferManager(int count, int bufferSize)
         {
-            _freeIndexPool = new Stack<int>();
-            _capacity = size * count;
-            _bufferSize = size;
+            _freeIndexPool = new Queue<int>();
+            _capacity = bufferSize * count;
+            _bufferSize = bufferSize;
 
             _currentIndex = 0;
             _buffer = new byte[_capacity];
         }
 
-        public bool SetBuffer(SocketAsyncEventArgs args)
+
+        public void SetBuffer(SocketAsyncEventArgs token)
         {
-            if (_freeIndexPool.Count > 0)
+            if (_freeIndexPool.TryDequeue(out var freeIndex))
             {
-                args.SetBuffer(_buffer, _freeIndexPool.Pop(), _bufferSize);
+                token.SetBuffer(_buffer, freeIndex, _bufferSize);
             }
             else
             {
-                if ((_capacity - _bufferSize) < _currentIndex)
+                if (_currentIndex + _bufferSize >= _capacity)
                 {
-                    return false;
+                    throw new NetException("Socket buffer.");
                 }
-                args.SetBuffer(_buffer, _currentIndex, _bufferSize);
+                token.SetBuffer(_buffer, _currentIndex, _bufferSize);
                 _currentIndex += _bufferSize;
             }
-            return true;
         }
 
-        public void ClearBuffer(SocketAsyncEventArgs args)
+        public void ClearBuffer(SocketAsyncEventArgs token)
         {
-            _freeIndexPool.Push(args.Offset);
-            args.SetBuffer(null, 0, 0);
+            _freeIndexPool.Enqueue(token.Offset);
+            token.SetBuffer(null, 0, 0);
         }
     }
 }
