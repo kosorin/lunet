@@ -1,5 +1,4 @@
-﻿using Lure;
-using System.Net;
+﻿using System.Net;
 
 namespace Lure.Net
 {

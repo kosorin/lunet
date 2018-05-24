@@ -1,8 +1,6 @@
 ﻿using Serilog;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 
 namespace Lure.Net
 {
@@ -20,12 +18,11 @@ namespace Lure.Net
         }
 
 
-        public int Length => _data.Length;
-
         public int BitLength => _data.Length * NC.BitsPerByte;
 
         public int BitPosition => (_position * NC.BitsPerByte) + _bitOffset;
 
+        public int Length => _data.Length;
 
         public BitVector ReadBits(int bitLength)
         {

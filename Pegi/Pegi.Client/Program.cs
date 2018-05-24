@@ -1,5 +1,4 @@
 ﻿using Lure.Net;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
@@ -11,19 +10,21 @@ namespace Pegi.Client
         {
             PegiLogging.Configure("Client");
 
-            Thread.Sleep(5000);
+            Thread.Sleep(2000);
 
             var client = new NetClient("localhost", 45685);
             client.Start();
 
-            var bytes = new byte[2 * 1024];
-            var message = Encoding.UTF8.GetString(bytes);
             for (int i = 0; i < 3; i++)
             {
-                client.SendMessage(message);
+                var bytes = new byte[(i + 1) * 128];
+                var message = Encoding.UTF8.GetString(bytes);
+                for (int k = 0; k < 5; k++)
+                {
+                    client.SendMessage(message);
+                }
+                Thread.Sleep(1000);
             }
-
-            Thread.Sleep(1000);
 
             client.Stop();
 

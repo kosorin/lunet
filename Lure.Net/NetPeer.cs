@@ -1,5 +1,4 @@
-﻿using Lure;
-using Serilog;
+﻿using Serilog;
 using System;
 using System.Net;
 using System.Net.Sockets;

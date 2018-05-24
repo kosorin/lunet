@@ -3,7 +3,7 @@ using Serilog;
 using Serilog.Events;
 using System.Reflection;
 
-namespace Pur
+namespace Pegi
 {
     public static class PegiLogging
     {

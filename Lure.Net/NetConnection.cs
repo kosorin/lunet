@@ -9,7 +9,7 @@ namespace Lure.Net
     /// <summary>
     /// Represents a connection to remote peer.
     /// </summary>
-    internal class NetConnection
+    public class NetConnection
     {
         private static readonly ILogger Logger = Log.ForContext<NetConnection>();
 

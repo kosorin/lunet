@@ -1,7 +1,4 @@
-﻿using Lure;
-using System.Net.Sockets;
-
-namespace Lure.Net
+﻿namespace Lure.Net
 {
     public class NetServerConfiguration : NetPeerConfiguration
     {
