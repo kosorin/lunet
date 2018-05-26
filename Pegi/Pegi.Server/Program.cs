@@ -1,6 +1,7 @@
 ﻿using Lure.Net;
 using Serilog;
 using System;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -24,7 +25,25 @@ namespace Pegi.Server
                 resetEvent.Set();
             };
 
+
             server.Start();
+
+            const int fps =  2;
+            const int frame = 1000 / fps;
+            var sw = Stopwatch.StartNew();
+            var previous = sw.ElapsedMilliseconds;
+            while (true)
+            {
+                var current = sw.ElapsedMilliseconds;
+                var delta = current - previous;
+                if (delta > frame)
+                {
+                    Console.WriteLine("ASD");
+
+                    Thread.Sleep(frame);
+                    previous = current;
+                }
+            }
 
             resetEvent.WaitOne();
             Thread.Sleep(1000);

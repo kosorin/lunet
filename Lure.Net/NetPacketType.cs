@@ -2,7 +2,7 @@
 {
     public enum NetPacketType : byte
     {
-        None,
+        Message,
         Ping,
         Pong,
         ConnectRequest,

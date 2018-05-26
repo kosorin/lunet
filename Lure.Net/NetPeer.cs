@@ -1,5 +1,6 @@
 ﻿using Serilog;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 
@@ -16,12 +17,15 @@ namespace Lure.Net
 
         private readonly NetPeerConfiguration _config;
         private readonly ObjectPool<SocketAsyncEventArgs> _tokenPool;
-        private readonly SocketBufferManager _bufferManager;
+        private readonly TokenBufferManager _tokenBufferManager;
+        private readonly Dictionary<IPEndPoint, NetConnection> _connections;
+        private readonly Dictionary<uint, PacketData> _sendBuffer;
+
         private volatile bool _isRunning;
         private bool _disposed;
         private Socket _socket;
 
-        protected NetPeer(NetPeerConfiguration config)
+        internal NetPeer(NetPeerConfiguration config)
         {
             if (!config.IsLocked)
             {
@@ -30,7 +34,11 @@ namespace Lure.Net
             _config = config;
 
             _tokenPool = new ObjectPool<SocketAsyncEventArgs>(SocketChannelCount, TokenFactory);
-            _bufferManager = new SocketBufferManager(SocketChannelCount, _config.PacketBufferSize);
+            _tokenBufferManager = new TokenBufferManager(SocketChannelCount, _config.PacketBufferSize);
+
+            _connections = new Dictionary<IPEndPoint, NetConnection>();
+
+            _sendBuffer = new Dictionary<uint, PacketData>();
         }
 
 
@@ -38,8 +46,17 @@ namespace Lure.Net
 
         public IPEndPoint LocalEndPoint => (IPEndPoint)_socket.LocalEndPoint;
 
-        protected Socket Socket => _socket;
+        internal Socket Socket => _socket;
 
+
+        public void SendMessage(NetConnection connection, INetMessage message)
+        {
+            if (connection.Peer != this)
+            {
+                throw new NetException();
+            }
+            connection.SendMessage(message);
+        }
 
         public void Start()
         {
@@ -112,6 +129,11 @@ namespace Lure.Net
             }
         }
 
+        protected void AddConnection(NetConnection connection)
+        {
+            _connections[connection.RemoteEndPoint] = connection;
+        }
+
         private void BindSocket()
         {
             try
@@ -139,7 +161,7 @@ namespace Lure.Net
             var token = new SocketAsyncEventArgs();
             token.Completed += IO_Completed;
             token.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
-            _bufferManager.SetBuffer(token);
+            _tokenBufferManager.SetBuffer(token);
             return token;
         }
 
@@ -148,30 +170,46 @@ namespace Lure.Net
             StartReceive(_tokenPool.Rent());
         }
 
-        private void StartReceive(SocketAsyncEventArgs args)
+        private void StartReceive(SocketAsyncEventArgs token)
         {
-            if (!_socket.ReceiveFromAsync(args))
+            if (!_socket.ReceiveFromAsync(token))
             {
-                ProcessReceive(args);
+                if (!ProcessError(token))
+                {
+                    ProcessReceive(token);
+                }
             }
         }
 
-        private void ProcessReceive(SocketAsyncEventArgs args)
+        private void ProcessReceive(SocketAsyncEventArgs token)
         {
-            if (args.BytesTransferred > 0 && args.SocketError == SocketError.Success)
+            if (token.BytesTransferred > 0 && token.SocketError == SocketError.Success)
             {
-                Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size})", args.RemoteEndPoint, args.BytesTransferred);
+                if (token.BytesTransferred >= 9)
+                {
+                    Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size})", token.RemoteEndPoint, token.BytesTransferred);
 
-                StartReceive(args);
+                    var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
+                    var reader = new NetDataReader(token.Buffer, token.Offset, token.BytesTransferred);
+                    var packet = new NetPacketHeader
+                    {
+                        Type = (NetPacketType)reader.ReadByte(),
+                        Sequence = reader.ReadUShort(),
+                        Ack = reader.ReadUShort(),
+                        AckBits = reader.ReadUInt(),
+                    };
+                }
+
+                StartReceive(token);
             }
             else
             {
                 var isError = true;
-                switch (args.SocketError)
+                switch (token.SocketError)
                 {
                 case SocketError.MessageSize:
-                    Logger.Warning("[{RemoteEndPoint}] Received data are too big (size>{ReceiveBufferSize})", args.RemoteEndPoint, _config.PacketBufferSize);
-                    args.SocketError = SocketError.Success;
+                    Logger.Warning("[{RemoteEndPoint}] Received data are too big (size>{ReceiveBufferSize})", token.RemoteEndPoint, _config.PacketBufferSize);
+                    token.SocketError = SocketError.Success;
                     isError = false;
                     break;
 
@@ -182,32 +220,70 @@ namespace Lure.Net
 
                 if (isError)
                 {
-                    Logger.Error("[{RemoteEndPoint}] Unable to receive data ({SocketErrorCode}:{ErrorCode})", args.RemoteEndPoint, args.SocketError, (int)args.SocketError);
+                    Logger.Error("[{RemoteEndPoint}] Unable to receive data ({SocketErrorCode}:{ErrorCode})", token.RemoteEndPoint, token.SocketError, (int)token.SocketError);
                     Stop();
                 }
             }
         }
 
-        private void IO_Completed(object sender, SocketAsyncEventArgs args)
+        private void StartSend()
         {
-            if (args.SocketError == SocketError.OperationAborted)
+            StartSend(_tokenPool.Rent());
+        }
+
+        private void StartSend(SocketAsyncEventArgs token)
+        {
+            if (!_socket.SendToAsync(token))
+            {
+                ProcessSend(token);
+            }
+        }
+
+        private void ProcessSend(SocketAsyncEventArgs token)
+        {
+            _tokenPool.Return(token);
+        }
+
+        private void IO_Completed(object sender, SocketAsyncEventArgs token)
+        {
+            if (!ProcessError(token))
             {
                 return;
             }
 
-            switch (args.LastOperation)
+            switch (token.LastOperation)
             {
             case SocketAsyncOperation.ReceiveFrom:
-                ProcessReceive(args);
+                ProcessReceive(token);
                 break;
 
             case SocketAsyncOperation.Send:
-                //this.ProcessSend(e);
+                ProcessSend(token);
                 break;
 
             default:
                 throw new InvalidOperationException("Unexpected socket async operation.");
             }
+        }
+
+        private bool ProcessError(SocketAsyncEventArgs token)
+        {
+            if (token.SocketError == SocketError.Success)
+            {
+                return true;
+            }
+            if (token.SocketError == SocketError.OperationAborted)
+            {
+                return false;
+            }
+
+            return false;
+        }
+
+
+        private class PacketData
+        {
+            public bool IsAcked { get; set; }
         }
     }
 }

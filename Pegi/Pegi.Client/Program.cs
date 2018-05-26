@@ -18,7 +18,11 @@ namespace Pegi.Client
             for (int i = 0; i < 3; i++)
             {
                 var bytes = new byte[(i + 1) * 128];
-                var message = Encoding.UTF8.GetString(bytes);
+                var message = new TextMessage
+                {
+                    Text = Encoding.UTF8.GetString(bytes)
+                };
+
                 for (int k = 0; k < 5; k++)
                 {
                     client.SendMessage(message);

@@ -3,7 +3,7 @@ using System.Net.Sockets;
 
 namespace Lure.Net
 {
-    internal class SocketBufferManager
+    internal class TokenBufferManager
     {
         private readonly byte[] _buffer;
         private readonly int _bufferSize;
@@ -12,11 +12,11 @@ namespace Lure.Net
         private int _currentIndex;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SocketBufferManager" /> class.
+        /// Initializes a new instance of the <see cref="TokenBufferManager" /> class.
         /// </summary>
         /// <param name="count">Number of buffers.</param>
         /// <param name="bufferSize">Size of one buffer in bytes.</param>
-        public SocketBufferManager(int count, int bufferSize)
+        public TokenBufferManager(int count, int bufferSize)
         {
             _freeIndexPool = new Queue<int>();
             _capacity = bufferSize * count;
@@ -37,7 +37,7 @@ namespace Lure.Net
             {
                 if (_currentIndex + _bufferSize >= _capacity)
                 {
-                    throw new NetException("Socket buffer.");
+                    throw new NetException("Set socket buffer.");
                 }
                 token.SetBuffer(_buffer, _currentIndex, _bufferSize);
                 _currentIndex += _bufferSize;

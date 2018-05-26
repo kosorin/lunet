@@ -1,5 +1,7 @@
 ﻿using Serilog;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -7,46 +9,35 @@ using System.Text;
 namespace Lure.Net
 {
     /// <summary>
-    /// Represents a connection to remote peer.
+    /// Represents a connection to a remote peer.
     /// </summary>
     public class NetConnection
     {
         private static readonly ILogger Logger = Log.ForContext<NetConnection>();
 
-        private readonly Socket _socket;
+        private readonly NetPeer _peer;
         private readonly IPEndPoint _remoteEndPoint;
+        private readonly ConcurrentQueue<INetMessage> _messageQueue;
 
-        public NetConnection(Socket socket, IPEndPoint remoteEndPoint)
+        internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
         {
-            _socket = socket;
+            _peer = peer;
             _remoteEndPoint = remoteEndPoint;
+            _messageQueue = new ConcurrentQueue<INetMessage>();
         }
 
+        internal NetPeer Peer => _peer;
+
+        public IPEndPoint LocalEndPoint => _peer.LocalEndPoint;
 
         public IPEndPoint RemoteEndPoint => _remoteEndPoint;
 
+        internal ConcurrentQueue<INetMessage> MessageQueue => _messageQueue;
 
-        public void SendMessage(string message)
-        {
-            var sendBuffer = Encoding.UTF8.GetBytes(message);
-            _socket.BeginSendTo(sendBuffer, 0, sendBuffer.Length, SocketFlags.None, RemoteEndPoint, SendCallback, null);
-        }
 
-        private void SendCallback(IAsyncResult ar)
+        public void SendMessage(INetMessage message)
         {
-            try
-            {
-                var size = _socket.EndSendTo(ar);
-                Logger.Verbose("[{RemoteEndPoint}] Sent data (size={Size})", RemoteEndPoint, size);
-            }
-            catch (SocketException e)
-            {
-                Logger.Error(e, "[{RemoteEndPoint}] Unable to send data ({SocketErrorCode}={ErrorCode})", RemoteEndPoint, e.SocketErrorCode, e.ErrorCode);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "[{RemoteEndPoint}] Unable to send data", RemoteEndPoint);
-            }
+            _messageQueue.Enqueue(message);
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Lure.Net
 {
-    public abstract class NetPacket
+    public class NetPacketHeader
     {
         public NetPacketType Type { get; set; }
 

@@ -26,28 +26,27 @@ namespace Lure.Net
             _config = config;
         }
 
+        public NetConnection Connection => _connection;
 
-        public void SendMessage(string message)
+        public IPEndPoint RemoteEndPoint => Connection.RemoteEndPoint;
+
+
+        public void SendMessage(INetMessage message)
         {
-            _connection.SendMessage(message);
+            SendMessage(_connection, message);
         }
 
         protected override void OnStart()
         {
-            IPAddress hostAddress;
-            if (!IPAddress.TryParse(_config.Hostname, out hostAddress))
-            {
-                hostAddress = Dns
-                    .GetHostAddresses(_config.Hostname)
-                    .FirstOrDefault(x => x.AddressFamily == _config.AddressFamily);
-            }
-
+            var hostAddress = NetHelper.ResolveAddress(_config.Hostname, _config.AddressFamily);
             if (hostAddress == null)
             {
+                throw new NetException($"Could not resolve a hostname '{_config.Hostname}'");
             }
-
             var remoteEndPoint = new IPEndPoint(hostAddress, _config.Port);
-            _connection = new NetConnection(Socket, remoteEndPoint);
+
+            _connection = new NetConnection(this, remoteEndPoint);
+            AddConnection(_connection);
 
             base.OnStart();
         }

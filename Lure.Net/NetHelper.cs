@@ -1,4 +1,7 @@
 ﻿using System.Diagnostics;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 
 namespace Lure.Net
 {
@@ -16,6 +19,43 @@ namespace Lure.Net
             return bits > 0
                 ? ((bits - 1) / bitsPerElement) + 1
                 : 0;
+        }
+
+        /// <summary>
+        /// Resolves an IP address.
+        /// </summary>
+        /// <param name="text">IP address or hostname.</param>
+        public static IPAddress ResolveAddress(string text)
+        {
+            IPAddress address = null;
+            if (!IPAddress.TryParse(text, out address))
+            {
+                address = Dns
+                    .GetHostAddresses(text)
+                    .FirstOrDefault();
+            }
+
+            return address;
+        }
+
+        /// <summary>
+        /// Resolves an IP address.
+        /// </summary>
+        /// <param name="text">IP address or hostname.</param>
+        /// <param name="addressFamily">Expected address family.</param>
+        public static IPAddress ResolveAddress(string text, AddressFamily addressFamily)
+        {
+            IPAddress address = null;
+            if (!IPAddress.TryParse(text, out address))
+            {
+                address = Dns
+                    .GetHostAddresses(text)
+                    .FirstOrDefault(x => x.AddressFamily == addressFamily);
+            }
+
+            return address?.AddressFamily == addressFamily
+                ? address
+                : null;
         }
     }
 }

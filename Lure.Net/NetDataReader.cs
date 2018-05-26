@@ -6,23 +6,40 @@ namespace Lure.Net
 {
     public class NetDataReader
     {
-        private static readonly ILogger Logger = Log.ForContext<NetDataReader>();
-
         private readonly byte[] _data;
+        private readonly int _offset;
+        private readonly int _length;
         private int _position;
         private int _bitOffset;
 
         public NetDataReader(byte[] data)
         {
             _data = data;
+            _offset = 0;
+            _length = data.Length;
+        }
+
+        public NetDataReader(byte[] data, int offset, int length)
+        {
+            if (offset + length > data.Length)
+            {
+                throw new ArgumentOutOfRangeException("Offset + length could not be bigger than data length.");
+            }
+
+            _data = data;
+            _offset = offset;
+            _length = length;
         }
 
 
-        public int BitLength => _data.Length * NC.BitsPerByte;
+        public int Length => _length;
+
+        public int Position => _position;
+
+        public int BitLength => _length * NC.BitsPerByte;
 
         public int BitPosition => (_position * NC.BitsPerByte) + _bitOffset;
 
-        public int Length => _data.Length;
 
         public BitVector ReadBits(int bitLength)
         {
@@ -198,20 +215,20 @@ namespace Lure.Net
 
             if (_bitOffset == 0 && bitLength == NC.BitsPerByte)
             {
-                return _data[_position++];
+                return _data[_offset + _position++];
             }
 
             byte value;
 
             var inFirst = NC.BitsPerByte - _bitOffset;
-            value = (byte)((_data[_position] >> _bitOffset) & (NC.Byte >> (NC.BitsPerByte - bitLength)));
+            value = (byte)((_data[_offset + _position] >> _bitOffset) & (NC.Byte >> (NC.BitsPerByte - bitLength)));
 
             if (inFirst < bitLength)
             {
                 _position++;
 
                 var inSecond = bitLength - inFirst;
-                value |= (byte)((_data[_position] & (NC.Byte >> (NC.BitsPerByte - inSecond))) << inFirst);
+                value |= (byte)((_data[_offset + _position] & (NC.Byte >> (NC.BitsPerByte - inSecond))) << inFirst);
 
                 _bitOffset = inSecond;
             }
