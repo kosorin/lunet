@@ -61,7 +61,7 @@ namespace Lure.Net
         {
             if (LocalPort.HasValue && (LocalPort < IPEndPoint.MinPort || LocalPort > IPEndPoint.MaxPort))
             {
-                throw new ConfigurationException("Local port {LocalPort} is out of range.");
+                throw new ConfigurationException($"Local port {LocalPort} is out of range.");
             }
 
             if (AddressFamily != AddressFamily.InterNetwork && AddressFamily != AddressFamily.InterNetworkV6)

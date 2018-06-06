@@ -15,7 +15,7 @@ namespace Pegi.Server
 
             var server = new NetServer(45685, AddressFamily.InterNetwork);
 
-            var resetEvent = new ManualResetEvent(false);
+            var resetEvent = new AutoResetEvent(false);
             Console.CancelKeyPress += (_, e) =>
             {
                 e.Cancel = true;
@@ -25,27 +25,10 @@ namespace Pegi.Server
                 resetEvent.Set();
             };
 
-
             server.Start();
 
-            const int fps =  2;
-            const int frame = 1000 / fps;
-            var sw = Stopwatch.StartNew();
-            var previous = sw.ElapsedMilliseconds;
-            while (true)
-            {
-                var current = sw.ElapsedMilliseconds;
-                var delta = current - previous;
-                if (delta > frame)
-                {
-                    Console.WriteLine("ASD");
-
-                    Thread.Sleep(frame);
-                    previous = current;
-                }
-            }
-
             resetEvent.WaitOne();
+
             Thread.Sleep(1000);
         }
     }

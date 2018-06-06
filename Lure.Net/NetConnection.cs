@@ -1,10 +1,6 @@
 ﻿using Serilog;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net;
-using System.Net.Sockets;
-using System.Text;
 
 namespace Lure.Net
 {
@@ -17,25 +13,23 @@ namespace Lure.Net
 
         private readonly NetPeer _peer;
         private readonly IPEndPoint _remoteEndPoint;
-        private readonly ConcurrentQueue<INetMessage> _messageQueue;
+        private readonly ConcurrentQueue<NetMessage> _messageQueue;
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
         {
             _peer = peer;
             _remoteEndPoint = remoteEndPoint;
-            _messageQueue = new ConcurrentQueue<INetMessage>();
+            _messageQueue = new ConcurrentQueue<NetMessage>();
         }
-
-        internal NetPeer Peer => _peer;
-
-        public IPEndPoint LocalEndPoint => _peer.LocalEndPoint;
 
         public IPEndPoint RemoteEndPoint => _remoteEndPoint;
 
-        internal ConcurrentQueue<INetMessage> MessageQueue => _messageQueue;
+        internal NetPeer Peer => _peer;
+
+        internal ConcurrentQueue<NetMessage> MessageQueue => _messageQueue;
 
 
-        public void SendMessage(INetMessage message)
+        public void SendMessage(NetMessage message)
         {
             _messageQueue.Enqueue(message);
         }

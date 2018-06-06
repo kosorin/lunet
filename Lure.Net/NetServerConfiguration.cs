@@ -1,10 +1,12 @@
-﻿namespace Lure.Net
+﻿using System.Net;
+
+namespace Lure.Net
 {
     public class NetServerConfiguration : NetPeerConfiguration
     {
         public new int LocalPort
         {
-            get => base.LocalPort ?? throw new ConfigurationException("Local port is not set.");
+            get => base.LocalPort ?? IPEndPoint.MinPort;
             set => base.LocalPort = value;
         }
 

@@ -15,19 +15,15 @@ namespace Pegi.Client
             var client = new NetClient("localhost", 45685);
             client.Start();
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 10; i++)
             {
-                var bytes = new byte[(i + 1) * 128];
-                var message = new TextMessage
+                var message = new TestMessage
                 {
-                    Text = Encoding.UTF8.GetString(bytes)
+                    Integer = i * 10,
+                    Float = i * 1.5f,
                 };
-
-                for (int k = 0; k < 5; k++)
-                {
-                    client.SendMessage(message);
-                }
-                Thread.Sleep(1000);
+                client.SendMessage(message);
+                Thread.Sleep(3000);
             }
 
             client.Stop();

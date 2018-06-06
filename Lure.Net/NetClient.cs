@@ -31,7 +31,7 @@ namespace Lure.Net
         public IPEndPoint RemoteEndPoint => Connection.RemoteEndPoint;
 
 
-        public void SendMessage(INetMessage message)
+        public void SendMessage(NetMessage message)
         {
             SendMessage(_connection, message);
         }

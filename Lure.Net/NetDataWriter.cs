@@ -1,5 +1,4 @@
-﻿using Serilog;
-using System;
+﻿using System;
 using System.Diagnostics;
 
 namespace Lure.Net
@@ -8,12 +7,14 @@ namespace Lure.Net
     {
         private const int ResizeData = 8;
 
-        private static readonly ILogger Logger = Log.ForContext<NetDataWriter>();
-
+        private readonly bool _isShared;
+        private readonly int _offset;
         private byte[] _data;
         private int _length;
+        private int _capacity;
+        private int _position;
+        private int _bitPosition;
         private int _buffer;
-        private int _bufferBitLength;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NetDataWriter"/> class.
@@ -31,12 +32,39 @@ namespace Lure.Net
             EnsureTotalSize(capacity);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NetDataWriter"/> class with buffer.
+        /// </summary>
+        public NetDataWriter(byte[] data, int offset, int length)
+        {
+            if (offset + length > data.Length)
+            {
+                throw new ArgumentOutOfRangeException("Offset + length could not be bigger than data length.");
+            }
 
-        public byte[] Data => _data;
+            _isShared = true;
 
-        public int Capacity => _data.Length;
+            _data = data;
+            _offset = offset;
+            _capacity = length;
+        }
+
+
+        public int Capacity => _capacity;
 
         public int Length => _length;
+
+        public int Position => _position;
+
+        public int BitLength => _length * NC.BitsPerByte;
+
+        public int BitPosition => (_position * NC.BitsPerByte) + _bitPosition;
+
+        internal bool IsShared => _isShared;
+
+        internal byte[] Data => _data;
+
+        internal int Offset => _offset;
 
 
         public void WriteBits(BitVector vector)
@@ -191,32 +219,37 @@ namespace Lure.Net
 
         public void PadBits(bool value)
         {
-            if (_bufferBitLength == 0)
+            if (_bitPosition == 0)
             {
                 return;
             }
 
-            var bitLength = NC.BitsPerByte - _bufferBitLength;
+            var bitLength = NC.BitsPerByte - _bitPosition;
             EnsureWriteSize(bitLength);
             Write((byte)(value ? NC.Byte : NC.Zero), bitLength);
         }
 
         public void Flush()
         {
-            if (_bufferBitLength == 0)
+            if (_bitPosition == 0)
             {
                 return;
             }
-            Debug.Assert(_bufferBitLength < NC.BitsPerByte, "Complete buffer byte should be already flushed.");
+            Debug.Assert(_bitPosition < NC.BitsPerByte, "Complete buffer byte should be already flushed.");
 
-            _data[_length++] = (byte)(_buffer & (NC.Byte >> (NC.BitsPerByte - _bufferBitLength)));
-            _bufferBitLength = 0;
+            _data[_offset + _position++] = (byte)(_buffer & (NC.Byte >> (NC.BitsPerByte - _bitPosition)));
+            if (_length < _position)
+            {
+                _length = _position;
+            }
+            _bitPosition = 0;
         }
 
         public void Reset()
         {
             _length = 0;
-            _bufferBitLength = 0;
+            _position = 0;
+            _bitPosition = 0;
         }
 
         public byte[] GetBytes(bool flush = true)
@@ -229,7 +262,7 @@ namespace Lure.Net
             var bytes = new byte[_length];
             if (_length > 0)
             {
-                Array.Copy(_data, bytes, _length);
+                Array.Copy(_data, _offset, bytes, 0, _length);
             }
             return bytes;
         }
@@ -243,46 +276,77 @@ namespace Lure.Net
             }
             Debug.Assert(bitLength >= 0 && bitLength <= NC.BitsPerByte);
 
-            if (_bufferBitLength == 0 && bitLength == NC.BitsPerByte)
+            if (_bitPosition == 0 && bitLength == NC.BitsPerByte)
             {
-                _data[_length++] = value;
+                _data[_offset + _position++] = value;
+                if (_length < _position)
+                {
+                    _length = _position;
+                }
                 return;
             }
 
-            _buffer |= ((value & (NC.Byte >> (NC.BitsPerByte - bitLength))) << _bufferBitLength);
-            _bufferBitLength += bitLength;
+            _buffer |= ((value & (NC.Byte >> (NC.BitsPerByte - bitLength))) << _bitPosition);
+            _bitPosition += bitLength;
 
-            if (_bufferBitLength >= NC.BitsPerByte)
+            if (_bitPosition >= NC.BitsPerByte)
             {
-                _data[_length++] = (byte)(_buffer & NC.Byte);
+                _data[_offset + _position++] = (byte)(_buffer & NC.Byte);
+                if (_length < _position)
+                {
+                    _length = _position;
+                }
                 _buffer >>= NC.BitsPerByte;
-                _bufferBitLength -= NC.BitsPerByte;
+                _bitPosition -= NC.BitsPerByte;
             }
         }
 
         private void EnsureWriteSize(int bitLength)
         {
-            var newBitLength = bitLength + _bufferBitLength + (_length * NC.BitsPerByte);
+            var newBitLength = bitLength + _bitPosition + (_position * NC.BitsPerByte);
             var newLength = NetHelper.GetElementCapacity(newBitLength, NC.BitsPerByte);
+
+            if (_isShared)
+            {
+                if (_capacity < newLength)
+                {
+                    throw new InvalidOperationException();
+                }
+                return;
+            }
+
             if (_data == null)
             {
-                _data = new byte[newLength + ResizeData];
+                _capacity = newLength + ResizeData;
+                _data = new byte[_capacity];
             }
-            else if (_data.Length < newLength)
+            else if (_capacity < newLength)
             {
-                Array.Resize(ref _data, newLength + ResizeData);
+                _capacity = newLength + ResizeData;
+                Array.Resize(ref _data, _capacity);
             }
         }
 
-        private void EnsureTotalSize(int capacity)
+        private void EnsureTotalSize(int length)
         {
+            if (_isShared)
+            {
+                if (_capacity < length)
+                {
+                    throw new InvalidOperationException();
+                }
+                return;
+            }
+
             if (_data == null)
             {
-                _data = new byte[capacity];
+                _capacity = length;
+                _data = new byte[_capacity];
             }
-            else if (_data.Length < capacity)
+            else if (_capacity < length)
             {
-                Array.Resize(ref _data, capacity);
+                _capacity = length;
+                Array.Resize(ref _data, _capacity);
             }
         }
     }

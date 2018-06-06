@@ -1,29 +1,30 @@
 ﻿using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace Lure.Net
 {
     public abstract class NetPeer : IDisposable
     {
-        /// <summary>
-        /// Number of channels (Receive + Send).
-        /// </summary>
         private const int SocketChannelCount = 2;
 
         private static readonly ILogger Logger = Log.ForContext<NetPeer>();
 
         private readonly NetPeerConfiguration _config;
-        private readonly ObjectPool<SocketAsyncEventArgs> _tokenPool;
-        private readonly TokenBufferManager _tokenBufferManager;
         private readonly Dictionary<IPEndPoint, NetConnection> _connections;
+
+        private readonly SocketAsyncEventArgs _receiveToken;
+        private readonly ObjectPool<SocketAsyncEventArgs> _sendTokenPool;
         private readonly Dictionary<uint, PacketData> _sendBuffer;
 
         private volatile bool _isRunning;
         private bool _disposed;
         private Socket _socket;
+        private Thread _thread;
 
         internal NetPeer(NetPeerConfiguration config)
         {
@@ -33,14 +34,13 @@ namespace Lure.Net
             }
             _config = config;
 
-            _tokenPool = new ObjectPool<SocketAsyncEventArgs>(SocketChannelCount, TokenFactory);
-            _tokenBufferManager = new TokenBufferManager(SocketChannelCount, _config.PacketBufferSize);
-
             _connections = new Dictionary<IPEndPoint, NetConnection>();
+
+            _receiveToken = CreateReceiveToken();
+            _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(SocketChannelCount, CreateSendToken);
 
             _sendBuffer = new Dictionary<uint, PacketData>();
         }
-
 
         public bool IsRunning => _isRunning;
 
@@ -49,7 +49,7 @@ namespace Lure.Net
         internal Socket Socket => _socket;
 
 
-        public void SendMessage(NetConnection connection, INetMessage message)
+        public void SendMessage(NetConnection connection, NetMessage message)
         {
             if (connection.Peer != this)
             {
@@ -69,6 +69,8 @@ namespace Lure.Net
             Logger.Verbose("Starting peer");
 
             BindSocket();
+            StartReceive();
+            StartLoop();
 
             OnStart();
 
@@ -87,18 +89,16 @@ namespace Lure.Net
 
             try
             {
+                StopLoop();
+                CloseSocket();
+
                 OnStop();
 
-                _socket.Close(_config.CloseTimeout);
                 Logger.Debug("Peer stopped");
             }
             catch (Exception e)
             {
                 Logger.Error(e, "Stop peer");
-            }
-            finally
-            {
-                _socket = null;
             }
         }
 
@@ -107,9 +107,9 @@ namespace Lure.Net
             Dispose(true);
         }
 
+
         protected virtual void OnStart()
         {
-            StartReceive();
         }
 
         protected virtual void OnStop()
@@ -122,7 +122,8 @@ namespace Lure.Net
             {
                 if (disposing)
                 {
-                    _tokenPool.Dispose();
+                    _receiveToken.Dispose();
+                    _sendTokenPool.Dispose();
                     _socket?.Close();
                 }
                 _disposed = true;
@@ -134,11 +135,13 @@ namespace Lure.Net
             _connections[connection.RemoteEndPoint] = connection;
         }
 
+
         private void BindSocket()
         {
             try
             {
                 _socket = new Socket(_config.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+                //_socket.Blocking = false;
                 _socket.SendBufferSize = _config.SendBufferSize;
                 _socket.ReceiveBufferSize = _config.ReceiveBufferSize;
                 if (_config.AddressFamily == AddressFamily.InterNetworkV6)
@@ -156,51 +159,112 @@ namespace Lure.Net
             }
         }
 
-        private SocketAsyncEventArgs TokenFactory()
+        private void CloseSocket()
         {
-            var token = new SocketAsyncEventArgs();
+            _socket.Close(_config.CloseTimeout);
+        }
+
+        private void StartLoop()
+        {
+            _thread = new Thread(Loop)
+            {
+                Name = GetType().FullName,
+                IsBackground = true,
+            };
+            _thread.Start();
+        }
+
+        private void StopLoop()
+        {
+            _thread.Join(TimeSpan.FromSeconds(5));
+        }
+
+        private void Loop()
+        {
+            const int fps = 20;
+            const int frame = 1000 / fps;
+            var sw = Stopwatch.StartNew();
+            var previous = sw.ElapsedMilliseconds;
+            while (_isRunning)
+            {
+                Update();
+
+                var current = sw.ElapsedMilliseconds;
+                var delta = (int)(current - previous);
+                if (delta <= frame)
+                {
+                    previous += frame;
+                    Thread.Sleep(frame - delta);
+                }
+                else
+                {
+                    previous = current;
+                }
+            }
+        }
+
+        private void Update()
+        {
+            foreach (var connection in _connections.Values)
+            {
+                while (connection.MessageQueue.TryDequeue(out var message))
+                {
+                    var token = _sendTokenPool.Rent();
+                    var writer = (NetDataWriter)token.UserToken;
+                    writer.Reset();
+
+                    message.Serialize(writer);
+
+                    writer.Flush();
+                    writer.SetTokenBuffer(token);
+
+                    token.RemoteEndPoint = connection.RemoteEndPoint;
+                    StartSend(token);
+                }
+            }
+        }
+
+        private SocketAsyncEventArgs CreateReceiveToken()
+        {
+            var token = new SocketAsyncEventArgs
+            {
+                RemoteEndPoint = _config.AddressFamily.GetAnyEndPoint(),
+            };
             token.Completed += IO_Completed;
-            token.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
-            _tokenBufferManager.SetBuffer(token);
+            token.SetBuffer(new byte[_config.PacketBufferSize], 0, _config.PacketBufferSize);
             return token;
         }
 
         private void StartReceive()
         {
-            StartReceive(_tokenPool.Rent());
-        }
-
-        private void StartReceive(SocketAsyncEventArgs token)
-        {
-            if (!_socket.ReceiveFromAsync(token))
+            _receiveToken.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
+            if (!_socket.ReceiveFromAsync(_receiveToken))
             {
-                if (!ProcessError(token))
+                if (ProcessError(_receiveToken))
                 {
-                    ProcessReceive(token);
+                    ProcessReceive();
                 }
             }
         }
 
-        private void ProcessReceive(SocketAsyncEventArgs token)
+        private void ProcessReceive()
         {
+            var token = _receiveToken;
             if (token.BytesTransferred > 0 && token.SocketError == SocketError.Success)
             {
-                if (token.BytesTransferred >= 9)
+                Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size})", token.RemoteEndPoint, token.BytesTransferred);
+
+                var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
+                var reader = new NetDataReader(token.Buffer, token.Offset, token.BytesTransferred);
+                var packet = new NetPacket
                 {
-                    Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size})", token.RemoteEndPoint, token.BytesTransferred);
+                    Type = (NetPacketType)reader.ReadByte(),
+                    Sequence = reader.ReadUShort(),
+                    Ack = reader.ReadUShort(),
+                    AckBits = reader.ReadUInt(),
+                };
 
-                    var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
-                    var reader = new NetDataReader(token.Buffer, token.Offset, token.BytesTransferred);
-                    var packet = new NetPacketHeader
-                    {
-                        Type = (NetPacketType)reader.ReadByte(),
-                        Sequence = reader.ReadUShort(),
-                        Ack = reader.ReadUShort(),
-                        AckBits = reader.ReadUInt(),
-                    };
-                }
-
-                StartReceive(token);
+                StartReceive();
             }
             else
             {
@@ -226,22 +290,33 @@ namespace Lure.Net
             }
         }
 
-        private void StartSend()
+        private SocketAsyncEventArgs CreateSendToken()
         {
-            StartSend(_tokenPool.Rent());
+            var token = new SocketAsyncEventArgs
+            {
+                UserToken = new NetDataWriter(),
+            };
+            token.Completed += IO_Completed;
+            return token;
         }
 
         private void StartSend(SocketAsyncEventArgs token)
         {
             if (!_socket.SendToAsync(token))
             {
-                ProcessSend(token);
+                if (ProcessError(token))
+                {
+                    ProcessSend(token);
+                }
             }
         }
 
         private void ProcessSend(SocketAsyncEventArgs token)
         {
-            _tokenPool.Return(token);
+            // TODO: Finish send operation
+            Logger.Verbose("[{RemoteEndPoint}] Sent data (size={Size})", token.RemoteEndPoint, token.BytesTransferred);
+
+            _sendTokenPool.Return(token);
         }
 
         private void IO_Completed(object sender, SocketAsyncEventArgs token)
@@ -254,10 +329,10 @@ namespace Lure.Net
             switch (token.LastOperation)
             {
             case SocketAsyncOperation.ReceiveFrom:
-                ProcessReceive(token);
+                ProcessReceive();
                 break;
 
-            case SocketAsyncOperation.Send:
+            case SocketAsyncOperation.SendTo:
                 ProcessSend(token);
                 break;
 

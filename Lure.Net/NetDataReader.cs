@@ -6,11 +6,12 @@ namespace Lure.Net
 {
     public class NetDataReader
     {
+        private readonly bool _isShared;
         private readonly byte[] _data;
         private readonly int _offset;
         private readonly int _length;
         private int _position;
-        private int _bitOffset;
+        private int _bitPosition;
 
         public NetDataReader(byte[] data)
         {
@@ -26,6 +27,8 @@ namespace Lure.Net
                 throw new ArgumentOutOfRangeException("Offset + length could not be bigger than data length.");
             }
 
+            _isShared = true;
+
             _data = data;
             _offset = offset;
             _length = length;
@@ -38,7 +41,13 @@ namespace Lure.Net
 
         public int BitLength => _length * NC.BitsPerByte;
 
-        public int BitPosition => (_position * NC.BitsPerByte) + _bitOffset;
+        public int BitPosition => (_position * NC.BitsPerByte) + _bitPosition;
+
+        internal bool IsShared => _isShared;
+
+        internal byte[] Data => _data;
+
+        internal int Offset => _offset;
 
 
         public BitVector ReadBits(int bitLength)
@@ -178,14 +187,14 @@ namespace Lure.Net
 
         public void PadBits()
         {
-            if (_bitOffset == 0)
+            if (_bitPosition == 0)
             {
                 return;
             }
 
-            EnsureReadSize(NC.BitsPerByte - _bitOffset);
+            EnsureReadSize(NC.BitsPerByte - _bitPosition);
             _position++;
-            _bitOffset = 0;
+            _bitPosition = 0;
         }
 
         public void Seek(int bitPosition)
@@ -195,13 +204,13 @@ namespace Lure.Net
                 throw new ArgumentOutOfRangeException(nameof(bitPosition));
             }
             _position = bitPosition / NC.BitsPerByte;
-            _bitOffset = bitPosition % NC.BitsPerByte;
+            _bitPosition = bitPosition % NC.BitsPerByte;
         }
 
         public void Reset()
         {
             _position = 0;
-            _bitOffset = 0;
+            _bitPosition = 0;
         }
 
 
@@ -213,15 +222,15 @@ namespace Lure.Net
             }
             Debug.Assert(bitLength >= 0 && bitLength <= NC.BitsPerByte);
 
-            if (_bitOffset == 0 && bitLength == NC.BitsPerByte)
+            if (_bitPosition == 0 && bitLength == NC.BitsPerByte)
             {
                 return _data[_offset + _position++];
             }
 
             byte value;
 
-            var inFirst = NC.BitsPerByte - _bitOffset;
-            value = (byte)((_data[_offset + _position] >> _bitOffset) & (NC.Byte >> (NC.BitsPerByte - bitLength)));
+            var inFirst = NC.BitsPerByte - _bitPosition;
+            value = (byte)((_data[_offset + _position] >> _bitPosition) & (NC.Byte >> (NC.BitsPerByte - bitLength)));
 
             if (inFirst < bitLength)
             {
@@ -230,12 +239,12 @@ namespace Lure.Net
                 var inSecond = bitLength - inFirst;
                 value |= (byte)((_data[_offset + _position] & (NC.Byte >> (NC.BitsPerByte - inSecond))) << inFirst);
 
-                _bitOffset = inSecond;
+                _bitPosition = inSecond;
             }
             else
             {
-                _bitOffset += bitLength;
-                _bitOffset %= NC.BitsPerByte;
+                _bitPosition += bitLength;
+                _bitPosition %= NC.BitsPerByte;
             }
 
             return value;

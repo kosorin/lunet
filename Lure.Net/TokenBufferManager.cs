@@ -26,7 +26,6 @@ namespace Lure.Net
             _buffer = new byte[_capacity];
         }
 
-
         public void SetBuffer(SocketAsyncEventArgs token)
         {
             if (_freeIndexPool.TryDequeue(out var freeIndex))
