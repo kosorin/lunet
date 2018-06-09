@@ -1,4 +1,4 @@
-﻿namespace Lure.Net
+﻿namespace Lure.Net.Data
 {
     public enum ByteOrder
     {

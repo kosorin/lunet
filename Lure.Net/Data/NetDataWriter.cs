@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace Lure.Net
+namespace Lure.Net.Data
 {
-    public class NetDataWriter
+    internal class NetDataWriter : INetDataWriter
     {
         private const int ResizeData = 8;
 
@@ -77,6 +77,12 @@ namespace Lure.Net
             EnsureWriteSize(capacity);
 
             var bytes = vector.GetBytes();
+
+            if (capacity % NC.BitsPerByte == 0 && FastWrite(bytes))
+            {
+                return;
+            }
+
             for (int i = 0; i < bytes.Length; i++)
             {
                 Write(bytes[i], capacity > NC.BitsPerByte ? NC.BitsPerByte : capacity);
@@ -92,6 +98,11 @@ namespace Lure.Net
                 return;
             }
             EnsureWriteSize(bitLength);
+
+            if (FastWrite(bytes))
+            {
+                return;
+            }
 
             for (int i = 0; i < bytes.Length; i++)
             {
@@ -190,7 +201,7 @@ namespace Lure.Net
         public void WriteFloat(float value)
         {
             EnsureWriteSize(sizeof(float) * NC.BitsPerByte);
-            var fp = new FloatingPoint { Float = value };
+            var fp = new FloatingPointConverter { Float = value };
             Write(fp.Byte0, NC.BitsPerByte);
             Write(fp.Byte1, NC.BitsPerByte);
             Write(fp.Byte2, NC.BitsPerByte);
@@ -200,7 +211,7 @@ namespace Lure.Net
         public void WriteDouble(double value)
         {
             EnsureWriteSize(sizeof(double) * NC.BitsPerByte);
-            var fp = new FloatingPoint { Double = value };
+            var fp = new FloatingPointConverter { Double = value };
             Write(fp.Byte0, NC.BitsPerByte);
             Write(fp.Byte1, NC.BitsPerByte);
             Write(fp.Byte2, NC.BitsPerByte);
@@ -299,6 +310,21 @@ namespace Lure.Net
                 _buffer >>= NC.BitsPerByte;
                 _bitPosition -= NC.BitsPerByte;
             }
+        }
+
+        private bool FastWrite(byte[] bytes)
+        {
+            if (_bitPosition == 0)
+            {
+                Array.Copy(bytes, 0, _data, _position, bytes.Length);
+                _position += bytes.Length;
+                if (_length < _position)
+                {
+                    _length = _position;
+                }
+                return true;
+            }
+            return false;
         }
 
         private void EnsureWriteSize(int bitLength)

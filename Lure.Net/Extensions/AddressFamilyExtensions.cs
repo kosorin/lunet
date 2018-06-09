@@ -2,7 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace Lure.Net
+namespace Lure.Net.Extensions
 {
     internal static class AddressFamilyExtensions
     {

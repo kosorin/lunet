@@ -34,7 +34,7 @@
         }
 
         /// <summary>
-        /// Validate configuration.
+        /// Validates  configuration.
         /// </summary>
         /// <exception cref="ConfigurationException" />
         public abstract void Validate();

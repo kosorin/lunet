@@ -2,9 +2,9 @@
 using System;
 using System.Diagnostics;
 
-namespace Lure.Net
+namespace Lure.Net.Data
 {
-    public class NetDataReader
+    internal class NetDataReader : INetDataReader
     {
         private readonly bool _isShared;
         private readonly byte[] _data;
@@ -83,11 +83,21 @@ namespace Lure.Net
             EnsureReadSize(length * NC.BitsPerByte);
 
             var bytes = new byte[length];
+            if (FastRead(bytes))
+            {
+                return bytes;
+            }
+
             for (int i = 0; i < length; i++)
             {
                 bytes[i] = Read(NC.BitsPerByte);
             }
             return bytes;
+        }
+
+        public byte[] ReadBytesToEnd()
+        {
+            return ReadBytes(_length - _position);
         }
 
         public bool ReadBit()
@@ -174,13 +184,13 @@ namespace Lure.Net
 
         public float ReadFloat()
         {
-            var fp = new FloatingPoint { UInt = ReadUInt() };
+            var fp = new FloatingPointConverter { UInt = ReadUInt() };
             return fp.Float;
         }
 
         public double ReadDouble()
         {
-            var fp = new FloatingPoint { ULong = ReadULong() };
+            var fp = new FloatingPointConverter { ULong = ReadULong() };
             return fp.Double;
         }
 
@@ -197,6 +207,12 @@ namespace Lure.Net
             _bitPosition = 0;
         }
 
+        public void Seek()
+        {
+            _position = 0;
+            _bitPosition = 0;
+        }
+
         public void Seek(int bitPosition)
         {
             if (bitPosition < 0 || BitLength < bitPosition)
@@ -205,12 +221,6 @@ namespace Lure.Net
             }
             _position = bitPosition / NC.BitsPerByte;
             _bitPosition = bitPosition % NC.BitsPerByte;
-        }
-
-        public void Reset()
-        {
-            _position = 0;
-            _bitPosition = 0;
         }
 
 
@@ -248,6 +258,17 @@ namespace Lure.Net
             }
 
             return value;
+        }
+
+        private bool FastRead(byte[] bytes)
+        {
+            if (_bitPosition == 0)
+            {
+                Array.Copy(_data, _offset, bytes, 0, bytes.Length);
+                _position += bytes.Length;
+                return true;
+            }
+            return false;
         }
 
         private void EnsureReadSize(int bitLength)

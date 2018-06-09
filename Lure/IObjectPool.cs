@@ -8,4 +8,11 @@ namespace Lure
 
         void Return(TItem item);
     }
+
+    public interface IObjectPool<TItem, TArg> : IDisposable
+    {
+        TItem Rent(TArg arg);
+
+        void Return(TItem item);
+    }
 }

@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Lure.Net
+namespace Lure.Net.Data
 {
     /// <summary>
     /// Fixed size vector of booleans.

@@ -1,9 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Lure.Net
+namespace Lure.Net.Data
 {
     [StructLayout(LayoutKind.Explicit)]
-    internal struct FloatingPoint
+    internal struct FloatingPointConverter
     {
         [FieldOffset(0)]
         public float Float;

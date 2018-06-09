@@ -4,11 +4,17 @@ using System.Collections.Concurrent;
 namespace Lure
 {
     public class ObjectPool<TItem> : IObjectPool<TItem>
+        where TItem : class
     {
         private readonly int _capacity;
         private readonly Func<TItem> _factory;
         private readonly ConcurrentQueue<TItem> _objects;
         private bool _disposed;
+
+        public ObjectPool(Func<TItem> factory)
+            : this(int.MaxValue, factory)
+        {
+        }
 
         public ObjectPool(int capacity, Func<TItem> factory)
         {
@@ -41,6 +47,11 @@ namespace Lure
 
         public void Return(TItem item)
         {
+            if (item == null)
+            {
+                return;
+            }
+
             if (_objects.Count > _capacity)
             {
                 if (item is IDisposable disposable)

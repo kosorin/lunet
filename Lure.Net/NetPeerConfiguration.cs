@@ -12,6 +12,7 @@ namespace Lure.Net
         private int _receiveBufferSize = 10 * 1024 * 1024; // 10 MB
         private int _packetBufferSize = 4 * 1024; // 4 kB
         private int _closeTimeout = 2; // 2 seconds
+        private int _maxClients = 32;
 
 
         public int? LocalPort
@@ -54,6 +55,12 @@ namespace Lure.Net
         {
             get => _closeTimeout;
             set => Set(ref _closeTimeout, value);
+        }
+
+        public int MaxClients
+        {
+            get => _maxClients;
+            set => Set(ref _maxClients, value);
         }
 
 

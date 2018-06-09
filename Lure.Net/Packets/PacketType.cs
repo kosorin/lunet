@@ -1,8 +1,9 @@
-﻿namespace Lure.Net
+﻿namespace Lure.Net.Packets
 {
-    public enum NetPacketType : byte
+    internal enum PacketType : byte
     {
-        Message,
+        Fragment,
+        Payload,
         Ping,
         Pong,
         ConnectRequest,
