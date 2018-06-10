@@ -242,18 +242,7 @@ namespace Lure.Net.Data
 
         public void Flush()
         {
-            if (_bitPosition == 0)
-            {
-                return;
-            }
-            Debug.Assert(_bitPosition < NC.BitsPerByte, "Complete buffer byte should be already flushed.");
-
-            _data[_offset + _position++] = (byte)(_buffer & (NC.Byte >> (NC.BitsPerByte - _bitPosition)));
-            if (_length < _position)
-            {
-                _length = _position;
-            }
-            _bitPosition = 0;
+            PadBits(false);
         }
 
         public void Reset()

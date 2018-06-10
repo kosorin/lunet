@@ -5,6 +5,7 @@ namespace Lure.Net.Packets
     internal abstract class Packet : INetSerializable
     {
         public static int SerializeCheck => 0x55555555;
+        public static int AckBitsLength => 32;
 
         public abstract PacketType Type { get; }
 
@@ -12,15 +13,15 @@ namespace Lure.Net.Packets
 
         public ushort Ack { get; set; }
 
-        public uint AckBits { get; set; }
+        public BitVector Acks { get; set; }
 
 
-        public void Deserialize(INetDataReader reader)
+        void INetSerializable.Deserialize(INetDataReader reader)
         {
             // Skip reading a type - already read
             Sequence = reader.ReadUShort();
             Ack = reader.ReadUShort();
-            AckBits = reader.ReadUInt();
+            Acks = reader.ReadBits(AckBitsLength);
 
             if (reader.ReadInt() != SerializeCheck)
             {
@@ -38,12 +39,12 @@ namespace Lure.Net.Packets
             }
         }
 
-        public void Serialize(INetDataWriter writer)
+        void INetSerializable.Serialize(INetDataWriter writer)
         {
             writer.WriteByte((byte)Type);
             writer.WriteUShort(Sequence);
             writer.WriteUShort(Ack);
-            writer.WriteUInt(AckBits);
+            writer.WriteBits(Acks ?? new BitVector(AckBitsLength));
 
             writer.WriteInt(SerializeCheck);
             writer.PadBits();

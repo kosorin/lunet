@@ -5,6 +5,7 @@ using Lure.Net.Messages;
 
 namespace Lure.Net.Packets
 {
+    [Packet(PacketType.Payload)]
     internal class PayloadPacket : Packet
     {
         public override PacketType Type => PacketType.Payload;

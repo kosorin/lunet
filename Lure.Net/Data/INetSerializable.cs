@@ -1,6 +1,4 @@
-﻿using Lure.Net.Data;
-
-namespace Lure.Net.Data
+﻿namespace Lure.Net.Data
 {
     public interface INetSerializable
     {

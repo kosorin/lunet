@@ -3,34 +3,41 @@ using Lure.Net.Extensions;
 using Lure.Net.Messages;
 using Lure.Net.Packets;
 using Serilog;
-using System.Collections.Concurrent;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Threading;
 
 namespace Lure.Net
 {
     /// <summary>
     /// Represents a connection to a remote peer.
     /// </summary>
-    public class NetConnection
+    public sealed class NetConnection : IDisposable
     {
         private const int MTU = 1000;
         private const int ResendTimeout = 100;
 
         private static readonly ILogger Logger = Log.ForContext<NetConnection>();
 
+        private readonly PacketManager _packetManager;
+        private readonly ObjectPool<NetDataWriter> _writerPool;
+
         private readonly NetPeer _peer;
         private readonly IPEndPoint _remoteEndPoint;
-        private readonly INetDataWriter _writer = new NetDataWriter(MTU);
         private readonly Dictionary<ushort, PayloadMessage> _sendQueue = new Dictionary<ushort, PayloadMessage>();
+        private readonly Dictionary<ushort, Payload> _sentPayloads = new Dictionary<ushort, Payload>();
 
         private readonly SequenceNumber _sendPacketSequence = new SequenceNumber();
         private readonly SequenceNumber _sendMessageSequence = new SequenceNumber();
+        private ushort _receivePacketAck;
+        private BitVector _receivePacketAcks;
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
         {
+            _packetManager = new PacketManager();
+            _writerPool = new ObjectPool<NetDataWriter>(16, () => new NetDataWriter(MTU));
+
             _peer = peer;
             _remoteEndPoint = remoteEndPoint;
         }
@@ -54,61 +61,150 @@ namespace Lure.Net
             }
         }
 
-        internal void PreparePacket(Packet packet)
+        public void Dispose()
         {
-            packet.Sequence = _sendPacketSequence.GetNext();
+            _packetManager.Dispose();
         }
 
-        internal IEnumerable<Payload> GetQueuedPayloads()
+        internal void Update()
         {
-            List<PayloadMessage> messages;
+            foreach (var payload in GetQueuedPayloads())
+            {
+                var packet = PreparePacket<PayloadPacket>();
+
+                packet.Data = SerializePayload(payload);
+
+                Peer.SendPacket(this, packet);
+
+                _sentPayloads[packet.Sequence] = payload;
+
+                _packetManager.Release(packet);
+            }
+        }
+
+        internal TPacket PreparePacket<TPacket>() where TPacket : Packet
+        {
+            var packet = _packetManager.Create<TPacket>();
+
+            packet.Sequence = _sendPacketSequence.GetNext();
+
+            return packet;
+        }
+
+        internal void Ack(ushort ack, BitVector acks)
+        {
+            _receivePacketAck = ack;
+            _receivePacketAcks = acks;
+
+            lock (_sendQueue)
+            {
+                var i = ack;
+                Ack(i);
+
+                foreach (var bit in acks.AsBits())
+                {
+                    --i;
+                    if (bit)
+                    {
+                        Ack(i);
+                    }
+                }
+            }
+        }
+
+        private void Ack(ushort ack)
+        {
+            if (_sentPayloads.Remove(ack, out var payload))
+            {
+                foreach (var message in payload.Messages)
+                {
+                    _sendQueue.Remove(message.Id);
+                }
+            }
+        }
+
+        internal List<Payload> GetQueuedPayloads()
+        {
+            var payloads = new List<Payload>();
+
+            List<PayloadMessage> payloadMessages;
             lock (_sendQueue)
             {
                 if (_sendQueue.Count == 0)
                 {
-                    yield break;
+                    return payloads;
                 }
-                messages = _sendQueue.Values
+                payloadMessages = _sendQueue.Values
                     .Where(x => x.LastSendTimestamp == null || Peer.CurrentTimestamp - x.LastSendTimestamp > ResendTimeout)
                     .OrderBy(x => x.LastSendTimestamp ?? long.MaxValue)
                     .ToList();
             }
 
-            foreach (var message in messages)
+            foreach (var payloadMessage in payloadMessages)
             {
-                message.LastSendTimestamp = Peer.CurrentTimestamp;
+                payloadMessage.LastSendTimestamp = Peer.CurrentTimestamp;
             }
 
             var payload = new Payload();
-            foreach (var message in messages)
+            foreach (var payloadMessage in payloadMessages)
             {
-                if (message.Data.Length > MTU)
+                if (payloadMessage.Data.Length > MTU)
                 {
                     throw new NetException();
                 }
-                else if (payload.TotalLength + message.Data.Length > MTU)
+                else if (payload.TotalLength + payloadMessage.Data.Length > MTU)
                 {
-                    yield return payload;
+                    payloads.Add(payload);
                     payload = new Payload();
                 }
 
-                payload.Messages.Add(message);
+                payload.Messages.Add(payloadMessage);
             }
 
             if (payload.Messages.Count > 0)
             {
-                yield return payload;
+                payloads.Add(payload);
             }
+
+            return payloads;
         }
 
         private byte[] SerializeMessage(NetMessage message)
         {
-            lock (_writer)
+            var writer = _writerPool.Rent();
+            try
             {
-                _writer.Reset();
-                _writer.WriteSerializable(message);
-                _writer.Flush();
-                return _writer.GetBytes();
+                writer.Reset();
+                writer.WriteSerializable(message);
+                writer.Flush();
+
+                return writer.GetBytes();
+            }
+            finally
+            {
+                _writerPool.Return(writer);
+            }
+        }
+
+        private byte[] SerializePayload(Payload payload)
+        {
+            var writer = _writerPool.Rent();
+            try
+            {
+                writer.Reset();
+                foreach (var payloadMessage in payload.Messages)
+                {
+                    writer.WriteUShort(payloadMessage.Id);
+                    writer.WriteBytes(payloadMessage.Data);
+                    writer.PadBits();
+                }
+                writer.Flush();
+
+                return writer.GetBytes();
+            }
+            finally
+            {
+                _writerPool.Return(writer);
             }
         }
     }

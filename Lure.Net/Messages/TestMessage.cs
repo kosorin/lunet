@@ -9,6 +9,11 @@ namespace Lure.Net.Messages
 
         public float Float { get; set; }
 
+        public override string ToString()
+        {
+            return $"{Integer} -> {Float}";
+        }
+
         protected override void DeserializeCore(INetDataReader reader)
         {
             Integer = reader.ReadInt();

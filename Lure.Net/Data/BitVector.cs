@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -442,10 +445,25 @@ namespace Lure.Net.Data
         {
             var sb = new StringBuilder(_capacity + 2);
             sb.Append('[');
-            for (int i = _capacity - 1; i >= 0; i--)
+
+            const int lastOne = NC.One << (NC.BitsPerInt - 1);
+            for (int i = _data.Length - 1, b = _capacity; i >= 0; i--)
             {
-                sb.Append(Get(i) ? '1' : '0');
+                var startBitIndex = (NC.BitsPerInt - (b % NC.BitsPerInt)) % NC.BitsPerInt;
+                var data = _data[i] << startBitIndex;
+                for (int j = startBitIndex; j < NC.BitsPerInt; j++)
+                {
+                    var bit = (data & lastOne) == lastOne;
+                    sb.Append(bit ? '1' : '0');
+                    if (--b <= 0)
+                    {
+                        goto End;
+                    }
+                    data <<= 1;
+                }
             }
+
+            End:
             sb.Append(']');
             return sb.ToString();
         }
@@ -470,6 +488,23 @@ namespace Lure.Net.Data
             End: return bytes;
         }
 
+        public IEnumerable<bool> AsBits()
+        {
+            for (int i = 0, b = 0; i < _data.Length; i++)
+            {
+                var data = _data[i];
+                for (int j = 0; j < sizeof(int) * NC.BitsPerByte; j++)
+                {
+                    var bit = (data & NC.One) == NC.One;
+                    yield return bit;
+                    if (++b >= _capacity)
+                    {
+                        yield break;
+                    }
+                    data >>= 1;
+                }
+            }
+        }
 
         #region IEquatable
 

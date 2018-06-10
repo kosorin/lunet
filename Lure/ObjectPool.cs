@@ -32,7 +32,6 @@ namespace Lure
             _objects = new ConcurrentQueue<TItem>();
         }
 
-
         public TItem Rent()
         {
             if (_objects.TryDequeue(out var item))
@@ -45,6 +44,11 @@ namespace Lure
             }
         }
 
+        public ObjectPoolRef<TItem> RentRef()
+        {
+            return new ObjectPoolRef<TItem>(this, Rent());
+        }
+
         public void Return(TItem item)
         {
             if (item == null)
@@ -52,14 +56,14 @@ namespace Lure
                 return;
             }
 
-            if (_objects.Count > _capacity)
+            if (_objects.Count < _capacity)
             {
-                if (item is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
+                _objects.Enqueue(item);
             }
-            _objects.Enqueue(item);
+            else if (item is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
         }
 
         public void Dispose()

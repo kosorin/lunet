@@ -21,7 +21,7 @@ namespace Lure.Net
         private readonly NetPeerConfiguration _config;
         private readonly Dictionary<IPEndPoint, NetConnection> _connections;
 
-        private readonly PacketPool _packetPool;
+        private readonly PacketManager _packetManager;
         private readonly SocketAsyncEventArgs _receiveToken;
         private readonly ObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
@@ -40,7 +40,7 @@ namespace Lure.Net
 
             _connections = new Dictionary<IPEndPoint, NetConnection>();
 
-            _packetPool = new PacketPool();
+            _packetManager = new PacketManager();
             _receiveToken = CreateReceiveToken();
             _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(_config.MaxClients * 4, CreateSendToken);
         }
@@ -113,6 +113,21 @@ namespace Lure.Net
         }
 
 
+        internal void SendPacket(NetConnection connection, Packet packet)
+        {
+            var token = _sendTokenPool.Rent();
+            var writer = (NetDataWriter)token.UserToken;
+
+            writer.Reset();
+            writer.WriteSerializable(packet);
+            writer.Flush();
+
+            token.SetWriter(writer);
+            token.RemoteEndPoint = connection.RemoteEndPoint;
+            StartSend(token);
+        }
+
+
         protected virtual void OnStart()
         {
         }
@@ -127,7 +142,11 @@ namespace Lure.Net
             {
                 if (disposing)
                 {
-                    _packetPool.Dispose();
+                    foreach (var connection in _connections.Values)
+                    {
+                        connection.Dispose();
+                    }
+                    _packetManager.Dispose();
                     _receiveToken.Dispose();
                     _sendTokenPool.Dispose();
                     _socket?.Close();
@@ -147,7 +166,6 @@ namespace Lure.Net
             try
             {
                 _socket = new Socket(_config.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-                //_socket.Blocking = false;
                 _socket.SendBufferSize = _config.SendBufferSize;
                 _socket.ReceiveBufferSize = _config.ReceiveBufferSize;
                 if (_config.AddressFamily == AddressFamily.InterNetworkV6)
@@ -212,34 +230,7 @@ namespace Lure.Net
         {
             foreach (var connection in _connections.Values)
             {
-                foreach (var payload in connection.GetQueuedPayloads())
-                {
-                    var token = _sendTokenPool.Rent();
-                    var writer = (NetDataWriter)token.UserToken;
-
-                    writer.Reset();
-                    foreach (var payloadMessage in payload.Messages)
-                    {
-                        writer.WriteUShort(payloadMessage.Id);
-                        writer.WriteBytes(payloadMessage.Data);
-                        writer.PadBits();
-                    }
-                    writer.Flush();
-
-                    var packet = (PayloadPacket)_packetPool.Rent(PacketType.Payload);
-                    connection.PreparePacket(packet);
-                    packet.Data = writer.GetBytes();
-
-                    writer.Reset();
-                    writer.WriteSerializable(packet);
-                    writer.Flush();
-                    writer.SetTokenBuffer(token);
-
-                    _packetPool.Return(packet);
-
-                    token.RemoteEndPoint = connection.RemoteEndPoint;
-                    StartSend(token);
-                }
+                connection.Update();
             }
         }
 
@@ -278,44 +269,28 @@ namespace Lure.Net
                 return;
             }
 
-            if (token.BytesTransferred > 0 && token.SocketError == SocketError.Success)
+            var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
+
+            if (!_connections.TryGetValue(remoteEndPoint, out var connection))
             {
-                var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
-                var reader = new NetDataReader(token.Buffer, token.Offset, token.BytesTransferred);
-
-                var packet = _packetPool.Rent((PacketType)reader.ReadByte());
-                reader.ReadSerializable(packet);
-
-                Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size}): {Type} {Sequence}", token.RemoteEndPoint, token.BytesTransferred, packet.Type, packet.Sequence);
-
-                ProcessPacket(packet);
-
-                _packetPool.Return(packet);
-
-                StartReceive();
+                connection = new NetConnection(this, remoteEndPoint);
+                _connections[remoteEndPoint] = connection;
             }
-            else
+
+            var reader = token.GetReader();
+            var packet = _packetManager.Parse(reader);
+            if (packet != null)
             {
-                var isError = true;
-                switch (token.SocketError)
-                {
-                case SocketError.MessageSize:
-                    Logger.Warning("[{RemoteEndPoint}] Received data are too big (size>{ReceiveBufferSize})", token.RemoteEndPoint, _config.PacketBufferSize);
-                    token.SocketError = SocketError.Success;
-                    isError = false;
-                    break;
-
-                case SocketError.Success:
-                    isError = false;
-                    break;
-                }
-
-                if (isError)
-                {
-                    Logger.Error("[{RemoteEndPoint}] Unable to receive data ({SocketErrorCode}:{ErrorCode})", token.RemoteEndPoint, token.SocketError, (int)token.SocketError);
-                    Stop();
-                }
+                connection.Ack(packet.Ack, packet.Acks);
             }
+
+            Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size}): {Type} {Sequence}", token.RemoteEndPoint, token.BytesTransferred, packet.Type, packet.Sequence);
+
+            ProcessPacket(packet);
+
+            _packetManager.Release(packet);
+
+            StartReceive();
         }
 
         private void ProcessPacket(Packet packet)
@@ -328,7 +303,20 @@ namespace Lure.Net
             case PacketType.Payload:
                 var payloadPacket = (PayloadPacket)packet;
                 var reader = new NetDataReader(payloadPacket.Data);
-                payloadPacket.
+
+                while (reader.Position < reader.Length)
+                {
+                    var id = reader.ReadUShort();
+                    var message = NetMessageManager.Create(reader.ReadUShort());
+                    if (message == null)
+                    {
+                        return;
+                    }
+                    reader.ReadSerializable(message);
+                    reader.PadBits();
+
+                    Logger.Debug("  {Id}: {Message}", id, message);
+                }
                 break;
 
             case PacketType.Ping:
@@ -409,13 +397,16 @@ namespace Lure.Net
         {
             if (token.SocketError == SocketError.Success)
             {
+                if (token.BytesTransferred <= 0)
+                {
+                    return false;
+                }
                 return true;
             }
             if (token.SocketError == SocketError.OperationAborted)
             {
                 return false;
             }
-
             return false;
         }
 

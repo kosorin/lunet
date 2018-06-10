@@ -1,8 +1,9 @@
-﻿using System.Threading;
+﻿using Lure.Net.Data;
+using System.Threading;
 
 namespace Lure.Net
 {
-    internal class SequenceNumber
+    internal class SequenceNumber : INetSerializable
     {
         private const int MaxValue = ushort.MaxValue + 1;
         private const int MaxCompareValue = MaxValue / 2;
@@ -24,6 +25,16 @@ namespace Lure.Net
         public bool LessThan(ushort other)
         {
             return GreaterThan(other, Value);
+        }
+
+        void INetSerializable.Deserialize(INetDataReader reader)
+        {
+            _value = reader.ReadUShort();
+        }
+
+        void INetSerializable.Serialize(INetDataWriter writer)
+        {
+            writer.WriteUShort(Value);
         }
 
         private bool GreaterThan(ushort left, ushort right)

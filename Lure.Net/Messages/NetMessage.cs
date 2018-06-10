@@ -7,14 +7,14 @@ namespace Lure.Net.Messages
     {
         internal ushort TypeId { get; set; }
 
-        public void Deserialize(INetDataReader reader)
+        void INetSerializable.Deserialize(INetDataReader reader)
         {
-            TypeId = reader.ReadUShort();
+            // Skip reading a type - already read
 
             DeserializeCore(reader);
         }
 
-        public void Serialize(INetDataWriter writer)
+        void INetSerializable.Serialize(INetDataWriter writer)
         {
             writer.WriteUShort(TypeId);
 
