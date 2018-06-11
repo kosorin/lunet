@@ -52,8 +52,12 @@ namespace Lure.Net.Packets
             SerializeCore(writer);
         }
 
-        protected abstract void DeserializeCore(INetDataReader reader);
+        protected virtual void DeserializeCore(INetDataReader reader)
+        {
+        }
 
-        protected abstract void SerializeCore(INetDataWriter writer);
+        protected virtual void SerializeCore(INetDataWriter writer)
+        {
+        }
     }
 }

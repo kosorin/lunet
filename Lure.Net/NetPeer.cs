@@ -125,6 +125,8 @@ namespace Lure.Net
             token.SetWriter(writer);
             token.RemoteEndPoint = connection.RemoteEndPoint;
             StartSend(token);
+
+            Logger.Verbose("[{RemoteEndPoint}] Send data (size={Size}): {Type} {Sequence}", connection.RemoteEndPoint, writer.Length, packet.Type, packet.Sequence);
         }
 
 
@@ -281,7 +283,8 @@ namespace Lure.Net
             var packet = _packetManager.Parse(reader);
             if (packet != null)
             {
-                connection.Ack(packet.Ack, packet.Acks);
+                connection.AckReceive(packet.Sequence);
+                connection.AckSend(packet.Ack, packet.Acks);
             }
 
             Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size}): {Type} {Sequence}", token.RemoteEndPoint, token.BytesTransferred, packet.Type, packet.Sequence);
@@ -315,7 +318,7 @@ namespace Lure.Net
                     reader.ReadSerializable(message);
                     reader.PadBits();
 
-                    Logger.Debug("  {Id}: {Message}", id, message);
+                    //Logger.Debug("  {Id}: {Message}", id, message);
                 }
                 break;
 
@@ -370,7 +373,6 @@ namespace Lure.Net
             if (ProcessError(token))
             {
                 // TODO: Finish send operation
-                Logger.Verbose("[{RemoteEndPoint}] Sent data (size={Size})", token.RemoteEndPoint, token.BytesTransferred);
             }
 
             _sendTokenPool.Return(token);

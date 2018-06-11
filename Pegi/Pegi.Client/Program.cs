@@ -13,7 +13,7 @@ namespace Pegi.Client
             var client = new NetClient("localhost", 45685);
             client.Start();
 
-            Thread.Sleep(2000);
+            Thread.Sleep(500);
 
             for (int i = 0; i < 10; i++)
             {
@@ -26,7 +26,7 @@ namespace Pegi.Client
                 Thread.Sleep(500);
             }
 
-            Thread.Sleep(2000);
+            Thread.Sleep(20000);
 
             client.Stop();
 

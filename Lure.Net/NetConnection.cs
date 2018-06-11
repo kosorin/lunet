@@ -17,6 +17,7 @@ namespace Lure.Net
     {
         private const int MTU = 1000;
         private const int ResendTimeout = 100;
+        private const int KeepAliveTimeout = 1000;
 
         private static readonly ILogger Logger = Log.ForContext<NetConnection>();
 
@@ -30,8 +31,13 @@ namespace Lure.Net
 
         private readonly SequenceNumber _sendPacketSequence = new SequenceNumber();
         private readonly SequenceNumber _sendMessageSequence = new SequenceNumber();
+
+        private bool _sendAck = false;
+
         private ushort _receivePacketAck;
-        private BitVector _receivePacketAcks;
+        private BitVector _receivePacketAcks = new BitVector(Packet.AckBitsLength);
+
+        private long _lastSendTimestamp = 0;
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
         {
@@ -68,8 +74,11 @@ namespace Lure.Net
 
         internal void Update()
         {
-            foreach (var payload in GetQueuedPayloads())
+            var payloads = GetQueuedPayloads();
+            foreach (var payload in payloads)
             {
+                _lastSendTimestamp = Peer.CurrentTimestamp;
+
                 var packet = PreparePacket<PayloadPacket>();
 
                 packet.Data = SerializePayload(payload);
@@ -80,6 +89,18 @@ namespace Lure.Net
 
                 _packetManager.Release(packet);
             }
+
+            if (payloads.Count == 0 && (_sendAck || (Peer.CurrentTimestamp - _lastSendTimestamp) > KeepAliveTimeout))
+            {
+                _sendAck = false;
+                _lastSendTimestamp = Peer.CurrentTimestamp;
+
+                var packet = PreparePacket<KeepAlivePacket>();
+
+                Peer.SendPacket(this, packet);
+
+                _packetManager.Release(packet);
+            }
         }
 
         internal TPacket PreparePacket<TPacket>() where TPacket : Packet
@@ -87,32 +108,68 @@ namespace Lure.Net
             var packet = _packetManager.Create<TPacket>();
 
             packet.Sequence = _sendPacketSequence.GetNext();
+            packet.Ack = _receivePacketAck;
+            packet.Acks = _receivePacketAcks;
 
             return packet;
         }
 
-        internal void Ack(ushort ack, BitVector acks)
+        internal void AckReceive(ushort sequence)
         {
-            _receivePacketAck = ack;
-            _receivePacketAcks = acks;
+            _sendAck = true;
 
+            Logger.Debug("  {Vec}", _receivePacketAcks);
+
+            int diff;
+            if (SequenceNumber.GreaterThan(_receivePacketAck, sequence))
+            {
+                diff = SequenceNumber.Difference(_receivePacketAck, sequence);
+            }
+            else
+            {
+                diff = -SequenceNumber.Difference(sequence, _receivePacketAck);
+            }
+
+            if (diff > Packet.AckBitsLength + 1)
+            {
+                _receivePacketAck = sequence;
+                _receivePacketAcks.ClearAll();
+                return;
+            }
+            else if (diff < -(Packet.AckBitsLength + 1))
+            {
+                return;
+            }
+
+            if (diff > 0)
+            {
+                _receivePacketAck = sequence;
+                _receivePacketAcks.LeftShift(diff);
+                _receivePacketAcks.Set(0);
+            }
+
+            Logger.Debug("  {Vec}", _receivePacketAcks);
+        }
+
+        internal void AckSend(ushort ack, BitVector acks)
+        {
             lock (_sendQueue)
             {
                 var i = ack;
-                Ack(i);
+                AckSend(i);
 
                 foreach (var bit in acks.AsBits())
                 {
                     --i;
                     if (bit)
                     {
-                        Ack(i);
+                        AckSend(i);
                     }
                 }
             }
         }
 
-        private void Ack(ushort ack)
+        private void AckSend(ushort ack)
         {
             if (_sentPayloads.Remove(ack, out var payload))
             {
