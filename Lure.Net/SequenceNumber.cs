@@ -1,63 +1,109 @@
-﻿using Lure.Net.Data;
-using System.Threading;
+﻿using System;
 
 namespace Lure.Net
 {
-    internal class SequenceNumber : INetSerializable
+    internal struct SequenceNumber
     {
         private const int Range = ushort.MaxValue + 1;
         private const int CompareValue = Range / 2;
 
-        private volatile int _value;
-
-        public ushort Value => FromInt(_value);
-
-        public static ushort FromInt(int sequence)
+        public SequenceNumber(ushort value)
         {
-            return (ushort)(sequence % Range);
+            Value = value;
         }
 
-        public static bool GreaterThan(ushort lower, ushort higher)
+        public SequenceNumber(int value)
         {
-            return (higher > lower && higher - lower <= CompareValue)
-                || (higher < lower && lower - higher > CompareValue);
+            Value = GetValueFromInt(value);
         }
 
-        public static ushort Difference(ushort lower, ushort higher)
+        public ushort Value { get; }
+
+        /// <summary>
+        /// Gets next number in a sequence.
+        /// </summary>
+        /// <returns></returns>
+        public SequenceNumber GetNext()
         {
-            if (lower > higher)
+            return new SequenceNumber(Value + 1);
+        }
+
+        public int GetDifference(SequenceNumber other)
+        {
+            if (Value == other.Value)
             {
-                return (ushort)((higher + Range) - lower);
+                return 0;
+            }
+
+            if (IsGreaterThan(Value, other.Value))
+            {
+                return GetDifference(Value, other.Value);
             }
             else
             {
-                return (ushort)(higher - lower);
+                return -GetDifference(other.Value, Value);
             }
         }
 
-        public ushort GetNext()
+        public override string ToString()
         {
-            return FromInt(Interlocked.Increment(ref _value));
+            return Value.ToString();
         }
 
-        public bool GreaterThan(ushort lower)
+
+        public static bool operator >(SequenceNumber left, SequenceNumber right)
         {
-            return GreaterThan(lower, Value);
+            return IsGreaterThan(left.Value, right.Value);
         }
 
-        public bool LessThan(ushort higher)
+        public static bool operator <(SequenceNumber left, SequenceNumber right)
         {
-            return GreaterThan(Value, higher);
+            return IsGreaterThan(right.Value, left.Value);
         }
 
-        void INetSerializable.Deserialize(INetDataReader reader)
+        public static bool operator >=(SequenceNumber left, SequenceNumber right)
         {
-            _value = reader.ReadUShort();
+            return left.Value == right.Value
+                || IsGreaterThan(left.Value, right.Value);
         }
 
-        void INetSerializable.Serialize(INetDataWriter writer)
+        public static bool operator <=(SequenceNumber left, SequenceNumber right)
         {
-            writer.WriteUShort(Value);
+            return left.Value == right.Value
+                || IsGreaterThan(right.Value, left.Value);
+        }
+
+        /// <summary>
+        /// Checks whether <paramref name="greater"/> parameter is greater than <paramref name="value"/>.
+        /// </summary>
+        /// <param name="greater"></param>
+        /// <param name="value"></param>
+        private static bool IsGreaterThan(ushort greater, ushort value)
+        {
+            return (value < greater && greater - value <= CompareValue)
+                || (greater < value && value - greater > CompareValue);
+        }
+
+        /// <summary>
+        /// Gets a difference of two sequence numbers.
+        /// </summary>
+        /// <param name="greater">Must be greater than <see cref="value"/>.</param>
+        /// <param name="value"></param>
+        private static int GetDifference(ushort greater, ushort value)
+        {
+            if (greater < value)
+            {
+                return (greater + Range) - value;
+            }
+            else
+            {
+                return greater - value;
+            }
+        }
+
+        private static ushort GetValueFromInt(int value)
+        {
+            return (ushort)(value % Range);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Lure.Net.Data;
+using Lure.Net.Extensions;
 
 namespace Lure.Net.Packets
 {
@@ -9,9 +10,9 @@ namespace Lure.Net.Packets
 
         public abstract PacketType Type { get; }
 
-        public ushort Sequence { get; set; }
+        public SequenceNumber Sequence { get; set; }
 
-        public ushort Ack { get; set; }
+        public SequenceNumber Ack { get; set; }
 
         public BitVector Acks { get; set; }
 
@@ -19,8 +20,8 @@ namespace Lure.Net.Packets
         void INetSerializable.Deserialize(INetDataReader reader)
         {
             // Skip reading a type - already read
-            Sequence = reader.ReadUShort();
-            Ack = reader.ReadUShort();
+            Sequence = reader.ReadSequenceNumber();
+            Ack = reader.ReadSequenceNumber();
             Acks = reader.ReadBits(AckBitsLength);
 
             if (reader.ReadInt() != SerializeCheck)
@@ -42,8 +43,8 @@ namespace Lure.Net.Packets
         void INetSerializable.Serialize(INetDataWriter writer)
         {
             writer.WriteByte((byte)Type);
-            writer.WriteUShort(Sequence);
-            writer.WriteUShort(Ack);
+            writer.WriteSequenceNumber(Sequence);
+            writer.WriteSequenceNumber(Ack);
             writer.WriteBits(Acks ?? new BitVector(AckBitsLength));
 
             writer.WriteInt(SerializeCheck);

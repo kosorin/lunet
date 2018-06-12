@@ -11,7 +11,7 @@ namespace Lure.Net.Packets.Processors
     {
         public void Process(NetPeer peer, NetConnection connection)
         {
-
+            
         }
     }
 }

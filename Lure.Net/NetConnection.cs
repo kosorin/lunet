@@ -29,12 +29,12 @@ namespace Lure.Net
         private readonly Dictionary<ushort, PayloadMessage> _sendQueue = new Dictionary<ushort, PayloadMessage>();
         private readonly Dictionary<ushort, Payload> _sentPayloads = new Dictionary<ushort, Payload>();
 
-        private readonly SequenceNumber _sendPacketSequence = new SequenceNumber();
-        private readonly SequenceNumber _sendMessageSequence = new SequenceNumber();
+        private SequenceNumber _sendPacketSequence = new SequenceNumber();
+        private SequenceNumber _sendMessageSequence = new SequenceNumber();
 
         private bool _sendAck = false;
 
-        private ushort _receivePacketAck;
+        private SequenceNumber _receivePacketAck;
         private BitVector _receivePacketAcks = new BitVector(Packet.AckBitsLength);
 
         private long _lastSendTimestamp = 0;
@@ -59,7 +59,9 @@ namespace Lure.Net
 
             lock (_sendQueue)
             {
-                var id = _sendMessageSequence.GetNext();
+                _sendMessageSequence = _sendMessageSequence.GetNext();
+
+                var id = _sendMessageSequence.GetNext().Value;
                 if (!_sendQueue.TryAdd(id, new PayloadMessage(id, data)))
                 {
                     throw new NetException("Buffer overflow.");
@@ -85,7 +87,7 @@ namespace Lure.Net
 
                 Peer.SendPacket(this, packet);
 
-                _sentPayloads[packet.Sequence] = payload;
+                _sentPayloads[packet.Sequence.Value] = payload;
 
                 _packetManager.Release(packet);
             }
@@ -105,38 +107,29 @@ namespace Lure.Net
 
         internal TPacket PreparePacket<TPacket>() where TPacket : Packet
         {
-            var packet = _packetManager.Create<TPacket>();
+            _sendPacketSequence = _sendPacketSequence.GetNext();
 
-            packet.Sequence = _sendPacketSequence.GetNext();
+            var packet = _packetManager.Create<TPacket>();
+            packet.Sequence = _sendPacketSequence;
             packet.Ack = _receivePacketAck;
             packet.Acks = _receivePacketAcks;
-
             return packet;
         }
 
-        internal void AckReceive(ushort sequence)
+        internal void AckReceive(SequenceNumber sequence, bool replyAck)
         {
-            _sendAck = true;
+            _sendAck = replyAck;
 
-            Logger.Debug("  {Vec}", _receivePacketAcks);
+            //Logger.Debug("  {Vec}", _receivePacketAcks);
 
-            int diff;
-            if (SequenceNumber.GreaterThan(_receivePacketAck, sequence))
-            {
-                diff = SequenceNumber.Difference(_receivePacketAck, sequence);
-            }
-            else
-            {
-                diff = -SequenceNumber.Difference(sequence, _receivePacketAck);
-            }
-
-            if (diff > Packet.AckBitsLength + 1)
+            var diff = sequence.GetDifference(_receivePacketAck);
+            if (diff > Packet.AckBitsLength)
             {
                 _receivePacketAck = sequence;
                 _receivePacketAcks.ClearAll();
                 return;
             }
-            else if (diff < -(Packet.AckBitsLength + 1))
+            else if (diff < -Packet.AckBitsLength)
             {
                 return;
             }
@@ -148,14 +141,14 @@ namespace Lure.Net
                 _receivePacketAcks.Set(0);
             }
 
-            Logger.Debug("  {Vec}", _receivePacketAcks);
+            //Logger.Debug("  {Vec}", _receivePacketAcks);
         }
 
-        internal void AckSend(ushort ack, BitVector acks)
+        internal void AckSend(SequenceNumber ack, BitVector acks)
         {
             lock (_sendQueue)
             {
-                var i = ack;
+                var i = ack.Value;
                 AckSend(i);
 
                 foreach (var bit in acks.AsBits())

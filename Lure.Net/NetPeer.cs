@@ -283,7 +283,7 @@ namespace Lure.Net
             var packet = _packetManager.Parse(reader);
             if (packet != null)
             {
-                connection.AckReceive(packet.Sequence);
+                connection.AckReceive(packet.Sequence, packet.Type != PacketType.KeepAlive);
                 connection.AckSend(packet.Ack, packet.Acks);
             }
 

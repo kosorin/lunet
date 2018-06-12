@@ -15,5 +15,15 @@ namespace Lure.Net.Extensions
         {
             serializable.Serialize(writer);
         }
+
+        public static SequenceNumber ReadSequenceNumber(this INetDataReader reader)
+        {
+            return new SequenceNumber(reader.ReadUShort());
+        }
+
+        public static void WriteSequenceNumber(this INetDataWriter writer, SequenceNumber sequence)
+        {
+            writer.WriteUShort(sequence.Value);
+        }
     }
 }
