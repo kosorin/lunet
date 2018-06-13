@@ -16,14 +16,14 @@ namespace Lure.Net.Extensions
             serializable.Serialize(writer);
         }
 
-        public static SequenceNumber ReadSequenceNumber(this INetDataReader reader)
+        public static SeqNo ReadSeqNo(this INetDataReader reader)
         {
-            return new SequenceNumber(reader.ReadUShort());
+            return new SeqNo(reader.ReadUShort());
         }
 
-        public static void WriteSequenceNumber(this INetDataWriter writer, SequenceNumber sequence)
+        public static void WriteSeqNo(this INetDataWriter writer, SeqNo seq)
         {
-            writer.WriteUShort(sequence.Value);
+            writer.WriteUShort(seq.Value);
         }
     }
 }

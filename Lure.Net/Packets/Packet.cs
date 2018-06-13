@@ -6,23 +6,28 @@ namespace Lure.Net.Packets
     internal abstract class Packet : INetSerializable
     {
         public static int SerializeCheck => 0x55555555;
-        public static int AckBitsLength => 32;
+        public static int AcksLength => 32;
 
-        public abstract PacketType Type { get; }
+        protected Packet(PacketType type)
+        {
+            Type = type;
+        }
 
-        public SequenceNumber Sequence { get; set; }
+        public PacketType Type { get; }
 
-        public SequenceNumber Ack { get; set; }
+        public SeqNo Seq { get; set; }
+
+        public SeqNo Ack { get; set; }
 
         public BitVector Acks { get; set; }
 
 
         void INetSerializable.Deserialize(INetDataReader reader)
         {
-            // Skip reading a type - already read
-            Sequence = reader.ReadSequenceNumber();
-            Ack = reader.ReadSequenceNumber();
-            Acks = reader.ReadBits(AckBitsLength);
+            // Skip reading a type - already read and used to create packet
+            Seq = reader.ReadSeqNo();
+            Ack = reader.ReadSeqNo();
+            Acks = reader.ReadBits(AcksLength);
 
             if (reader.ReadInt() != SerializeCheck)
             {
@@ -43,9 +48,9 @@ namespace Lure.Net.Packets
         void INetSerializable.Serialize(INetDataWriter writer)
         {
             writer.WriteByte((byte)Type);
-            writer.WriteSequenceNumber(Sequence);
-            writer.WriteSequenceNumber(Ack);
-            writer.WriteBits(Acks ?? new BitVector(AckBitsLength));
+            writer.WriteSeqNo(Seq);
+            writer.WriteSeqNo(Ack);
+            writer.WriteBits(Acks ?? new BitVector(AcksLength));
 
             writer.WriteInt(SerializeCheck);
             writer.PadBits();

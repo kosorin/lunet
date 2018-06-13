@@ -2,18 +2,20 @@
 
 namespace Lure.Net.Packets
 {
-    internal class PayloadMessage
+    internal class PayloadMessage : IPacketPart
     {
-        public PayloadMessage(ushort id, byte[] data)
+        public PayloadMessage(SeqNo seq, byte[] data)
         {
-            Id = id;
+            Seq = seq;
             Data = data;
         }
 
-        public ushort Id { get; }
+        public SeqNo Seq { get; }
 
         public byte[] Data { get; }
 
         public long? LastSendTimestamp { get; set; }
+
+        public int Length => Seq.Length + Data.Length;
     }
 }

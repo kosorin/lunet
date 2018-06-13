@@ -8,7 +8,9 @@ namespace Lure.Net.Packets
     [Packet(PacketType.Payload)]
     internal class PayloadPacket : Packet
     {
-        public override PacketType Type => PacketType.Payload;
+        public PayloadPacket(PacketType type) : base(type)
+        {
+        }
 
         public byte[] Data { get; set; }
 

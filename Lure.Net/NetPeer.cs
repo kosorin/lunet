@@ -126,7 +126,7 @@ namespace Lure.Net
             token.RemoteEndPoint = connection.RemoteEndPoint;
             StartSend(token);
 
-            Logger.Verbose("[{RemoteEndPoint}] Send data (size={Size}): {Type} {Sequence}", connection.RemoteEndPoint, writer.Length, packet.Type, packet.Sequence);
+            Logger.Verbose("[{RemoteEndPoint}] Send data (size={Size}): {Type} {Seq}", connection.RemoteEndPoint, writer.Length, packet.Type, packet.Seq);
         }
 
 
@@ -283,15 +283,15 @@ namespace Lure.Net
             var packet = _packetManager.Parse(reader);
             if (packet != null)
             {
-                connection.AckReceive(packet.Sequence, packet.Type != PacketType.KeepAlive);
+                Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size}): {Type} {Seq}", token.RemoteEndPoint, token.BytesTransferred, packet.Type, packet.Seq);
+
+                connection.AckReceive(packet.Seq, packet.Type != PacketType.KeepAlive);
                 connection.AckSend(packet.Ack, packet.Acks);
+
+                ProcessPacket(packet);
+
+                _packetManager.Return(packet);
             }
-
-            Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size}): {Type} {Sequence}", token.RemoteEndPoint, token.BytesTransferred, packet.Type, packet.Sequence);
-
-            ProcessPacket(packet);
-
-            _packetManager.Release(packet);
 
             StartReceive();
         }
@@ -309,7 +309,7 @@ namespace Lure.Net
 
                 while (reader.Position < reader.Length)
                 {
-                    var id = reader.ReadUShort();
+                    var seq = reader.ReadSeqNo();
                     var message = NetMessageManager.Create(reader.ReadUShort());
                     if (message == null)
                     {
@@ -318,7 +318,7 @@ namespace Lure.Net
                     reader.ReadSerializable(message);
                     reader.PadBits();
 
-                    //Logger.Debug("  {Id}: {Message}", id, message);
+                    Logger.Debug("  {Seq}: {Message}", seq, message);
                 }
                 break;
 

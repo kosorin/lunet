@@ -8,6 +8,8 @@ namespace Lure.Net.Packets
     [Packet(PacketType.KeepAlive)]
     internal class KeepAlivePacket : Packet
     {
-        public override PacketType Type => PacketType.KeepAlive;
+        public KeepAlivePacket(PacketType type) : base(type)
+        {
+        }
     }
 }

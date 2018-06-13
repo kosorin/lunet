@@ -34,7 +34,7 @@ namespace Lure.Net.Packets
         {
             if (PacketTypes.TryGetValue(typeof(TPacket), out var type))
             {
-                return (TPacket)GetPool(type)?.Rent();
+                return (TPacket)GetPacket(type);
             }
             else
             {
@@ -45,7 +45,7 @@ namespace Lure.Net.Packets
         public Packet Parse(INetDataReader reader)
         {
             var type = (PacketType)reader.ReadByte();
-            var packet = GetPool(type)?.Rent();
+            var packet = GetPacket(type);
             if (packet != null)
             {
                 reader.ReadSerializable(packet);
@@ -53,7 +53,7 @@ namespace Lure.Net.Packets
             return packet;
         }
 
-        public void Release(Packet packet)
+        public void Return(Packet packet)
         {
             if (packet == null)
             {
@@ -69,6 +69,11 @@ namespace Lure.Net.Packets
             {
                 pool.Dispose();
             }
+        }
+
+        private Packet GetPacket(PacketType type)
+        {
+            return GetPool(type)?.Rent();
         }
 
         private ObjectPool<Packet> GetPool(PacketType type)
@@ -102,7 +107,7 @@ namespace Lure.Net.Packets
         {
             if (ClassTypes.TryGetValue(type, out var classType))
             {
-                return () => (Packet)Activator.CreateInstance(classType);
+                return () => (Packet)Activator.CreateInstance(classType, type);
             }
             else
             {
