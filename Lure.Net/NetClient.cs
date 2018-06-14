@@ -22,7 +22,7 @@ namespace Lure.Net
         }
 
         public NetClient(NetClientConfiguration config)
-            : base(config)
+            : base(config, false)
         {
             _config = config;
         }
@@ -34,7 +34,7 @@ namespace Lure.Net
 
         public void SendMessage(NetMessage message)
         {
-            SendMessage(_connection, message);
+            _connection.SendMessage(message);
         }
 
         protected override void OnStart()
@@ -46,8 +46,7 @@ namespace Lure.Net
             }
             var remoteEndPoint = new IPEndPoint(hostAddress, _config.Port);
 
-            _connection = new NetConnection(this, remoteEndPoint);
-            AddConnection(_connection);
+            _connection = GetConnection(remoteEndPoint);
 
             base.OnStart();
         }

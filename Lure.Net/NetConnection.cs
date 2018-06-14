@@ -26,18 +26,18 @@ namespace Lure.Net
 
         private readonly NetPeer _peer;
         private readonly IPEndPoint _remoteEndPoint;
-        private readonly Dictionary<SeqNo, PayloadMessage> _sendQueue = new Dictionary<SeqNo, PayloadMessage>();
-        private readonly Dictionary<SeqNo, Payload> _sentPayloads = new Dictionary<SeqNo, Payload>();
 
-        private SeqNo _sendPacketSeq;
-        private SeqNo _sendMessageSeq;
+        private SeqNo _sendMessageSeq = SeqNo.Zero;
+        private readonly Dictionary<SeqNo, PayloadMessage> _sendQueue = new Dictionary<SeqNo, PayloadMessage>();
+
+        private long _lastPacketTimestamp = 0;
+        private SeqNo _sendPacketSeq = SeqNo.Zero;
+        private readonly Dictionary<SeqNo, Payload> _sentPayloads = new Dictionary<SeqNo, Payload>();
 
         private bool _sendAck = false;
 
-        private SeqNo _receivePacketAck = new SeqNo() - 1;
+        private SeqNo _receivePacketAck = SeqNo.Zero - 1;
         private BitVector _receivePacketAcks = new BitVector(Packet.AcksLength);
-
-        private long _lastSendTimestamp = 0;
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
         {
@@ -77,29 +77,16 @@ namespace Lure.Net
             var payloads = GetQueuedPayloads();
             foreach (var payload in payloads)
             {
-                _lastSendTimestamp = Peer.CurrentTimestamp;
-
                 var packet = PreparePacket<PayloadPacket>();
-
                 packet.Data = SerializePayload(payload);
-
-                Peer.SendPacket(this, packet);
-
                 _sentPayloads[packet.Seq] = payload;
-
-                _packetManager.Return(packet);
+                SendPacket(packet);
             }
 
-            if (payloads.Count == 0 && (_sendAck || (Peer.CurrentTimestamp - _lastSendTimestamp) > KeepAliveTimeout))
+            if (payloads.Count == 0 && (_sendAck || (Peer.CurrentTimestamp - _lastPacketTimestamp) > KeepAliveTimeout))
             {
                 _sendAck = false;
-                _lastSendTimestamp = Peer.CurrentTimestamp;
-
-                var packet = PreparePacket<KeepAlivePacket>();
-
-                Peer.SendPacket(this, packet);
-
-                _packetManager.Return(packet);
+                SendPacket(PreparePacket<KeepAlivePacket>());
             }
         }
 
@@ -112,12 +99,8 @@ namespace Lure.Net
             return packet;
         }
 
-        internal void AckReceive(SeqNo seq, bool replyAck)
+        internal void AckReceive(SeqNo seq)
         {
-            _sendAck = replyAck;
-
-            Logger.Debug("  {Acks}:{Ack}", _receivePacketAcks, _receivePacketAck.Value);
-
             var diff = seq.GetDifference(_receivePacketAck);
             if (Math.Abs(diff) > Packet.AcksLength)
             {
@@ -131,22 +114,20 @@ namespace Lure.Net
                 _receivePacketAcks.Set(0);
             }
 
-            Logger.Debug("  {Acks}:{Ack}", _receivePacketAcks, _receivePacketAck.Value);
+            Logger.Verbose("  {Acks} <- {Ack}", _receivePacketAcks, _receivePacketAck.Value);
         }
 
         internal void AckSend(SeqNo ack, BitVector acks)
         {
             lock (_sendQueue)
             {
-                var i = ack;
-                AckSend(i);
-
+                AckSend(ack);
                 foreach (var bit in acks.AsBits())
                 {
-                    --i;
+                    ack--;
                     if (bit)
                     {
-                        AckSend(i);
+                        AckSend(ack);
                     }
                 }
             }
@@ -207,6 +188,13 @@ namespace Lure.Net
             }
 
             return payloads;
+        }
+
+        private void SendPacket(Packet packet)
+        {
+            Peer.SendPacket(this, packet);
+            _packetManager.Return(packet);
+            _lastPacketTimestamp = Peer.CurrentTimestamp;
         }
 
         private byte[] SerializeMessage(NetMessage message)

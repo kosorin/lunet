@@ -29,7 +29,7 @@ namespace Lure.Net.Data
         /// <param name="capacity">Number of allocated bytes.</param>
         public NetDataWriter(int capacity)
         {
-            EnsureTotalSize(capacity);
+            EnsureInitialSize(capacity);
         }
 
         /// <summary>
@@ -342,7 +342,7 @@ namespace Lure.Net.Data
             }
         }
 
-        private void EnsureTotalSize(int length)
+        private void EnsureInitialSize(int length)
         {
             if (_isShared)
             {

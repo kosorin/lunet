@@ -8,6 +8,7 @@ namespace Lure.Net
     internal struct SeqNo : IEquatable<SeqNo>, IPacketPart
     {
         private const int Range = ushort.MaxValue + 1;
+
         private const int CompareValue = Range / 2;
 
         private readonly ushort _value;
@@ -21,6 +22,8 @@ namespace Lure.Net
         {
             _value = GetValueFromInt(value);
         }
+
+        public static SeqNo Zero { get; } = new SeqNo(0);
 
         public ushort Value => _value;
 
@@ -63,7 +66,6 @@ namespace Lure.Net
         {
             return _value.ToString();
         }
-
 
         #region Operators
 
@@ -121,8 +123,6 @@ namespace Lure.Net
 
         #endregion Operators
 
-        #region Static
-
         /// <summary>
         /// Checks whether <paramref name="greater"/> parameter is greater than <paramref name="value"/>.
         /// </summary>
@@ -155,7 +155,5 @@ namespace Lure.Net
         {
             return (ushort)(value % Range);
         }
-
-        #endregion Static
     }
 }

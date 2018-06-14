@@ -19,7 +19,7 @@ namespace Lure.Net
         }
 
         public NetServer(NetServerConfiguration config)
-            : base(config)
+            : base(config, true)
         {
             _config = config;
         }
