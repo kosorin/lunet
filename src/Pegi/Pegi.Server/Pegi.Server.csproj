@@ -11,8 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Lure\Lure.csproj" />
-    <ProjectReference Include="..\..\Lure.Net\Lure.Net.csproj" />
+    <ProjectReference Include="..\..\Lure\Lure\Lure.csproj" />
+    <ProjectReference Include="..\..\Lure\Lure.Net\Lure.Net.csproj" />
   </ItemGroup>
 
 </Project>
