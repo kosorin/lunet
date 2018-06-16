@@ -341,7 +341,7 @@ namespace Lure.Net.Data
         /// </summary>
         public bool Get(int index)
         {
-            if (index < 0 || index > _capacity)
+            if (index < 0 || index >= _capacity)
             {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
@@ -354,7 +354,7 @@ namespace Lure.Net.Data
         /// </summary>
         public void Set(int index, bool value)
         {
-            if (index < 0 || index > _capacity)
+            if (index < 0 || index >= _capacity)
             {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }

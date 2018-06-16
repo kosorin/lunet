@@ -37,6 +37,7 @@ namespace Lure.Net
 
         private bool _sendAck = false;
 
+        private SeqNo _LAST_SEND_receivePacketAck = SeqNo.Zero - 1; // TODO
         private SeqNo _receivePacketAck = SeqNo.Zero - 1;
         private BitVector _receivePacketAckBuffer = new BitVector(Packet.AcksLength);
 
@@ -103,20 +104,31 @@ namespace Lure.Net
         internal void AckReceive(SeqNo seq)
         {
             var diff = seq.GetDifference(_receivePacketAck);
-            if (Math.Abs(diff) > Packet.AcksLength)
+            if (diff == 0)
             {
-                throw new NetException("Receive ack buffer is out of sync!");
+                return;
             }
-
-            if (diff > 0)
+            else if (diff > 0)
             {
                 _receivePacketAck = seq;
-                _receivePacketAckBuffer.LeftShift(diff);
-                _receivePacketAckBuffer.Set(0);
+
+                if (diff > _receivePacketAckBuffer.Capacity)
+                {
+                    _receivePacketAckBuffer.ClearAll();
+                }
+                else
+                {
+                    _receivePacketAckBuffer.LeftShift(diff);
+                    _receivePacketAckBuffer.Set(diff - 1);
+                }
             }
             else
             {
-
+                diff *= -1;
+                if (diff <= _receivePacketAckBuffer.Capacity)
+                {
+                    _receivePacketAckBuffer.Set(diff - 1);
+                }
             }
 
             Logger.Verbose("  {Acks} <- {Ack}", _receivePacketAckBuffer, _receivePacketAck.Value);

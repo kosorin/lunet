@@ -20,7 +20,7 @@ namespace Lure.Net
 
         public SeqNo(int value)
         {
-            _value = GetValueFromInt(value);
+            _value = (ushort)(value % Range);
         }
 
         public static SeqNo Zero { get; } = new SeqNo(0);
@@ -66,6 +66,7 @@ namespace Lure.Net
         {
             return _value.ToString();
         }
+
 
         #region Operators
 
@@ -121,7 +122,6 @@ namespace Lure.Net
             return left._value != right._value;
         }
 
-
         public static explicit operator ushort(SeqNo seq)
         {
             return seq._value;
@@ -144,6 +144,8 @@ namespace Lure.Net
 
         #endregion Operators
 
+        #region Static methods
+
         /// <summary>
         /// Checks whether <paramref name="greater"/> parameter is greater than <paramref name="value"/>.
         /// </summary>
@@ -158,7 +160,7 @@ namespace Lure.Net
         /// <summary>
         /// Gets a difference of two sequence numbers.
         /// </summary>
-        /// <param name="greater">Must be greater than <see cref="value"/>.</param>
+        /// <param name="greater">Must be greater than <paramref name="value"/>.</param>
         /// <param name="value"></param>
         private static int GetDifference(ushort greater, ushort value)
         {
@@ -172,9 +174,6 @@ namespace Lure.Net
             }
         }
 
-        private static ushort GetValueFromInt(int value)
-        {
-            return (ushort)(value % Range);
-        }
+        #endregion
     }
 }
