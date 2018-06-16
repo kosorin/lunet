@@ -1,15 +1,16 @@
 ﻿using Lure.Net.Packets;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Lure.Net
 {
     [DebuggerDisplay("{Value,nq}")]
     internal struct SeqNo : IEquatable<SeqNo>, IPacketPart
     {
-        private const int Range = ushort.MaxValue + 1;
+        public const int Range = ushort.MaxValue + 1;
 
-        private const int CompareValue = Range / 2;
+        public const int HalfRange = Range / 2;
 
         private readonly ushort _value;
 
@@ -29,22 +30,9 @@ namespace Lure.Net
 
         public int Length => sizeof(ushort);
 
-
         public int GetDifference(SeqNo other)
         {
-            if (_value == other._value)
-            {
-                return 0;
-            }
-
-            if (IsGreaterThan(_value, other._value))
-            {
-                return GetDifference(_value, other._value);
-            }
-            else
-            {
-                return -GetDifference(other._value, _value);
-            }
+            return GetDifference(_value, other._value);
         }
 
         public bool Equals(SeqNo other)
@@ -92,24 +80,24 @@ namespace Lure.Net
 
         public static bool operator >(SeqNo left, SeqNo right)
         {
-            return IsGreaterThan(left._value, right._value);
+            return GetDifference(left._value, right._value) > 0;
         }
 
         public static bool operator <(SeqNo left, SeqNo right)
         {
-            return IsGreaterThan(right._value, left._value);
+            return GetDifference(left._value, right._value) < 0;
         }
 
         public static bool operator >=(SeqNo left, SeqNo right)
         {
             return left._value == right._value
-                || IsGreaterThan(left._value, right._value);
+                || GetDifference(left._value, right._value) > 0;
         }
 
         public static bool operator <=(SeqNo left, SeqNo right)
         {
             return left._value == right._value
-                || IsGreaterThan(right._value, left._value);
+                || GetDifference(left._value, right._value) < 0;
         }
 
         public static bool operator ==(SeqNo left, SeqNo right)
@@ -147,31 +135,14 @@ namespace Lure.Net
         #region Static methods
 
         /// <summary>
-        /// Checks whether <paramref name="greater"/> parameter is greater than <paramref name="value"/>.
-        /// </summary>
-        /// <param name="greater"></param>
-        /// <param name="value"></param>
-        private static bool IsGreaterThan(ushort greater, ushort value)
-        {
-            return (value < greater && greater - value <= CompareValue)
-                || (greater < value && value - greater > CompareValue);
-        }
-
-        /// <summary>
         /// Gets a difference of two sequence numbers.
         /// </summary>
-        /// <param name="greater">Must be greater than <paramref name="value"/>.</param>
-        /// <param name="value"></param>
-        private static int GetDifference(ushort greater, ushort value)
+        /// <param name="left"></param>
+        /// <param name="right"></param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetDifference(ushort left, ushort right)
         {
-            if (greater < value)
-            {
-                return (greater + Range) - value;
-            }
-            else
-            {
-                return greater - value;
-            }
+            return -(((right - left + Range + HalfRange) % Range) - HalfRange);
         }
 
         #endregion

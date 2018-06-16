@@ -94,24 +94,40 @@ namespace Lure.Net.Data
                     }
                 }
             }
-            End: return;
+        End:
+            return;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BitVector"/> class with another bit vector.
         /// </summary>
         /// <param name="source">Source bit vector.</param>
-        public BitVector(BitVector source)
+        /// <param name="offset"></param>
+        /// <param name="count"></param>
+        internal BitVector(BitVector source, int offset, int count)
         {
+            if (offset != 0)
+            {
+                throw new NotImplementedException();
+            }
+
             if (source == null)
             {
                 throw new ArgumentNullException(nameof(source));
             }
+            if (count < 0 || count > source._capacity)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+            if (offset < 0 || offset + count > source._capacity)
+            {
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            }
 
-            _capacity = source._capacity;
+            _capacity = count;
             ByteCapacity = NetHelper.GetElementCapacity(_capacity, NC.BitsPerByte);
 
-            _data = new int[source._data.Length];
+            _data = new int[NetHelper.GetElementCapacity(_capacity, NC.BitsPerInt)];
 
             Array.Copy(source._data, 0, _data, 0, _data.Length);
         }
@@ -463,7 +479,7 @@ namespace Lure.Net.Data
                 }
             }
 
-            End:
+        End:
             sb.Append(']');
             return sb.ToString();
         }
@@ -485,7 +501,8 @@ namespace Lure.Net.Data
                     }
                 }
             }
-            End: return bytes;
+        End:
+            return bytes;
         }
 
         public IEnumerable<bool> AsBits()
@@ -504,6 +521,16 @@ namespace Lure.Net.Data
                     data >>= 1;
                 }
             }
+        }
+
+        public BitVector Clone()
+        {
+            return new BitVector(this, 0, _capacity);
+        }
+
+        public BitVector Clone(int offset, int count)
+        {
+            return new BitVector(this, offset, count);
         }
 
         #region IEquatable

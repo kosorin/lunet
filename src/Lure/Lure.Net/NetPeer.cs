@@ -320,10 +320,11 @@ namespace Lure.Net
                 {
                     Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size}): {Type} {Seq}", token.RemoteEndPoint, token.BytesTransferred, packet.Type, packet.Seq);
 
-                    connection.AckReceive(packet.Seq);
-                    connection.AckSend(packet.Ack, packet.AckBuffer);
-
-                    ProcessPacket(packet);
+                    if (connection.AckReceive(packet.Seq))
+                    {
+                        connection.AckSend(packet.Ack, packet.AckBuffer);
+                        ProcessPacket(packet);
+                    }
 
                     _packetManager.Return(packet);
                 }

@@ -28,18 +28,16 @@ namespace Lure.Net
         private readonly NetPeer _peer;
         private readonly IPEndPoint _remoteEndPoint;
 
-        private SeqNo _sendMessageSeq = SeqNo.Zero;
         private readonly Dictionary<SeqNo, PayloadMessage> _sendQueue = new Dictionary<SeqNo, PayloadMessage>();
-
+        private readonly Dictionary<SeqNo, Payload> _sentPayloads = new Dictionary<SeqNo, Payload>();
+        private SeqNo _sendMessageSeq = SeqNo.Zero;
         private long _lastPacketTimestamp = 0;
         private SeqNo _sendPacketSeq = SeqNo.Zero;
-        private readonly Dictionary<SeqNo, Payload> _sentPayloads = new Dictionary<SeqNo, Payload>();
-
         private bool _sendAck = false;
 
         private SeqNo _LAST_SEND_receivePacketAck = SeqNo.Zero - 1; // TODO
         private SeqNo _receivePacketAck = SeqNo.Zero - 1;
-        private BitVector _receivePacketAckBuffer = new BitVector(Packet.AcksLength);
+        private BitVector _receivePacketAckBuffer = new BitVector(Packet.AckBufferLength);
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
         {
@@ -97,16 +95,21 @@ namespace Lure.Net
             var packet = _packetManager.Create<TPacket>();
             packet.Seq = _sendPacketSeq++;
             packet.Ack = _receivePacketAck;
-            packet.AckBuffer = _receivePacketAckBuffer;
+            packet.AckBuffer = _receivePacketAckBuffer.Clone(0, Packet.PacketAckBufferLength);
             return packet;
         }
 
-        internal void AckReceive(SeqNo seq)
+        /// <summary>
+        /// Acks received packet.
+        /// </summary>
+        /// <param name="seq"></param>
+        /// <returns>Returns <c>true</c> if <paramref name="seq"/> wasn't acked yet.</returns>
+        internal bool AckReceive(SeqNo seq)
         {
             var diff = seq.GetDifference(_receivePacketAck);
             if (diff == 0)
             {
-                return;
+                return false;
             }
             else if (diff > 0)
             {
@@ -121,17 +124,30 @@ namespace Lure.Net
                     _receivePacketAckBuffer.LeftShift(diff);
                     _receivePacketAckBuffer.Set(diff - 1);
                 }
+                goto Success;
             }
             else
             {
                 diff *= -1;
                 if (diff <= _receivePacketAckBuffer.Capacity)
                 {
-                    _receivePacketAckBuffer.Set(diff - 1);
+                    var ackIndex = diff - 1;
+                    if (_receivePacketAckBuffer[ackIndex])
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        _receivePacketAckBuffer.Set(diff - 1);
+                        goto Success;
+                    }
                 }
+                return false;
             }
 
+        Success:
             Logger.Verbose("  {Acks} <- {Ack}", _receivePacketAckBuffer, _receivePacketAck.Value);
+            return true;
         }
 
         internal void AckSend(SeqNo ack, BitVector acks)
@@ -146,17 +162,6 @@ namespace Lure.Net
                     {
                         AckSend(ack);
                     }
-                }
-            }
-        }
-
-        private void AckSend(SeqNo ack)
-        {
-            if (_sentPayloads.Remove(ack, out var payload))
-            {
-                foreach (var message in payload.Messages)
-                {
-                    _sendQueue.Remove(message.Seq);
                 }
             }
         }
@@ -205,6 +210,17 @@ namespace Lure.Net
             }
 
             return payloads;
+        }
+
+        private void AckSend(SeqNo ack)
+        {
+            if (_sentPayloads.Remove(ack, out var payload))
+            {
+                foreach (var message in payload.Messages)
+                {
+                    _sendQueue.Remove(message.Seq);
+                }
+            }
         }
 
         private void SendPacket(Packet packet)

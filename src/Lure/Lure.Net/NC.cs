@@ -15,7 +15,5 @@
         public const ushort Short = 0xFFFF;
         public const uint Int = 0xFFFF_FFFF;
         public const ulong Long = 0xFFFF_FFFF_FFFF_FFFF;
-
-        public const int PacketHeaderSize = 9;
     }
 }

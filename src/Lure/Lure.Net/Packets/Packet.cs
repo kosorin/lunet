@@ -6,7 +6,8 @@ namespace Lure.Net.Packets
     internal abstract class Packet : INetSerializable
     {
         public static int SerializeCheck => 0x55555555;
-        public static int AcksLength => 32;
+        public static int AckBufferLength => 64;
+        public static int PacketAckBufferLength => sizeof(uint) * NC.BitsPerByte;
 
         protected Packet(PacketType type)
         {
@@ -27,7 +28,7 @@ namespace Lure.Net.Packets
             // Skip reading a type - already read and used to create packet
             Seq = reader.ReadSeqNo();
             Ack = reader.ReadSeqNo();
-            AckBuffer = reader.ReadBits(AcksLength);
+            AckBuffer = reader.ReadBits(PacketAckBufferLength);
 
             if (reader.ReadInt() != SerializeCheck)
             {
@@ -41,7 +42,7 @@ namespace Lure.Net.Packets
             if (reader.Position != reader.Length)
             {
                 // TODO: Handle bad packets
-                throw new NetException();
+                throw new NetException("Remaining data in a packet.");
             }
         }
 
