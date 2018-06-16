@@ -1,4 +1,5 @@
-﻿using Lure.Net.Data;
+﻿using Lure.Extensions.NetCore;
+using Lure.Net.Data;
 using Lure.Net.Extensions;
 using Lure.Net.Messages;
 using Lure.Net.Packets;
@@ -37,7 +38,7 @@ namespace Lure.Net
         private bool _sendAck = false;
 
         private SeqNo _receivePacketAck = SeqNo.Zero - 1;
-        private BitVector _receivePacketAcks = new BitVector(Packet.AcksLength);
+        private BitVector _receivePacketAckBuffer = new BitVector(Packet.AcksLength);
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
         {
@@ -83,7 +84,7 @@ namespace Lure.Net
                 SendPacket(packet);
             }
 
-            if (payloads.Count == 0 && (_sendAck || (Peer.CurrentTimestamp - _lastPacketTimestamp) > KeepAliveTimeout))
+            if (payloads.Count == 0 && (_sendAck || (Timestamp.Current - _lastPacketTimestamp) > KeepAliveTimeout))
             {
                 _sendAck = false;
                 SendPacket(PreparePacket<KeepAlivePacket>());
@@ -95,7 +96,7 @@ namespace Lure.Net
             var packet = _packetManager.Create<TPacket>();
             packet.Seq = _sendPacketSeq++;
             packet.Ack = _receivePacketAck;
-            packet.Acks = _receivePacketAcks;
+            packet.AckBuffer = _receivePacketAckBuffer;
             return packet;
         }
 
@@ -104,17 +105,21 @@ namespace Lure.Net
             var diff = seq.GetDifference(_receivePacketAck);
             if (Math.Abs(diff) > Packet.AcksLength)
             {
-                throw new NetException("Not good!");
+                throw new NetException("Receive ack buffer is out of sync!");
             }
 
             if (diff > 0)
             {
                 _receivePacketAck = seq;
-                _receivePacketAcks.LeftShift(diff);
-                _receivePacketAcks.Set(0);
+                _receivePacketAckBuffer.LeftShift(diff);
+                _receivePacketAckBuffer.Set(0);
+            }
+            else
+            {
+
             }
 
-            Logger.Verbose("  {Acks} <- {Ack}", _receivePacketAcks, _receivePacketAck.Value);
+            Logger.Verbose("  {Acks} <- {Ack}", _receivePacketAckBuffer, _receivePacketAck.Value);
         }
 
         internal void AckSend(SeqNo ack, BitVector acks)
@@ -156,14 +161,14 @@ namespace Lure.Net
                     return payloads;
                 }
                 payloadMessages = _sendQueue.Values
-                    .Where(x => x.LastSendTimestamp == null || Peer.CurrentTimestamp - x.LastSendTimestamp > ResendTimeout)
+                    .Where(x => x.LastSendTimestamp == null || Timestamp.Current - x.LastSendTimestamp > ResendTimeout)
                     .OrderBy(x => x.LastSendTimestamp ?? long.MaxValue)
                     .ToList();
             }
 
             foreach (var payloadMessage in payloadMessages)
             {
-                payloadMessage.LastSendTimestamp = Peer.CurrentTimestamp;
+                payloadMessage.LastSendTimestamp = Timestamp.Current;
             }
 
             var payload = new Payload();
@@ -194,7 +199,7 @@ namespace Lure.Net
         {
             Peer.SendPacket(this, packet);
             _packetManager.Return(packet);
-            _lastPacketTimestamp = Peer.CurrentTimestamp;
+            _lastPacketTimestamp = Timestamp.Current;
         }
 
         private byte[] SerializeMessage(NetMessage message)

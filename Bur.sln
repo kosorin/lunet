@@ -15,6 +15,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure", "Lure\Lure.csproj", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pegi.Server", "Pegi\Pegi.Server\Pegi.Server.csproj", "{922B6C61-8C68-4699-8F7C-6F571F6A8375}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pegi.Client.Gui", "Pegi\Pegi.Client.Gui\Pegi.Client.Gui.csproj", "{2E969EAE-1B8C-49FD-9452-BAFC72B21CCC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{14E2B85C-CE5A-43EE-80DB-315C619746CC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +45,10 @@ Global
 		{922B6C61-8C68-4699-8F7C-6F571F6A8375}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{922B6C61-8C68-4699-8F7C-6F571F6A8375}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{922B6C61-8C68-4699-8F7C-6F571F6A8375}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E969EAE-1B8C-49FD-9452-BAFC72B21CCC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E969EAE-1B8C-49FD-9452-BAFC72B21CCC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E969EAE-1B8C-49FD-9452-BAFC72B21CCC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E969EAE-1B8C-49FD-9452-BAFC72B21CCC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -48,6 +56,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{FE46E88C-3CEA-4BD3-9660-059B00A50A84} = {62B16089-7872-4EB3-BAB6-60E43DA03545}
 		{922B6C61-8C68-4699-8F7C-6F571F6A8375} = {62B16089-7872-4EB3-BAB6-60E43DA03545}
+		{2E969EAE-1B8C-49FD-9452-BAFC72B21CCC} = {62B16089-7872-4EB3-BAB6-60E43DA03545}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EBC38A3F-5A0D-4EC1-934A-F55295885EF7}

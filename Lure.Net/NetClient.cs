@@ -22,10 +22,12 @@ namespace Lure.Net
         }
 
         public NetClient(NetClientConfiguration config)
-            : base(config, false)
+            : base(config)
         {
             _config = config;
         }
+
+        public override bool IsServer => false;
 
         public NetConnection Connection => _connection;
 

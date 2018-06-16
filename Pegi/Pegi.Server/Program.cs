@@ -13,21 +13,22 @@ namespace Pegi.Server
         {
             PegiLogging.Configure("Server");
 
-            var server = new NetServer(45685, AddressFamily.InterNetwork);
-
-            var resetEvent = new AutoResetEvent(false);
-            Console.CancelKeyPress += (_, e) =>
+            using (var server = new NetServer(45685, AddressFamily.InterNetwork))
             {
-                e.Cancel = true;
-                Log.Information("Ctrl+C");
+                var resetEvent = new AutoResetEvent(false);
+                Console.CancelKeyPress += (_, e) =>
+                {
+                    e.Cancel = true;
+                    Log.Information("Ctrl+C");
 
-                server.Stop();
-                resetEvent.Set();
-            };
+                    server.Stop();
+                    resetEvent.Set();
+                };
 
-            server.Start();
+                server.Start();
 
-            resetEvent.WaitOne();
+                resetEvent.WaitOne();
+            }
 
             Thread.Sleep(1000);
         }

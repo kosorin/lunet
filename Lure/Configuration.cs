@@ -2,7 +2,7 @@
 {
     public abstract class Configuration : IConfiguration
     {
-        private bool _isLocked;
+        private volatile bool _isLocked;
 
 
         /// <summary>

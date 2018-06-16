@@ -19,7 +19,7 @@ namespace Lure.Net.Packets
 
         public SeqNo Ack { get; set; }
 
-        public BitVector Acks { get; set; }
+        public BitVector AckBuffer { get; set; }
 
 
         void INetSerializable.Deserialize(INetDataReader reader)
@@ -27,7 +27,7 @@ namespace Lure.Net.Packets
             // Skip reading a type - already read and used to create packet
             Seq = reader.ReadSeqNo();
             Ack = reader.ReadSeqNo();
-            Acks = reader.ReadBits(AcksLength);
+            AckBuffer = reader.ReadBits(AcksLength);
 
             if (reader.ReadInt() != SerializeCheck)
             {
@@ -50,7 +50,7 @@ namespace Lure.Net.Packets
             writer.WriteByte((byte)Type);
             writer.WriteSeqNo(Seq);
             writer.WriteSeqNo(Ack);
-            writer.WriteBits(Acks ?? new BitVector(AcksLength));
+            writer.WriteBits(AckBuffer);
 
             writer.WriteInt(SerializeCheck);
             writer.PadBits();

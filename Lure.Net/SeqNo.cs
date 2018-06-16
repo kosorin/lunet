@@ -121,6 +121,27 @@ namespace Lure.Net
             return left._value != right._value;
         }
 
+
+        public static explicit operator ushort(SeqNo seq)
+        {
+            return seq._value;
+        }
+
+        public static explicit operator int(SeqNo seq)
+        {
+            return seq._value;
+        }
+
+        public static explicit operator SeqNo(ushort value)
+        {
+            return new SeqNo(value);
+        }
+
+        public static explicit operator SeqNo(int value)
+        {
+            return new SeqNo(value);
+        }
+
         #endregion Operators
 
         /// <summary>
