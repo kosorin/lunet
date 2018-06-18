@@ -1,6 +1,6 @@
 ﻿namespace Lure
 {
-    public abstract class Configuration : IConfiguration
+    public abstract class Configuration : ILockable
     {
         private volatile bool _isLocked;
 

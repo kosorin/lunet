@@ -12,6 +12,11 @@ namespace Lure.Net.Messages
             Id = typeId;
         }
 
+        internal NetMessageAttribute(SystemMessageType type)
+        {
+            Id = (ushort)type;
+        }
+
         public ushort Id { get; }
     }
 }

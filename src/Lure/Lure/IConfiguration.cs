@@ -1,6 +1,6 @@
 ﻿namespace Lure
 {
-    public interface IConfiguration
+    public interface ILockable
     {
         bool IsLocked { get; }
 

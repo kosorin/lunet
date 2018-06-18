@@ -1,21 +1,32 @@
-﻿using Lure.Net.Messages;
+﻿using Lure.Net.Data;
+using Lure.Net.Extensions;
+using Lure.Net.Messages;
 
 namespace Lure.Net.Packets
 {
     internal class PayloadMessage : IPacketPart
     {
-        public PayloadMessage(SeqNo seq, byte[] data)
-        {
-            Seq = seq;
-            Data = data;
-        }
+        public SeqNo Seq { get; set; }
 
-        public SeqNo Seq { get; }
+        public byte[] Data { get; set; }
 
-        public byte[] Data { get; }
 
         public long? LastSendTimestamp { get; set; }
 
-        public int Length => Seq.Length + Data.Length;
+        public int Length => (2 * sizeof(ushort)) + Data.Length;
+
+        public void Deserialize(INetDataReader reader)
+        {
+            reader.PadBits();
+            Seq = reader.ReadSeqNo();
+            Data = reader.ReadByteArray();
+        }
+
+        public void Serialize(INetDataWriter writer)
+        {
+            writer.PadBits();
+            writer.WriteSeqNo(Seq);
+            writer.WriteByteArray(Data);
+        }
     }
 }

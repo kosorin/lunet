@@ -2,7 +2,7 @@
 
 namespace Lure.Net.Messages
 {
-    [NetMessage((ushort)SystemMessageType.Test)]
+    [NetMessage(SystemMessageType.Test)]
     public class TestMessage : NetMessage
     {
         public int Integer { get; set; }

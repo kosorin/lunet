@@ -5,11 +5,15 @@ using System.Text;
 
 namespace Lure.Net.Channels
 {
-    internal class NetChannel
+    internal abstract class NetChannel
     {
-        public void SendPacket(Packet packet)
-        {
+        private readonly NetConnection _connection;
 
+        protected NetChannel(NetConnection connection)
+        {
+            _connection = connection;
         }
+
+        protected abstract void PrepareOutgoingPacket(Packet packet);
     }
 }

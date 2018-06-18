@@ -25,5 +25,18 @@ namespace Lure.Net.Extensions
         {
             writer.WriteUShort(seq.Value);
         }
+
+        public static byte[] ReadByteArray(this INetDataReader reader)
+        {
+            var length = reader.ReadUShort();
+            var array = reader.ReadBytes(length);
+            return array;
+        }
+
+        public static void WriteByteArray(this INetDataWriter writer, byte[] array)
+        {
+            writer.WriteUShort((ushort)array.Length);
+            writer.WriteBytes(array);
+        }
     }
 }

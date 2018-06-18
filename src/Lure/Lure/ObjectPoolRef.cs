@@ -10,15 +10,15 @@ namespace Lure
 
         internal ObjectPoolRef(ObjectPool<TItem> pool, TItem item)
         {
-            _pool = pool;
-            _item = item;
+            _pool = pool ?? throw new ArgumentNullException(nameof(pool));
+            _item = item ?? throw new ArgumentNullException(nameof(item));
         }
 
         public TItem Instance => _item;
 
         public void Dispose()
         {
-            _pool?.Return(_item);
+            _pool.Return(_item);
         }
     }
 }

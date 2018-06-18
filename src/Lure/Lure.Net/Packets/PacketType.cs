@@ -2,14 +2,13 @@
 {
     internal enum PacketType : byte
     {
-        Fragment,
-        Payload,
-        Ping,
-        Pong,
-        ConnectRequest,
-        ConnectAccept,
-        ConnectDeny,
-        KeepAlive,
-        Disconnect,
+        ConnectRequest = 0,
+        ConnectDeny = 1,
+        ConnectChallenge = 1,
+        ConnectResponse = 3,
+
+        KeepAlive = 4,
+        Payload = 5,
+        Disconnect = 6,
     }
 }

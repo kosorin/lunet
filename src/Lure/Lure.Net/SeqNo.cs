@@ -1,4 +1,5 @@
-﻿using Lure.Net.Packets;
+﻿using Lure.Net.Data;
+using Lure.Net.Packets;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -6,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace Lure.Net
 {
     [DebuggerDisplay("{Value,nq}")]
-    internal struct SeqNo : IEquatable<SeqNo>, IPacketPart
+    internal struct SeqNo : IEquatable<SeqNo>
     {
         public const int Range = ushort.MaxValue + 1;
 
@@ -27,8 +28,6 @@ namespace Lure.Net
         public static SeqNo Zero { get; } = new SeqNo(0);
 
         public ushort Value => _value;
-
-        public int Length => sizeof(ushort);
 
         public int GetDifference(SeqNo other)
         {

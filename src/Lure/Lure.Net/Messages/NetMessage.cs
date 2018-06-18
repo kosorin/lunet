@@ -9,7 +9,7 @@ namespace Lure.Net.Messages
 
         void INetSerializable.Deserialize(INetDataReader reader)
         {
-            // Skip reading a type - already read
+            // Skip reading a type - already read to create a message
 
             DeserializeCore(reader);
         }
