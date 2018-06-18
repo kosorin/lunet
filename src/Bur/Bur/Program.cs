@@ -1,4 +1,6 @@
-﻿using Lure;
+﻿using System;
+using Lure;
+using Lure.Net.Packets;
 using Serilog;
 using Serilog.Events;
 
@@ -6,11 +8,15 @@ namespace Bur
 {
     internal static class Program
     {
-        private static readonly ILogger Logger = Log.ForContext(typeof(Program));
-
         private static void Main()
         {
             Logging.Configure(LoggerConfigurator);
+
+            Test();
+        }
+
+        private static void Test()
+        {
         }
 
         private static void LoggerConfigurator(LoggerConfiguration config)

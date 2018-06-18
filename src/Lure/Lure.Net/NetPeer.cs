@@ -25,7 +25,6 @@ namespace Lure.Net
         private Thread _thread;
         private bool _disposed;
 
-        private PacketManager _packetManager;
         private SocketAsyncEventArgs _receiveToken;
         private ObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
@@ -111,7 +110,7 @@ namespace Lure.Net
             token.RemoteEndPoint = connection.RemoteEndPoint;
             StartSend(token);
 
-            Logger.Verbose("[{RemoteEndPoint}] Send data (size={Size}): {Type} {Seq}", connection.RemoteEndPoint, writer.Length, packet.Type, packet.Seq);
+            Logger.Verbose("[{RemoteEndPoint}] Send data (size={Size}): {Packet}", connection.RemoteEndPoint, writer.Length, packet);
         }
 
 
@@ -153,7 +152,6 @@ namespace Lure.Net
 
         private void Setup()
         {
-            _packetManager = new PacketManager();
             _receiveToken = CreateReceiveToken();
             _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(_config.MaxClients * 4, CreateSendToken);
             _connections = new ConcurrentDictionary<IPEndPoint, NetConnection>();
@@ -172,11 +170,6 @@ namespace Lure.Net
                 _connections = null;
             }
 
-            if (_packetManager != null)
-            {
-                _packetManager.Dispose();
-                _packetManager = null;
-            }
             if (_receiveToken != null)
             {
                 _receiveToken.Dispose();
@@ -315,77 +308,11 @@ namespace Lure.Net
                 var connection = GetConnection(remoteEndPoint);
 
                 var reader = token.GetReader();
-                var packet = _packetManager.Parse(reader);
-                if (packet != null)
-                {
-                    Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size}): {Type} {Seq}", token.RemoteEndPoint, token.BytesTransferred, packet.Type, packet.Seq);
 
-                    if (connection.AckReceive(packet.Seq))
-                    {
-                        connection.AckSend(packet.Ack, packet.AckBuffer);
-                        ProcessPacket(packet);
-                    }
-
-                    _packetManager.Return(packet);
-                }
+                connection.ReceivePacket(reader);
             }
 
             StartReceive();
-        }
-
-        // Thread: Loop, IOCP
-        private void ProcessPacket(Packet packet)
-        {
-            if (!_isRunning)
-            {
-                return;
-            }
-
-            switch (packet.Type)
-            {
-            case PacketType.Fragment:
-                break;
-
-            case PacketType.Payload:
-                var payloadPacket = (PayloadPacket)packet;
-                var reader = new NetDataReader(payloadPacket.Data);
-
-                while (reader.Position < reader.Length)
-                {
-                    var seq = reader.ReadSeqNo();
-                    var message = NetMessageManager.Create(reader.ReadUShort());
-                    if (message == null)
-                    {
-                        return;
-                    }
-                    reader.ReadSerializable(message);
-                    reader.PadBits();
-
-                    Logger.Debug("  {Seq}: {Message}", seq, message);
-                }
-                break;
-
-            case PacketType.Ping:
-                break;
-
-            case PacketType.Pong:
-                break;
-
-            case PacketType.ConnectRequest:
-                break;
-
-            case PacketType.ConnectAccept:
-                break;
-
-            case PacketType.ConnectDeny:
-                break;
-
-            case PacketType.KeepAlive:
-                break;
-
-            case PacketType.Disconnect:
-                break;
-            }
         }
 
 

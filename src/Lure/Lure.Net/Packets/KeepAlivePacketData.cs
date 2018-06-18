@@ -2,6 +2,7 @@
 
 namespace Lure.Net.Packets
 {
+    [PacketData(PacketDataType.KeepAlive)]
     internal class KeepAlivePacketData : PacketData
     {
         public override int Length => 0;

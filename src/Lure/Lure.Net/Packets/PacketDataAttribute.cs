@@ -3,13 +3,13 @@
 namespace Lure.Net.Packets
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    internal class PacketAttribute : Attribute
+    internal class PacketDataAttribute : Attribute
     {
-        public PacketAttribute(PacketType type)
+        public PacketDataAttribute(PacketDataType type)
         {
             Type = type;
         }
 
-        public PacketType Type { get; }
+        public PacketDataType Type { get; }
     }
 }

@@ -4,10 +4,10 @@ using System.Linq;
 
 namespace Lure.Net.Packets
 {
+    [PacketData(PacketDataType.Payload)]
     internal class PayloadPacketData : PacketData
     {
         public List<PayloadMessage> Messages { get; } = new List<PayloadMessage>();
-
 
         public override int Length => Messages.Sum(x => x.Length);
 

@@ -1,4 +1,5 @@
 ﻿using Lure.Extensions.NetCore;
+using Lure.Net.Channels;
 using Lure.Net.Data;
 using Lure.Net.Extensions;
 using Lure.Net.Messages;
@@ -27,17 +28,8 @@ namespace Lure.Net
 
         private readonly NetPeer _peer;
         private readonly IPEndPoint _remoteEndPoint;
-
-        private readonly Dictionary<SeqNo, PayloadMessage> _sendQueue = new Dictionary<SeqNo, PayloadMessage>();
-        private readonly Dictionary<SeqNo, Payload> _sentPayloads = new Dictionary<SeqNo, Payload>();
-        private SeqNo _sendMessageSeq = SeqNo.Zero;
-        private long _lastPacketTimestamp = 0;
-        private SeqNo _sendPacketSeq = SeqNo.Zero;
-        private bool _sendAck = false;
-
-        private SeqNo _LAST_SEND_receivePacketAck = SeqNo.Zero - 1; // TODO
-        private SeqNo _receivePacketAck = SeqNo.Zero - 1;
-        private BitVector _receivePacketAckBuffer = new BitVector(Packet.AckBufferLength);
+        private readonly ReliableOrderedChannel _defaultChannel;
+        private readonly Dictionary<byte, NetChannel> _channels;
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
         {
@@ -46,6 +38,11 @@ namespace Lure.Net
 
             _peer = peer;
             _remoteEndPoint = remoteEndPoint;
+            _defaultChannel = new ReliableOrderedChannel(this);
+            _channels = new Dictionary<byte, NetChannel>
+            {
+                [0] = _defaultChannel,
+            };
         }
 
         public NetPeer Peer => _peer;
@@ -55,21 +52,17 @@ namespace Lure.Net
 
         public void SendMessage(NetMessage message)
         {
-            var data = SerializeMessage(message);
-
-            lock (_sendQueue)
-            {
-                var messageSeq = _sendMessageSeq++;
-                if (!_sendQueue.TryAdd(messageSeq, new PayloadMessage(messageSeq, data)))
-                {
-                    throw new NetException("Buffer overflow.");
-                }
-            }
+            _defaultChannel.SendMessage(message);
         }
 
         public void Dispose()
         {
             _packetManager.Dispose();
+            _writerPool.Dispose();
+            foreach (var channel in _channels.Values)
+            {
+                channel.Dispose();
+            }
         }
 
         internal void Update()
@@ -145,7 +138,7 @@ namespace Lure.Net
                 return false;
             }
 
-        Success:
+            Success:
             Logger.Verbose("  {Acks} <- {Ack}", _receivePacketAckBuffer, _receivePacketAck.Value);
             return true;
         }
@@ -266,6 +259,28 @@ namespace Lure.Net
             finally
             {
                 _writerPool.Return(writer);
+            }
+        }
+
+        private NetChannel GetChannel(byte id)
+        {
+            if (_channels.TryGetValue(id, out var channel))
+            {
+                return channel;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        internal void ReceivePacket(NetDataReader reader)
+        {
+            var channelId = reader.ReadByte();
+            var channel = GetChannel(channelId);
+            if (channel != null)
+            {
+                channel.ReceivePacket(reader);
             }
         }
     }

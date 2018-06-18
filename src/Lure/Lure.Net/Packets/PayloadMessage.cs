@@ -10,21 +10,18 @@ namespace Lure.Net.Packets
 
         public byte[] Data { get; set; }
 
-
         public long? LastSendTimestamp { get; set; }
 
         public int Length => (2 * sizeof(ushort)) + Data.Length;
 
         public void Deserialize(INetDataReader reader)
         {
-            reader.PadBits();
             Seq = reader.ReadSeqNo();
             Data = reader.ReadByteArray();
         }
 
         public void Serialize(INetDataWriter writer)
         {
-            writer.PadBits();
             writer.WriteSeqNo(Seq);
             writer.WriteByteArray(Data);
         }

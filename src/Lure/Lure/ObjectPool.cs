@@ -32,6 +32,8 @@ namespace Lure
             _objects = new ConcurrentQueue<TItem>();
         }
 
+        public event EventHandler<TItem> Returned;
+
         public TItem Rent()
         {
             if (_objects.TryDequeue(out var item))
@@ -55,6 +57,8 @@ namespace Lure
             {
                 return;
             }
+
+            OnItemReturned(item);
 
             if (_objects.Count < _capacity)
             {
@@ -87,6 +91,11 @@ namespace Lure
                 }
                 _disposed = true;
             }
+        }
+
+        protected virtual void OnItemReturned(TItem item)
+        {
+            Returned?.Invoke(this, item);
         }
     }
 }

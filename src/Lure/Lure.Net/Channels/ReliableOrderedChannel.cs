@@ -12,26 +12,28 @@ using System.Text;
 
 namespace Lure.Net.Channels
 {
-    internal class ReliableOrderedChannel : NetChannel
+    internal class ReliableOrderedChannel : NetChannel<ReliablePacket>
     {
         private const int MTU = 1000;
+        private const int ResendTimeout = 100;
+        private const int KeepAliveTimeout = 1000;
 
         private static readonly ILogger Logger = Log.ForContext<ReliableOrderedChannel>();
 
-        private readonly PacketManager _packetManager;
         private readonly ObjectPool<NetDataWriter> _writerPool;
 
         private readonly Dictionary<SeqNo, PayloadMessage> _sendQueue = new Dictionary<SeqNo, PayloadMessage>();
-        private readonly Dictionary<SeqNo, Payload> _sentPayloads = new Dictionary<SeqNo, Payload>();
+        private readonly Dictionary<SeqNo, PacketData> _sentPayloads = new Dictionary<SeqNo, PacketData>();
         private SeqNo _sendMessageSeq = SeqNo.Zero;
         private SeqNo _sendPacketSeq = SeqNo.Zero;
 
         private SeqNo _receivePacketAck = SeqNo.Zero - 1;
-        private BitVector _receivePacketAckBuffer = new BitVector(Packet.AckBufferLength);
+        private BitVector _receivePacketAckBuffer = new BitVector(ReliablePacket.AckBufferLength);
 
-        public ReliableOrderedChannel(NetConnection connection) : base(connection)
+        private bool _disposed;
+
+        public ReliableOrderedChannel(byte id, NetConnection connection) : base(id, connection)
         {
-            _packetManager = new PacketManager();
             _writerPool = new ObjectPool<NetDataWriter>(16, () => new NetDataWriter(MTU));
         }
 
@@ -42,36 +44,44 @@ namespace Lure.Net.Channels
 
             lock (_sendQueue)
             {
-                var messageSeq = _sendMessageSeq++;
-                if (!_sendQueue.TryAdd(messageSeq, new PayloadMessage(messageSeq, data)))
+                var payloadMessage = new PayloadMessage
+                {
+                    Seq = _sendMessageSeq++,
+                    Data = data,
+                };
+                if (!_sendQueue.TryAdd(payloadMessage.Seq, payloadMessage))
                 {
                     throw new NetException("Buffer overflow.");
                 }
             }
         }
 
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            _packetManager.Dispose();
-            _writerPool.Dispose();
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _writerPool.Dispose();
+                }
+                _disposed = true;
+            }
+            base.Dispose(disposing);
         }
 
+        protected override void OnPacketReceived(ReliablePacket packet)
+        {
+            if (AckReceive(packet.Seq))
+            {
+                AckSend(packet.Ack, packet.AckBuffer);
+            }
+        }
 
-
-        protected override void PrepareOutgoingPacket(Packet packet)
+        protected override void PrepareOutgoingPacket(ReliablePacket packet)
         {
             packet.Seq = _sendPacketSeq++;
             packet.Ack = _receivePacketAck;
-            packet.AckBuffer = _receivePacketAckBuffer.Clone(0, Packet.PacketAckBufferLength);
-        }
-
-        internal TPacket PreparePacket<TPacket>() where TPacket : Packet
-        {
-            var packet = _packetManager.Create<TPacket>();
-            packet.Seq = _sendPacketSeq++;
-            packet.Ack = _receivePacketAck;
-            packet.AckBuffer = _receivePacketAckBuffer.Clone(0, Packet.PacketAckBufferLength);
-            return packet;
+            packet.AckBuffer = _receivePacketAckBuffer.Clone(0, ReliablePacket.PacketAckBufferLength);
         }
 
         /// <summary>
@@ -141,16 +151,16 @@ namespace Lure.Net.Channels
             }
         }
 
-        internal List<Payload> GetQueuedPayloads()
+        internal List<PacketData> GetQueuedPayloads()
         {
-            var payloads = new List<Payload>();
+            var dataList = new List<PacketData>();
 
             List<PayloadMessage> payloadMessages;
             lock (_sendQueue)
             {
                 if (_sendQueue.Count == 0)
                 {
-                    return payloads;
+                    return dataList;
                 }
                 payloadMessages = _sendQueue.Values
                     .Where(x => x.LastSendTimestamp == null || Timestamp.Current - x.LastSendTimestamp > ResendTimeout)
@@ -163,45 +173,45 @@ namespace Lure.Net.Channels
                 payloadMessage.LastSendTimestamp = Timestamp.Current;
             }
 
-            var payload = new Payload();
+            var data = new PayloadPacketData();
             foreach (var payloadMessage in payloadMessages)
             {
                 if (payloadMessage.Length > MTU)
                 {
                     throw new NetException();
                 }
-                else if (payload.Length + payloadMessage.Length > MTU)
+                else if (data.Length + payloadMessage.Length > MTU)
                 {
-                    payloads.Add(payload);
-                    payload = new Payload();
+                    dataList.Add(data);
+                    data = new PayloadPacketData();
                 }
 
-                payload.Messages.Add(payloadMessage);
+                data.Messages.Add(payloadMessage);
             }
 
-            if (payload.Messages.Count > 0)
+            if (data.Messages.Count > 0)
             {
-                payloads.Add(payload);
+                dataList.Add(data);
             }
 
-            return payloads;
+            return dataList;
         }
 
         private void AckSend(SeqNo ack)
         {
-            if (_sentPayloads.Remove(ack, out var payload))
+            if (_sentPayloads.Remove(ack, out var data))
             {
-                foreach (var message in payload.Messages)
+                foreach (var message in data.Messages)
                 {
                     _sendQueue.Remove(message.Seq);
                 }
             }
         }
 
-        private void SendPacket(Packet packet)
+        private void SendPacket(ReliablePacket packet)
         {
-            Peer.SendPacket(this, packet);
-            _packetManager.Return(packet);
+            _connection.Peer.SendPacket(_connection, packet);
+            _packetPool.Return(packet);
             _lastPacketTimestamp = Timestamp.Current;
         }
 
@@ -245,4 +255,5 @@ namespace Lure.Net.Channels
         }
 
     }
+
 }
