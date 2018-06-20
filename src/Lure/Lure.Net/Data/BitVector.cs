@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Lure.Collections;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -108,7 +109,7 @@ namespace Lure.Net.Data
         {
             if (offset != 0)
             {
-                throw new NotImplementedException();
+                throw new NotSupportedException();
             }
 
             if (source == null)

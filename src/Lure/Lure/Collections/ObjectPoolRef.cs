@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Lure
+namespace Lure.Collections
 {
     public sealed class ObjectPoolRef<TItem> : IDisposable
         where TItem : class

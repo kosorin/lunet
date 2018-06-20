@@ -1,6 +1,8 @@
-﻿using Lure.Net.Data;
+﻿using Lure.Collections;
+using Lure.Net.Data;
 using Lure.Net.Extensions;
 using Lure.Net.Packets;
+using Serilog;
 using System;
 
 namespace Lure.Net.Channels
@@ -9,6 +11,7 @@ namespace Lure.Net.Channels
     {
         protected readonly byte _id;
         protected readonly NetConnection _connection;
+        protected long _lastPacketTimestamp;
 
         protected NetChannel(byte id, NetConnection connection)
         {
@@ -16,12 +19,16 @@ namespace Lure.Net.Channels
             _connection = connection;
         }
 
+        public byte Id => _id;
+
         public void Dispose()
         {
             Dispose(true);
         }
 
-        internal abstract void ReceivePacket(NetDataReader reader);
+        public abstract void Update();
+
+        public abstract void ReceivePacket(NetDataReader reader);
 
         protected virtual void Dispose(bool disposing)
         {
@@ -29,7 +36,7 @@ namespace Lure.Net.Channels
     }
 
     internal abstract class NetChannel<TPacket> : NetChannel
-        where TPacket : Packet, new()
+        where TPacket : Packet
     {
         protected ObjectPool<TPacket> _packetPool;
         protected PacketDataPool _packetDataPool;
@@ -38,26 +45,30 @@ namespace Lure.Net.Channels
 
         protected NetChannel(byte id, NetConnection connection) : base(id, connection)
         {
-            _packetPool = new ObjectPool<TPacket>(() => new TPacket());
-            _packetPool.Returned += PacketPool_Returned;
+            _packetPool = new ObjectPool<TPacket>();
             _packetDataPool = new PacketDataPool();
         }
 
-        internal sealed override void ReceivePacket(NetDataReader reader)
+        public sealed override void ReceivePacket(NetDataReader reader)
         {
-            var type = (PacketDataType)reader.ReadByte();
-            var packet = CreateIncomingPacket(type);
-            if (packet != null)
+            var packet = _packetPool.Rent();
+
+            packet.DeserializeHeader(reader);
+
+            if (!AcceptPacket(packet))
             {
-                reader.ReadSerializable(packet);
-
-                //Logger.Verbose("[{RemoteEndPoint}] Received data (size={Size}): {Type} {Seq}", token.RemoteEndPoint, token.BytesTransferred, packet.Type, packet.Seq);
-
-                OnPacketReceived(packet);
-
-                _packetPool.Return(packet);
+                return;
             }
+
+            packet.Data = _packetDataPool.Rent(packet.DataType);
+            packet.DeserializeData(reader);
+
+            Log.Verbose("[{RemoteEndPoint}] Data <<< ({PacketData})", _connection.RemoteEndPoint, packet.Data.DebuggerDisplay);
+
+            _packetPool.Return(packet);
         }
+
+        protected abstract bool AcceptPacket(TPacket packet);
 
         protected override void Dispose(bool disposing)
         {
@@ -72,35 +83,14 @@ namespace Lure.Net.Channels
             base.Dispose(disposing);
         }
 
-        protected abstract void OnPacketReceived(TPacket packet);
-
-        protected TPacket CreateIncomingPacket(PacketDataType type)
+        protected TPacket CreateOutgoingPacket()
         {
             var packet = _packetPool.Rent();
             packet.ChannelId = _id;
-            packet.Type = type;
-            packet.Data = _packetDataPool.Rent(type);
-            return packet;
-        }
-
-        protected TPacket CreateOutgoingPacket<TPacketData>() where TPacketData : PacketData
-        {
-            var packet = _packetPool.Rent();
-            packet.ChannelId = _id;
-            packet.Data = _packetDataPool.Rent<TPacketData>();
             PrepareOutgoingPacket(packet);
             return packet;
         }
 
         protected abstract void PrepareOutgoingPacket(TPacket packet);
-
-        private void PacketPool_Returned(object sender, TPacket packet)
-        {
-            if (packet.Data != null)
-            {
-                _packetDataPool.Return(packet.Data);
-                packet.Data = null;
-            }
-        }
     }
 }

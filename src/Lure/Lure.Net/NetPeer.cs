@@ -1,4 +1,5 @@
-﻿using Lure.Net.Data;
+﻿using Lure.Collections;
+using Lure.Net.Data;
 using Lure.Net.Extensions;
 using Lure.Net.Messages;
 using Lure.Net.Packets;
@@ -14,7 +15,7 @@ namespace Lure.Net
 {
     public abstract class NetPeer : IDisposable
     {
-        private const int FPS = 5;
+        private const int FPS = 1;
         private const int MillisecondsPerSecond = 1000;
 
         private static readonly ILogger Logger = Log.ForContext<NetPeer>();
@@ -103,14 +104,15 @@ namespace Lure.Net
             var writer = (NetDataWriter)token.UserToken;
 
             writer.Reset();
-            writer.WriteSerializable(packet);
+            packet.SerializeHeader(writer);
+            packet.SerializeData(writer);
             writer.Flush();
 
             token.SetWriter(writer);
             token.RemoteEndPoint = connection.RemoteEndPoint;
             StartSend(token);
 
-            Logger.Verbose("[{RemoteEndPoint}] Send data (size={Size}): {Packet}", connection.RemoteEndPoint, writer.Length, packet);
+            Logger.Verbose("[{RemoteEndPoint}] Packet >>> (size={Size})", connection.RemoteEndPoint, writer.Length);
         }
 
 
@@ -286,6 +288,7 @@ namespace Lure.Net
                 return;
             }
 
+            // TODO: Is it necessary to reset remote end point?
             _receiveToken.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
             if (!_socket.ReceiveFromAsync(_receiveToken))
             {
@@ -308,6 +311,8 @@ namespace Lure.Net
                 var connection = GetConnection(remoteEndPoint);
 
                 var reader = token.GetReader();
+
+                Logger.Verbose("[{RemoteEndPoint}] Packet <<< (size={Size})", connection.RemoteEndPoint, reader.Length);
 
                 connection.ReceivePacket(reader);
             }

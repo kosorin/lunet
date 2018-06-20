@@ -3,22 +3,22 @@ using Lure.Net.Extensions;
 
 namespace Lure.Net.Packets
 {
-    internal abstract class Packet : INetSerializable
+    internal abstract class Packet
     {
         public static int SerializeCheck => 0x55555555;
 
         public byte ChannelId { get; set; }
 
-        public PacketDataType Type { get; set; }
+        public PacketDataType DataType { get; set; }
 
         public PacketData Data { get; set; }
 
 
-        void INetSerializable.Deserialize(INetDataReader reader)
+        public void DeserializeHeader(INetDataReader reader)
         {
-            // Skip reading channel id and type - already read and used to create a packet
+            // Skip reading a channel id - already read and used to create a channel
 
-            DeserializeCore(reader);
+            DeserializeHeaderCore(reader);
 
             reader.PadBits();
             if (reader.ReadInt() != SerializeCheck)
@@ -27,7 +27,12 @@ namespace Lure.Net.Packets
                 throw new NetException();
             }
 
-            reader.ReadSerializable(Data);
+            DataType = (PacketDataType)reader.ReadByte();
+        }
+
+        public void DeserializeData(INetDataReader reader)
+        {
+            Data.Deserialize(reader);
 
             if (reader.Position != reader.Length)
             {
@@ -36,21 +41,25 @@ namespace Lure.Net.Packets
             }
         }
 
-        void INetSerializable.Serialize(INetDataWriter writer)
+        public void SerializeHeader(INetDataWriter writer)
         {
             writer.WriteByte(ChannelId);
-            writer.WriteByte((byte)Type);
 
-            SerializeCore(writer);
+            SerializeHeaderCore(writer);
 
             writer.PadBits();
             writer.WriteInt(SerializeCheck);
 
-            writer.WriteSerializable(Data);
+            writer.WriteByte((byte)DataType);
         }
 
-        protected abstract void DeserializeCore(INetDataReader reader);
+        public void SerializeData(INetDataWriter writer)
+        {
+            Data.Serialize(writer);
+        }
 
-        protected abstract void SerializeCore(INetDataWriter writer);
+        protected abstract void DeserializeHeaderCore(INetDataReader reader);
+
+        protected abstract void SerializeHeaderCore(INetDataWriter writer);
     }
 }

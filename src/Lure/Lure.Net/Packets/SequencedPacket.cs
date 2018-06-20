@@ -7,12 +7,12 @@ namespace Lure.Net.Packets
     {
         public SeqNo Seq { get; set; }
 
-        protected override void DeserializeCore(INetDataReader reader)
+        protected override void DeserializeHeaderCore(INetDataReader reader)
         {
             Seq = reader.ReadSeqNo();
         }
 
-        protected override void SerializeCore(INetDataWriter writer)
+        protected override void SerializeHeaderCore(INetDataWriter writer)
         {
             writer.WriteSeqNo(Seq);
         }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 
-namespace Lure
+namespace Lure.Collections
 {
     public class ObjectPool<TItem> : IObjectPool<TItem>
         where TItem : class
@@ -10,6 +10,25 @@ namespace Lure
         private readonly Func<TItem> _factory;
         private readonly ConcurrentQueue<TItem> _objects;
         private bool _disposed;
+
+        public ObjectPool()
+            : this(int.MaxValue)
+        {
+        }
+
+        public ObjectPool(int capacity)
+        {
+            if (capacity <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(capacity), capacity, $"Argument {nameof(capacity)} must be greater than zero.");
+            }
+
+            var activator = ObjectActivatorFactory.Create<TItem>();
+
+            _capacity = capacity;
+            _factory = () => activator();
+            _objects = new ConcurrentQueue<TItem>();
+        }
 
         public ObjectPool(Func<TItem> factory)
             : this(int.MaxValue, factory)
@@ -32,18 +51,21 @@ namespace Lure
             _objects = new ConcurrentQueue<TItem>();
         }
 
+        public event EventHandler<TItem> Rented;
+
         public event EventHandler<TItem> Returned;
 
         public TItem Rent()
         {
-            if (_objects.TryDequeue(out var item))
+            TItem item;
+            if (!_objects.TryDequeue(out item))
             {
-                return item;
+                item = _factory();
             }
-            else
-            {
-                return _factory();
-            }
+
+            OnItemRented(item);
+
+            return item;
         }
 
         public ObjectPoolRef<TItem> RentRef()
@@ -93,8 +115,21 @@ namespace Lure
             }
         }
 
+        protected virtual void OnItemRented(TItem item)
+        {
+            if (item is IPoolable poolable)
+            {
+                poolable.OnRent();
+            }
+            Rented?.Invoke(this, item);
+        }
+
         protected virtual void OnItemReturned(TItem item)
         {
+            if (item is IPoolable poolable)
+            {
+                poolable.OnReturn();
+            }
             Returned?.Invoke(this, item);
         }
     }

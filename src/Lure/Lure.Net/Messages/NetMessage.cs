@@ -3,18 +3,18 @@ using Lure.Net.Data;
 
 namespace Lure.Net.Messages
 {
-    public abstract class NetMessage : INetSerializable
+    public abstract class NetMessage
     {
         internal ushort TypeId { get; set; }
 
-        void INetSerializable.Deserialize(INetDataReader reader)
+        public void Deserialize(INetDataReader reader)
         {
             // Skip reading a type - already read to create a message
 
             DeserializeCore(reader);
         }
 
-        void INetSerializable.Serialize(INetDataWriter writer)
+        public void Serialize(INetDataWriter writer)
         {
             writer.WriteUShort(TypeId);
 

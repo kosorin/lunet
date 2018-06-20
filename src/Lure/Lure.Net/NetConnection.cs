@@ -1,4 +1,5 @@
-﻿using Lure.Extensions.NetCore;
+﻿using Lure.Collections;
+using Lure.Extensions.NetCore;
 using Lure.Net.Channels;
 using Lure.Net.Data;
 using Lure.Net.Extensions;
@@ -23,7 +24,6 @@ namespace Lure.Net
 
         private static readonly ILogger Logger = Log.ForContext<NetConnection>();
 
-        private readonly PacketManager _packetManager;
         private readonly ObjectPool<NetDataWriter> _writerPool;
 
         private readonly NetPeer _peer;
@@ -33,15 +33,14 @@ namespace Lure.Net
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
         {
-            _packetManager = new PacketManager();
             _writerPool = new ObjectPool<NetDataWriter>(16, () => new NetDataWriter(MTU));
 
             _peer = peer;
             _remoteEndPoint = remoteEndPoint;
-            _defaultChannel = new ReliableOrderedChannel(this);
+            _defaultChannel = new ReliableOrderedChannel(0, this);
             _channels = new Dictionary<byte, NetChannel>
             {
-                [0] = _defaultChannel,
+                [_defaultChannel.Id] = _defaultChannel,
             };
         }
 
@@ -57,7 +56,6 @@ namespace Lure.Net
 
         public void Dispose()
         {
-            _packetManager.Dispose();
             _writerPool.Dispose();
             foreach (var channel in _channels.Values)
             {
@@ -67,204 +65,15 @@ namespace Lure.Net
 
         internal void Update()
         {
-            var payloads = GetQueuedPayloads();
-            foreach (var payload in payloads)
+            foreach (var channel in _channels.Values)
             {
-                var packet = PreparePacket<PayloadPacket>();
-                packet.Data = SerializePayload(payload);
-                _sentPayloads[packet.Seq] = payload;
-                SendPacket(packet);
-            }
-
-            if (payloads.Count == 0 && (_sendAck || (Timestamp.Current - _lastPacketTimestamp) > KeepAliveTimeout))
-            {
-                _sendAck = false;
-                SendPacket(PreparePacket<KeepAlivePacket>());
+                channel.Update();
             }
         }
 
-        internal TPacket PreparePacket<TPacket>() where TPacket : Packet
+        private NetChannel GetChannel(byte channeId)
         {
-            var packet = _packetManager.Create<TPacket>();
-            packet.Seq = _sendPacketSeq++;
-            packet.Ack = _receivePacketAck;
-            packet.AckBuffer = _receivePacketAckBuffer.Clone(0, Packet.PacketAckBufferLength);
-            return packet;
-        }
-
-        /// <summary>
-        /// Acks received packet.
-        /// </summary>
-        /// <param name="seq"></param>
-        /// <returns>Returns <c>true</c> if <paramref name="seq"/> wasn't acked yet.</returns>
-        internal bool AckReceive(SeqNo seq)
-        {
-            var diff = seq.GetDifference(_receivePacketAck);
-            if (diff == 0)
-            {
-                return false;
-            }
-            else if (diff > 0)
-            {
-                _receivePacketAck = seq;
-
-                if (diff > _receivePacketAckBuffer.Capacity)
-                {
-                    _receivePacketAckBuffer.ClearAll();
-                }
-                else
-                {
-                    _receivePacketAckBuffer.LeftShift(diff);
-                    _receivePacketAckBuffer.Set(diff - 1);
-                }
-                goto Success;
-            }
-            else
-            {
-                diff *= -1;
-                if (diff <= _receivePacketAckBuffer.Capacity)
-                {
-                    var ackIndex = diff - 1;
-                    if (_receivePacketAckBuffer[ackIndex])
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        _receivePacketAckBuffer.Set(diff - 1);
-                        goto Success;
-                    }
-                }
-                return false;
-            }
-
-            Success:
-            Logger.Verbose("  {Acks} <- {Ack}", _receivePacketAckBuffer, _receivePacketAck.Value);
-            return true;
-        }
-
-        internal void AckSend(SeqNo ack, BitVector acks)
-        {
-            lock (_sendQueue)
-            {
-                AckSend(ack);
-                foreach (var bit in acks.AsBits())
-                {
-                    ack--;
-                    if (bit)
-                    {
-                        AckSend(ack);
-                    }
-                }
-            }
-        }
-
-        internal List<Payload> GetQueuedPayloads()
-        {
-            var payloads = new List<Payload>();
-
-            List<PayloadMessage> payloadMessages;
-            lock (_sendQueue)
-            {
-                if (_sendQueue.Count == 0)
-                {
-                    return payloads;
-                }
-                payloadMessages = _sendQueue.Values
-                    .Where(x => x.LastSendTimestamp == null || Timestamp.Current - x.LastSendTimestamp > ResendTimeout)
-                    .OrderBy(x => x.LastSendTimestamp ?? long.MaxValue)
-                    .ToList();
-            }
-
-            foreach (var payloadMessage in payloadMessages)
-            {
-                payloadMessage.LastSendTimestamp = Timestamp.Current;
-            }
-
-            var payload = new Payload();
-            foreach (var payloadMessage in payloadMessages)
-            {
-                if (payloadMessage.Length > MTU)
-                {
-                    throw new NetException();
-                }
-                else if (payload.Length + payloadMessage.Length > MTU)
-                {
-                    payloads.Add(payload);
-                    payload = new Payload();
-                }
-
-                payload.Messages.Add(payloadMessage);
-            }
-
-            if (payload.Messages.Count > 0)
-            {
-                payloads.Add(payload);
-            }
-
-            return payloads;
-        }
-
-        private void AckSend(SeqNo ack)
-        {
-            if (_sentPayloads.Remove(ack, out var payload))
-            {
-                foreach (var message in payload.Messages)
-                {
-                    _sendQueue.Remove(message.Seq);
-                }
-            }
-        }
-
-        private void SendPacket(Packet packet)
-        {
-            Peer.SendPacket(this, packet);
-            _packetManager.Return(packet);
-            _lastPacketTimestamp = Timestamp.Current;
-        }
-
-        private byte[] SerializeMessage(NetMessage message)
-        {
-            var writer = _writerPool.Rent();
-            try
-            {
-                writer.Reset();
-                writer.WriteSerializable(message);
-                writer.Flush();
-
-                return writer.GetBytes();
-            }
-            finally
-            {
-                _writerPool.Return(writer);
-            }
-        }
-
-        private byte[] SerializePayload(Payload payload)
-        {
-            var writer = _writerPool.Rent();
-            try
-            {
-                writer.Reset();
-                foreach (var payloadMessage in payload.Messages)
-                {
-                    writer.WriteSeqNo(payloadMessage.Seq);
-                    writer.WriteBytes(payloadMessage.Data);
-                    writer.PadBits();
-                }
-                writer.Flush();
-
-                return writer.GetBytes();
-            }
-            finally
-            {
-                _writerPool.Return(writer);
-            }
-        }
-
-        private NetChannel GetChannel(byte id)
-        {
-            if (_channels.TryGetValue(id, out var channel))
+            if (_channels.TryGetValue(channeId, out var channel))
             {
                 return channel;
             }

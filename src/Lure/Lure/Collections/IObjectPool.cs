@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Lure
+namespace Lure.Collections
 {
     public interface IObjectPool<TItem> : IDisposable
     {

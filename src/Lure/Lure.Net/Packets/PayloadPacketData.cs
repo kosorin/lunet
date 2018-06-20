@@ -1,12 +1,15 @@
-﻿using Lure.Net.Data;
+﻿using Lure.Collections;
+using Lure.Net.Data;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Lure.Net.Packets
 {
     [PacketData(PacketDataType.Payload)]
-    internal class PayloadPacketData : PacketData
+    internal class PayloadPacketData : PacketData, IPoolable
     {
+        public override string DebuggerDisplay => $"Payload: {string.Join(", ", Messages.Select(x => x.Seq))}";
+
         public List<PayloadMessage> Messages { get; } = new List<PayloadMessage>();
 
         public override int Length => Messages.Sum(x => x.Length);
@@ -28,6 +31,15 @@ namespace Lure.Net.Packets
             {
                 message.Serialize(writer);
             }
+        }
+
+        void IPoolable.OnRent()
+        {
+        }
+
+        void IPoolable.OnReturn()
+        {
+            Messages.Clear();
         }
     }
 }
