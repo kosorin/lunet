@@ -8,6 +8,7 @@ namespace Lure
         public static long Current => Stopwatch.GetTimestamp() / TimeSpan.TicksPerMillisecond;
     }
 
+    [Obsolete]
     internal static class PreciseDateTime
     {
         private static readonly DateTime _timestampOffset = new DateTime(2015, 1, 1, 0, 0, 0, DateTimeKind.Utc);

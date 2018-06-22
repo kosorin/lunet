@@ -1,9 +1,9 @@
 ﻿using Lure.Collections;
 using Lure.Net.Data;
-using Lure.Net.Extensions;
 using Lure.Net.Packets;
 using Serilog;
 using System;
+using System.Collections.Generic;
 
 namespace Lure.Net.Channels
 {
@@ -11,15 +11,28 @@ namespace Lure.Net.Channels
     {
         protected readonly byte _id;
         protected readonly NetConnection _connection;
-        protected long _lastPacketTimestamp;
+
+        private readonly ObjectPool<NetDataWriter> _writerPool;
+
+        private bool _disposed;
 
         protected NetChannel(byte id, NetConnection connection)
         {
             _id = id;
             _connection = connection;
+
+            _writerPool = new ObjectPool<NetDataWriter>();
+
+            var now = Timestamp.Current;
+            LastOutgoingPacketTimestamp = now;
+            LastIncomingPacketTimestamp = now;
         }
 
         public byte Id => _id;
+
+        public long LastOutgoingPacketTimestamp { get; protected set; }
+
+        public long LastIncomingPacketTimestamp { get; protected set; }
 
         public void Dispose()
         {
@@ -32,65 +45,14 @@ namespace Lure.Net.Channels
 
         protected virtual void Dispose(bool disposing)
         {
-        }
-    }
-
-    internal abstract class NetChannel<TPacket> : NetChannel
-        where TPacket : Packet
-    {
-        protected ObjectPool<TPacket> _packetPool;
-        protected PacketDataPool _packetDataPool;
-
-        private bool _disposed;
-
-        protected NetChannel(byte id, NetConnection connection) : base(id, connection)
-        {
-            _packetPool = new ObjectPool<TPacket>();
-            _packetDataPool = new PacketDataPool();
-        }
-
-        public sealed override void ReceivePacket(NetDataReader reader)
-        {
-            var packet = _packetPool.Rent();
-
-            packet.DeserializeHeader(reader);
-
-            if (!AcceptPacket(packet))
-            {
-                return;
-            }
-
-            packet.Data = _packetDataPool.Rent(packet.DataType);
-            packet.DeserializeData(reader);
-
-            Log.Verbose("[{RemoteEndPoint}] Data <<< ({PacketData})", _connection.RemoteEndPoint, packet.Data.DebuggerDisplay);
-
-            _packetPool.Return(packet);
-        }
-
-        protected abstract bool AcceptPacket(TPacket packet);
-
-        protected override void Dispose(bool disposing)
-        {
             if (!_disposed)
             {
                 if (disposing)
                 {
-                    _packetPool.Dispose();
+                    _writerPool.Dispose();
                 }
                 _disposed = true;
             }
-            base.Dispose(disposing);
         }
-
-        protected TPacket CreateOutgoingPacket()
-        {
-            var packet = _packetPool.Rent();
-            packet.ChannelId = _id;
-            PrepareOutgoingPacket(packet);
-            return packet;
-        }
-
-        protected abstract void PrepareOutgoingPacket(TPacket packet);
     }
 }

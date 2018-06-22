@@ -5,8 +5,6 @@ namespace Lure.Net
 {
     public sealed class NetServer : NetPeer
     {
-        private static readonly ILogger Logger = Log.ForContext<NetServer>();
-
         private readonly NetServerConfiguration _config;
 
         public NetServer(int port, AddressFamily addressFamily = AddressFamily.InterNetwork)

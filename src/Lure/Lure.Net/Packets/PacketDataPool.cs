@@ -10,7 +10,7 @@ namespace Lure.Net.Packets
     {
         private static readonly Dictionary<PacketDataType, Type> ClassTypes = new Dictionary<PacketDataType, Type>();
 
-        private static readonly Dictionary<Type, PacketDataType> Types = new Dictionary<Type, PacketDataType>();
+        private static readonly Dictionary<Type, PacketDataType> DataTypes = new Dictionary<Type, PacketDataType>();
 
         private bool _disposed;
 
@@ -22,25 +22,25 @@ namespace Lure.Net.Packets
                 .GetTypes()
                 .Select(x => (Attribute: x.GetCustomAttribute<PacketDataAttribute>(false), Type: x))
                 .Where(x => x.Attribute != null && typeof(PacketData).IsAssignableFrom(x.Type))
-                .Select(x => (PacketType: x.Attribute.Type, Type: x.Type))
+                .Select(x => (DataType: x.Attribute.DataType, ClassType: x.Type))
                 .ToList();
 
-            foreach (var (packetType, classType) in packetTypes)
+            foreach (var (dataType, classType) in packetTypes)
             {
-                ClassTypes.Add(packetType, classType);
-                Types.Add(classType, packetType);
+                ClassTypes.Add(dataType, classType);
+                DataTypes.Add(classType, dataType);
             }
         }
 
         public TPacketData Rent<TPacketData>() where TPacketData : PacketData
         {
-            var type = Types[typeof(TPacketData)];
+            var type = DataTypes[typeof(TPacketData)];
             return (TPacketData)GetPool(type).Rent();
         }
 
-        public PacketData Rent(PacketDataType type)
+        public PacketData Rent(PacketDataType dataType)
         {
-            return GetPool(type).Rent();
+            return GetPool(dataType).Rent();
         }
 
         public void Return(PacketData data)
@@ -50,7 +50,7 @@ namespace Lure.Net.Packets
                 return;
             }
 
-            var type = Types[data.GetType()];
+            var type = DataTypes[data.GetType()];
             GetPool(type).Return(data);
         }
 
@@ -59,36 +59,36 @@ namespace Lure.Net.Packets
             Dispose(true);
         }
 
-        private ObjectPool<PacketData> GetPool(PacketDataType type)
+        private ObjectPool<PacketData> GetPool(PacketDataType dataType)
         {
-            if (_pools.TryGetValue(type, out var pool))
+            if (_pools.TryGetValue(dataType, out var pool))
             {
                 return pool;
             }
             else
             {
-                return AddPool(type);
+                return AddPool(dataType);
             }
         }
 
-        private ObjectPool<PacketData> AddPool(PacketDataType type)
+        private ObjectPool<PacketData> AddPool(PacketDataType dataType)
         {
-            var activator = CreateActivator(type);
+            var activator = CreateActivator(dataType);
             if (activator != null)
             {
                 var pool = new ObjectPool<PacketData>(() => activator());
-                _pools[type] = pool;
+                _pools[dataType] = pool;
                 return pool;
             }
             else
             {
-                throw new Exception($"Could not create a packet activator: {type}.");
+                throw new Exception($"Could not create a packet activator: {dataType}.");
             }
         }
 
-        private ObjectActivator<PacketData> CreateActivator(PacketDataType type)
+        private ObjectActivator<PacketData> CreateActivator(PacketDataType dataType)
         {
-            if (ClassTypes.TryGetValue(type, out var classType))
+            if (ClassTypes.TryGetValue(dataType, out var classType))
             {
                 return ObjectActivatorFactory.Create<PacketData>(classType);
             }

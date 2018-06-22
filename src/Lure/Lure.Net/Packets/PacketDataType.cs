@@ -2,13 +2,19 @@
 {
     internal enum PacketDataType : byte
     {
-        ConnectRequest = 0,
-        ConnectDeny = 1,
-        ConnectChallenge = 2,
-        ConnectResponse = 3,
+        // System
+        ConnectionRequest = 0,
+        ConnectionReject = 1,
+        ConnectionChallenge = 2,
+        ConnectionResponse = 3,
+        Disconnect = 4,
+        KeepAlive = 5,
 
-        KeepAlive = 4,
-        Payload = 5,
-        Disconnect = 6,
+        // Data
+        PayloadUnreliable = 10,
+        PayloadUnreliableSequenced = 11,
+        PayloadReliable = 13,
+        PayloadReliableSequenced = 12,
+        PayloadReliableOrdered = 14,
     }
 }

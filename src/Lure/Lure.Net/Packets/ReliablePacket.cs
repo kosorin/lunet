@@ -3,7 +3,7 @@ using Lure.Net.Extensions;
 
 namespace Lure.Net.Packets
 {
-    internal class ReliableOrderedPacket : SequencedPacket
+    internal class ReliablePacket : SequencedPacket
     {
         public static int AckBufferLength { get; } = 64;
 

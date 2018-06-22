@@ -1,18 +1,17 @@
-﻿using Lure.Net.Data;
-using Lure.Net.Extensions;
+﻿using Lure.Collections;
+using Lure.Net.Data;
 
 namespace Lure.Net.Packets
 {
     internal abstract class Packet
     {
-        public static int SerializeCheck => 0x55555555;
-
         public byte ChannelId { get; set; }
 
         public PacketDataType DataType { get; set; }
 
         public PacketData Data { get; set; }
 
+        private static int SerializeCheck => 0x55555555;
 
         public void DeserializeHeader(INetDataReader reader)
         {

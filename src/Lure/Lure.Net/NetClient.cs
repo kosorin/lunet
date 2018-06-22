@@ -7,8 +7,6 @@ namespace Lure.Net
 {
     public sealed class NetClient : NetPeer
     {
-        private static readonly ILogger Logger = Log.ForContext<NetClient>();
-
         private readonly NetClientConfiguration _config;
         private NetConnection _connection;
 
@@ -31,7 +29,7 @@ namespace Lure.Net
 
         public NetConnection Connection => _connection;
 
-        public IPEndPoint RemoteEndPoint => Connection.RemoteEndPoint;
+        public IPEndPoint RemoteEndPoint => _connection.RemoteEndPoint;
 
 
         public void SendMessage(NetMessage message)

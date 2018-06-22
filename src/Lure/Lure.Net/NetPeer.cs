@@ -115,6 +115,13 @@ namespace Lure.Net
             Logger.Verbose("[{RemoteEndPoint}] Packet >>> (size={Size})", connection.RemoteEndPoint, writer.Length);
         }
 
+        internal void Disconnect(NetConnection connection)
+        {
+            _connections.TryRemove(connection.RemoteEndPoint, out var _);
+
+            Logger.Debug("[{RemoteEndPoint}] Disconnected", connection.RemoteEndPoint);
+        }
+
 
         // Thread: Main
         protected virtual void OnStart()
@@ -146,6 +153,8 @@ namespace Lure.Net
             {
                 connection = new NetConnection(this, remoteEndPoint);
                 _connections[remoteEndPoint] = connection;
+
+                Logger.Debug("[{RemoteEndPoint}] Connected", connection.RemoteEndPoint);
             }
 
             return connection;
