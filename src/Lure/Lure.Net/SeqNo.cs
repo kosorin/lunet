@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace Lure.Net
 {
     [DebuggerDisplay("{Value,nq}")]
-    internal struct SeqNo : IEquatable<SeqNo>
+    internal struct SeqNo : IEquatable<SeqNo>, IComparable<SeqNo>
     {
         public const int Range = ushort.MaxValue + 1;
 
@@ -29,7 +29,7 @@ namespace Lure.Net
 
         public ushort Value => _value;
 
-        public int GetDifference(SeqNo other)
+        public int CompareTo(SeqNo other)
         {
             return GetDifference(_value, other._value);
         }

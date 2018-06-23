@@ -1,30 +1,27 @@
-﻿using Lure.Collections;
-using Lure.Extensions.NetCore;
+﻿using Lure.Extensions.NetCore;
 using Lure.Net.Data;
-using Lure.Net.Packets;
-using Serilog;
+using Lure.Net.Packets.Message;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Lure.Net.Channels
 {
-   /* internal class ReliableOrderedChannel : MessageChannel<ReliablePacket, ReliablePayloadPacketData>
+    internal class ReliableOrderedChannel : MessageChannel<ReliablePacket, ReliableRawMessage>
     {
         private const int ResendTimeout = 100;
 
-        private readonly Dictionary<SeqNo, byte[]> _outgoingMessageQueue = new Dictionary<SeqNo, byte[]>();
-        private readonly Dictionary<SeqNo, ReliablePayloadPacketData> _outgoingPacketBuffer = new Dictionary<SeqNo, ReliablePayloadPacketData>();
+        private readonly Dictionary<SeqNo, ReliableRawMessage> _outgoingRawMessageQueue = new Dictionary<SeqNo, ReliableRawMessage>();
+        private readonly Dictionary<SeqNo, List<ReliableRawMessage>> _outgoingPacketBuffer = new Dictionary<SeqNo, List<ReliableRawMessage>>();
 
         private SeqNo _outgoingMessageSeq = SeqNo.Zero;
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
+
         private SeqNo _incomingPacketAck = SeqNo.Zero - 1;
         private BitVector _incomingPacketAckBuffer = new BitVector(ReliablePacket.AckBufferLength);
+
         private bool _requireAcknowledgement;
 
-        private bool _disposed;
-
-        public ReliableOrderedChannel(byte id, NetConnection connection)
-            : base(id, connection, PacketDataType.PayloadReliableOrdered)
+        public ReliableOrderedChannel(byte id, NetConnection connection) : base(id, connection)
         {
         }
 
@@ -36,34 +33,32 @@ namespace Lure.Net.Channels
             {
                 _requireAcknowledgement = false;
 
-                var data = _rawMessagePool.Rent();
-                var packet = CreateOutgoingPacket(data);
-                SendPacket(packet);
+                SendPacket(CreateOutgoingPacket());
             }
         }
 
-        public override void SendRawMessage(byte[] rawMessage)
+        public override void SendRawMessage(byte[] data)
         {
-            lock (_outgoingMessageQueue)
+            lock (_outgoingRawMessageQueue)
             {
-                if (!_outgoingMessageQueue.TryAdd(_outgoingMessageSeq++, rawMessage))
+                var rawMessage = _rawMessagePool.Rent();
+                rawMessage.Seq = _outgoingMessageSeq++;
+                rawMessage.Data = data;
+
+                if (!_outgoingRawMessageQueue.TryAdd(rawMessage.Seq, rawMessage))
                 {
-                    throw new NetException("Buffer overflow.");
+                    throw new NetException("Raw message buffer overflow.");
                 }
             }
         }
 
         protected override bool AcceptIncomingPacket(ReliablePacket packet)
         {
-            if (packet.DataType != PacketDataType.PayloadReliableOrdered)
-            {
-                return false;
-            }
-
             if (AcknowledgeIncomingPacket(packet.Seq))
             {
-                _requireAcknowledgement = true;
                 AcknowledgeOutgoingPackets(packet.Ack, packet.AckBuffer);
+
+                _requireAcknowledgement = true;
                 return true;
             }
             return false;
@@ -71,56 +66,32 @@ namespace Lure.Net.Channels
 
         protected override void PrepareOutgoingPacket(ReliablePacket packet)
         {
-            packet.DataType = PacketDataType.PayloadReliableOrdered;
             packet.Seq = _outgoingPacketSeq++;
             packet.Ack = _incomingPacketAck;
             packet.AckBuffer = _incomingPacketAckBuffer.Clone(0, ReliablePacket.PacketAckBufferLength);
         }
 
-        protected override List<ReliablePayloadPacketData> CollectOutgoingRawMessages()
+        protected override void OnOutgoingPacket(ReliablePacket packet)
         {
-            var dataList = new List<ReliablePayloadPacketData>();
+            base.OnOutgoingPacket(packet);
 
-            List<ReliablePayloadPacketData> payloadMessages;
-            lock (_outgoingMessageQueue)
+            _outgoingPacketBuffer.Add(packet.Seq, packet.RawMessages);
+        }
+
+        protected override List<ReliableRawMessage> CollectOutgoingRawMessages()
+        {
+            var now = Timestamp.Current;
+            lock (_outgoingRawMessageQueue)
             {
-                if (_outgoingMessageQueue.Count == 0)
+                if (_outgoingRawMessageQueue.Count == 0)
                 {
-                    return dataList;
+                    return new List<ReliableRawMessage>();
                 }
-                payloadMessages = _outgoingMessageQueue.Values
-                    .Where(x => x.LastSendTimestamp == null || Timestamp.Current - x.LastSendTimestamp > ResendTimeout)
-                    .OrderBy(x => x.LastSendTimestamp ?? long.MaxValue)
+                return _outgoingRawMessageQueue.Values
+                    .Where(x => x.Timestamp == null || now - x.Timestamp > ResendTimeout)
+                    .OrderBy(x => x.Timestamp ?? long.MaxValue)
                     .ToList();
             }
-
-            foreach (var payloadMessage in payloadMessages)
-            {
-                payloadMessage.LastSendTimestamp = Timestamp.Current;
-            }
-
-            var data = _packetDataPool.Rent<UnreliablePayloadPacketData>();
-            foreach (var payloadMessage in payloadMessages)
-            {
-                if (payloadMessage.Length > MTU)
-                {
-                    throw new NetException("Message too big.");
-                }
-                else if (data.Length + payloadMessage.Length > MTU)
-                {
-                    dataList.Add(data);
-                    data = _packetDataPool.Rent<UnreliablePayloadPacketData>();
-                }
-
-                data.RawMessages.Add(payloadMessage);
-            }
-
-            if (data.RawMessages.Count > 0)
-            {
-                dataList.Add(data);
-            }
-
-            return dataList;
         }
 
         protected override void ParseRawMessages(ReliablePacket packet)
@@ -128,28 +99,16 @@ namespace Lure.Net.Channels
             throw new System.NotImplementedException();
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _packetPool.Dispose();
-                }
-                _disposed = true;
-            }
-            base.Dispose(disposing);
-        }
-
         /// <summary>
-        /// Acks received packet. Returns <c>true</c> if <paramref name="seq"/> wasn't acked yet.
+        /// Acks received packet. Returns <c>true</c> for new packets.
         /// </summary>
         /// <param name="seq"></param>
         private bool AcknowledgeIncomingPacket(SeqNo seq)
         {
-            var diff = seq.GetDifference(_incomingPacketAck);
+            var diff = seq.CompareTo(_incomingPacketAck);
             if (diff == 0)
             {
+                // Drop already received packet
                 return false;
             }
             else if (diff > 0)
@@ -158,6 +117,7 @@ namespace Lure.Net.Channels
 
                 if (diff > _incomingPacketAckBuffer.Capacity)
                 {
+                    // Early packet
                     _incomingPacketAckBuffer.ClearAll();
                 }
                 else
@@ -170,11 +130,17 @@ namespace Lure.Net.Channels
             else
             {
                 diff *= -1;
-                if (diff <= _incomingPacketAckBuffer.Capacity)
+                if (diff > _incomingPacketAckBuffer.Capacity)
+                {
+                    // Drop late packet
+                    return false;
+                }
+                else
                 {
                     var ackIndex = diff - 1;
                     if (_incomingPacketAckBuffer[ackIndex])
                     {
+                        // Drop already received packet
                         return false;
                     }
                     else
@@ -183,13 +149,12 @@ namespace Lure.Net.Channels
                         return true;
                     }
                 }
-                return false;
             }
         }
 
         private void AcknowledgeOutgoingPackets(SeqNo ack, BitVector acks)
         {
-            lock (_outgoingMessageQueue)
+            lock (_outgoingRawMessageQueue)
             {
                 AcknowledgeOutgoingPacket(ack);
                 foreach (var bit in acks.AsBits())
@@ -205,15 +170,17 @@ namespace Lure.Net.Channels
 
         private void AcknowledgeOutgoingPacket(SeqNo ack)
         {
-            if (_outgoingPacketBuffer.Remove(ack, out var data))
+            lock (_outgoingRawMessageQueue)
             {
-                foreach (var message in data.RawMessages)
+                if (_outgoingPacketBuffer.Remove(ack, out var rawMessages))
                 {
-                    _outgoingMessageQueue.Remove(message.Seq);
+                    foreach (var rawMessage in rawMessages)
+                    {
+                        _outgoingRawMessageQueue.Remove(rawMessage.Seq);
+                        _rawMessagePool.Return(rawMessage);
+                    }
                 }
-
-                _packetDataPool.Return(data);
             }
         }
-    }*/
+    }
 }

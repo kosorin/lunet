@@ -53,6 +53,10 @@ namespace Lure.Net.Channels
         {
             lock (_outgoingRawMessageQueue)
             {
+                if (_outgoingRawMessageQueue.Count == 0)
+                {
+                    return new List<UnreliableRawMessage>();
+                }
                 var rawMessages = _outgoingRawMessageQueue.ToList();
                 _outgoingRawMessageQueue.Clear();
                 return rawMessages;

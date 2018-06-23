@@ -42,11 +42,12 @@ namespace Lure.Net.Channels
             packet.DeserializeData(reader);
 
             Log.Verbose("[{RemoteEndPoint}] Message <<<", _connection.RemoteEndPoint);
+            OnIncomingPacket(packet);
+            LastIncomingPacketTimestamp = Timestamp.Current;
 
             ParseRawMessages(packet);
 
             _packetPool.Return(packet);
-            LastIncomingPacketTimestamp = Timestamp.Current;
         }
 
         public override void Update()
@@ -68,7 +69,7 @@ namespace Lure.Net.Channels
                 packetLength += rawMessage.Length;
             }
 
-            if (packet.RawMessages.Count > 0)
+            if (packetLength > 0)
             {
                 SendPacket(packet);
             }
@@ -85,6 +86,7 @@ namespace Lure.Net.Channels
         protected TPacket CreateOutgoingPacket()
         {
             var packet = _packetPool.Rent();
+            packet.Direction = PacketDirection.Outgoing;
             packet.ChannelId = _id;
 
             PrepareOutgoingPacket(packet);
@@ -97,9 +99,10 @@ namespace Lure.Net.Channels
             _connection.Peer.SendPacket(_connection, packet);
 
             Log.Verbose("[{RemoteEndPoint}] Message >>>", _connection.RemoteEndPoint);
+            OnOutgoingPacket(packet);
+            LastOutgoingPacketTimestamp = Timestamp.Current;
 
             _packetPool.Return(packet);
-            LastOutgoingPacketTimestamp = Timestamp.Current;
         }
 
         protected override void Dispose(bool disposing)
@@ -109,10 +112,29 @@ namespace Lure.Net.Channels
                 if (disposing)
                 {
                     _packetPool.Dispose();
+                    _rawMessagePool.Dispose();
                 }
                 _disposed = true;
             }
             base.Dispose(disposing);
+        }
+
+        protected virtual void OnIncomingPacket(TPacket packet)
+        {
+            var now = Timestamp.Current;
+            foreach (var rawMessage in packet.RawMessages)
+            {
+                rawMessage.Timestamp = now;
+            }
+        }
+
+        protected virtual void OnOutgoingPacket(TPacket packet)
+        {
+            var now = Timestamp.Current;
+            foreach (var rawMessage in packet.RawMessages)
+            {
+                rawMessage.Timestamp = now;
+            }
         }
     }
 }

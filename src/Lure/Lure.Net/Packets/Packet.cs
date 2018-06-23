@@ -7,6 +7,8 @@ namespace Lure.Net.Packets
     {
         public byte ChannelId { get; set; }
 
+        public PacketDirection Direction { get; set; }
+
         private static int SerializeCheck => 0x55555555;
 
         public void DeserializeHeader(INetDataReader reader)
@@ -23,16 +25,6 @@ namespace Lure.Net.Packets
             }
         }
 
-        public void SerializeHeader(INetDataWriter writer)
-        {
-            writer.WriteByte(ChannelId);
-
-            SerializeHeaderCore(writer);
-
-            writer.PadBits();
-            writer.WriteInt(SerializeCheck);
-        }
-
         public void DeserializeData(INetDataReader reader)
         {
             DeserializeDataCore(reader);
@@ -44,6 +36,16 @@ namespace Lure.Net.Packets
             }
         }
 
+        public void SerializeHeader(INetDataWriter writer)
+        {
+            writer.WriteByte(ChannelId);
+
+            SerializeHeaderCore(writer);
+
+            writer.PadBits();
+            writer.WriteInt(SerializeCheck);
+        }
+
         public void SerializeData(INetDataWriter writer)
         {
             SerializeDataCore(writer);
@@ -51,9 +53,9 @@ namespace Lure.Net.Packets
 
         protected abstract void DeserializeHeaderCore(INetDataReader reader);
 
-        protected abstract void SerializeHeaderCore(INetDataWriter writer);
-
         protected abstract void DeserializeDataCore(INetDataReader reader);
+
+        protected abstract void SerializeHeaderCore(INetDataWriter writer);
 
         protected abstract void SerializeDataCore(INetDataWriter writer);
     }

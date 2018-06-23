@@ -45,5 +45,9 @@
         void Seek();
 
         void Seek(int bitPosition);
+
+        void SkipBits(int count);
+
+        void SkipBytes(int count);
     }
 }

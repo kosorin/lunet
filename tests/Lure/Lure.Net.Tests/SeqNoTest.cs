@@ -15,7 +15,7 @@ namespace Lure.Net.Tests
         }
 
         [Fact]
-        public void GetDifference_Performance()
+        public void CompareTo_Performance()
         {
             for (int n = 0; n < 3; n++)
             {
@@ -70,21 +70,21 @@ namespace Lure.Net.Tests
         [Theory]
         [InlineData(0, 0)]
         [InlineData(100, 100)]
-        public void GetDifference_Equal(int l, int r)
+        public void CompareTo_Equal(int l, int r)
         {
             var left = (SeqNo)l;
             var right = (SeqNo)r;
-            Assert.Equal(0, left.GetDifference(right));
+            Assert.Equal(0, left.CompareTo(right));
         }
 
         [Theory]
         [InlineData(0, 100)]
         [InlineData(100, 0)]
-        public void GetDifference_NotEqual(int l, int r)
+        public void CompareTo_NotEqual(int l, int r)
         {
             var left = (SeqNo)l;
             var right = (SeqNo)r;
-            Assert.NotEqual(0, left.GetDifference(right));
+            Assert.NotEqual(0, left.CompareTo(right));
         }
 
         [Theory]
@@ -93,11 +93,11 @@ namespace Lure.Net.Tests
         [InlineData(42, 42 + 1)]
         [InlineData(42, 42 - (SeqNo.HalfRange + 1))]
         [InlineData(42, 42 - (SeqNo.HalfRange + 2))]
-        public void GetDifference_Less(int l, int r)
+        public void CompareTo_Less(int l, int r)
         {
             var left = (SeqNo)l;
             var right = (SeqNo)r;
-            Assert.True(left.GetDifference(right) < 0);
+            Assert.True(left.CompareTo(right) < 0);
         }
 
         [Theory]
@@ -108,11 +108,11 @@ namespace Lure.Net.Tests
         [InlineData(42, 42 - (SeqNo.HalfRange - 2))]
         [InlineData(42, 42 - (SeqNo.HalfRange - 1))]
         [InlineData(42, 42 - (SeqNo.HalfRange - 0))]
-        public void GetDifference_Greater(int l, int r)
+        public void CompareTo_Greater(int l, int r)
         {
             var left = (SeqNo)l;
             var right = (SeqNo)r;
-            Assert.True(left.GetDifference(right) > 0);
+            Assert.True(left.CompareTo(right) > 0);
         }
 
         [Theory]

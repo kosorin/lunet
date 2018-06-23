@@ -1,9 +1,10 @@
 ﻿using Lure.Net.Data;
 using Lure.Net.Extensions;
+using System;
 
 namespace Lure.Net.Packets.Message
 {
-    internal class ReliableRawMessage : RawMessage
+    internal class ReliableRawMessage : RawMessage, IComparable<ReliableRawMessage>
     {
         public SeqNo Seq { get; set; }
 
@@ -19,6 +20,11 @@ namespace Lure.Net.Packets.Message
         {
             writer.WriteSeqNo(Seq);
             base.Serialize(writer);
+        }
+
+        int IComparable<ReliableRawMessage>.CompareTo(ReliableRawMessage other)
+        {
+            return Seq.CompareTo(other.Seq);
         }
     }
 }

@@ -58,7 +58,7 @@ namespace Lure.Net.Tests
 
         internal void AckReceive(SeqNo seq)
         {
-            var diff = seq.GetDifference(_receivePacketAck);
+            var diff = seq.CompareTo(_receivePacketAck);
             if (diff == 0)
             {
                 return;

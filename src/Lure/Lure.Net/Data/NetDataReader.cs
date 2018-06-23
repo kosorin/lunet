@@ -223,6 +223,36 @@ namespace Lure.Net.Data
             _bitPosition = bitPosition % NC.BitsPerByte;
         }
 
+        public void SkipBits(int count)
+        {
+            if (count == 0)
+            {
+                return;
+            }
+            if (count < 0 || BitPosition + count > BitLength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
+            _bitPosition += count;
+            _position += _bitPosition / NC.BitsPerByte;
+            _bitPosition %= NC.BitsPerByte;
+        }
+
+        public void SkipBytes(int count)
+        {
+            if (count == 0)
+            {
+                return;
+            }
+            if (count < 0 || Position + count > Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
+            _position += count;
+        }
+
 
         private byte Read(int bitLength)
         {

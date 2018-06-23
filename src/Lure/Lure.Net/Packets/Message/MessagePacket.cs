@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Lure.Net.Packets.Message
 {
-    internal abstract class MessagePacket<TRawMessage> : Packet, IPoolable
+    internal abstract class MessagePacket<TRawMessage> : Packet
         where TRawMessage : RawMessage
     {
         protected readonly ObjectPool<TRawMessage> _rawMessagePool;
@@ -14,22 +14,9 @@ namespace Lure.Net.Packets.Message
             _rawMessagePool = rawMessagePool;
         }
 
-        public List<TRawMessage> RawMessages { get; } = new List<TRawMessage>();
+        public List<TRawMessage> RawMessages { get; set; } = new List<TRawMessage>();
 
-        void IPoolable.OnRent()
-        {
-            RawMessages.Clear();
-        }
-
-        void IPoolable.OnReturn()
-        {
-            foreach (var rawMessage in RawMessages)
-            {
-                _rawMessagePool.Return(rawMessage);
-            }
-        }
-
-        protected sealed override void DeserializeDataCore(INetDataReader reader)
+        protected override void DeserializeDataCore(INetDataReader reader)
         {
             RawMessages.Clear();
             while (reader.Position < reader.Length)
@@ -40,7 +27,7 @@ namespace Lure.Net.Packets.Message
             }
         }
 
-        protected sealed override void SerializeDataCore(INetDataWriter writer)
+        protected override void SerializeDataCore(INetDataWriter writer)
         {
             foreach (var rawMessage in RawMessages)
             {

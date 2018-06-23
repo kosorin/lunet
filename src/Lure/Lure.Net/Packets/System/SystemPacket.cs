@@ -13,14 +13,14 @@ namespace Lure.Net.Packets.System
             DataType = (PacketDataType)reader.ReadByte();
         }
 
-        protected override void SerializeHeaderCore(INetDataWriter writer)
-        {
-            writer.WriteByte((byte)DataType);
-        }
-
         protected sealed override void DeserializeDataCore(INetDataReader reader)
         {
             Data.Deserialize(reader);
+        }
+
+        protected override void SerializeHeaderCore(INetDataWriter writer)
+        {
+            writer.WriteByte((byte)DataType);
         }
 
         protected sealed override void SerializeDataCore(INetDataWriter writer)
