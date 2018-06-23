@@ -22,7 +22,7 @@ namespace Lure.Net
 
         private readonly NetPeer _peer;
         private readonly IPEndPoint _remoteEndPoint;
-        private readonly UnreliableChannel _defaultChannel;
+        private readonly ReliableOrderedChannel _defaultChannel;
         private readonly Dictionary<byte, NetChannel> _channels;
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
@@ -31,7 +31,7 @@ namespace Lure.Net
 
             _peer = peer;
             _remoteEndPoint = remoteEndPoint;
-            _defaultChannel = new UnreliableChannel(0, this);
+            _defaultChannel = new ReliableOrderedChannel(0, this);
             _channels = new Dictionary<byte, NetChannel>
             {
                 [_defaultChannel.Id] = _defaultChannel,

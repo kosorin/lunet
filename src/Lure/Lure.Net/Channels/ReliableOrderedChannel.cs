@@ -1,6 +1,8 @@
 ﻿using Lure.Extensions.NetCore;
 using Lure.Net.Data;
+using Lure.Net.Messages;
 using Lure.Net.Packets.Message;
+using Serilog;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -96,7 +98,15 @@ namespace Lure.Net.Channels
 
         protected override void ParseRawMessages(ReliablePacket packet)
         {
-            throw new System.NotImplementedException();
+            foreach (var rawMessage in packet.RawMessages)
+            {
+                var reader = new NetDataReader(rawMessage.Data);
+                var typeId = reader.ReadUShort();
+                var message = NetMessageManager.Create(typeId);
+                message.Deserialize(reader);
+
+                Log.Information("  {Message}", message);
+            }
         }
 
         /// <summary>

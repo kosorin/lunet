@@ -14,13 +14,11 @@ namespace Pegi.Client
 
             using (var client = new NetClient("localhost", 45685))
             {
-                var resetEvent = new AutoResetEvent(false);
+                var resetEvent = new ManualResetEvent(false);
                 Console.CancelKeyPress += (_, e) =>
                 {
                     e.Cancel = true;
                     Log.Information("Ctrl+C");
-
-                    client.Stop();
                     resetEvent.Set();
                 };
 
@@ -28,8 +26,13 @@ namespace Pegi.Client
 
                 Thread.Sleep(500);
 
-                for (int i = 0; i < 10; i++)
+                for (int i = 0; i < 100; i++)
                 {
+                    if (resetEvent.WaitOne(0))
+                    {
+                        break;
+                    }
+
                     var message = new TestMessage
                     {
                         Integer = i * 10,
