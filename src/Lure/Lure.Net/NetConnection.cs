@@ -1,14 +1,10 @@
 ﻿using Lure.Collections;
-using Lure.Extensions.NetCore;
 using Lure.Net.Channels;
 using Lure.Net.Data;
-using Lure.Net.Extensions;
 using Lure.Net.Messages;
-using Lure.Net.Packets;
 using Serilog;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 
 namespace Lure.Net
@@ -104,6 +100,18 @@ namespace Lure.Net
             }
         }
 
+        internal void ReceivePacket(NetDataReader reader)
+        {
+            var channelId = reader.ReadByte();
+            var channel = GetChannel(channelId);
+            if (channel != null)
+            {
+                Log.Verbose("[{RemoteEndPoint}:{ChannelId}] Packet <<< (size={Size})", RemoteEndPoint, channelId, reader.Length);
+
+                channel.ReceivePacket(reader);
+            }
+        }
+
         private NetChannel GetChannel(byte channeId)
         {
             if (_channels.TryGetValue(channeId, out var channel))
@@ -130,18 +138,6 @@ namespace Lure.Net
             finally
             {
                 _writerPool.Return(writer);
-            }
-        }
-
-        internal void ReceivePacket(NetDataReader reader)
-        {
-            var channelId = reader.ReadByte();
-            var channel = GetChannel(channelId);
-            if (channel != null)
-            {
-                Log.Verbose("[{RemoteEndPoint}:{ChannelId}] Packet <<< (size={Size})", RemoteEndPoint, channelId, reader.Length);
-
-                channel.ReceivePacket(reader);
             }
         }
     }

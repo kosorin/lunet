@@ -1,9 +1,6 @@
 ﻿using Lure.Collections;
 using Lure.Net.Data;
-using Lure.Net.Packets;
-using Serilog;
 using System;
-using System.Collections.Generic;
 
 namespace Lure.Net.Channels
 {

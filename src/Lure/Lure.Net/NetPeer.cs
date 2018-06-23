@@ -1,12 +1,10 @@
 ﻿using Lure.Collections;
 using Lure.Net.Data;
 using Lure.Net.Extensions;
-using Lure.Net.Messages;
 using Lure.Net.Packets;
 using Serilog;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;

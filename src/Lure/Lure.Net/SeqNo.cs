@@ -1,6 +1,4 @@
-﻿using Lure.Net.Data;
-using Lure.Net.Packets;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -144,6 +142,6 @@ namespace Lure.Net
             return -(((right - left + Range + HalfRange) % Range) - HalfRange);
         }
 
-        #endregion
+        #endregion Static methods
     }
 }

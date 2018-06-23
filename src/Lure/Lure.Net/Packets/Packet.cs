@@ -1,5 +1,4 @@
-﻿using Lure.Collections;
-using Lure.Net.Data;
+﻿using Lure.Net.Data;
 
 namespace Lure.Net.Packets
 {

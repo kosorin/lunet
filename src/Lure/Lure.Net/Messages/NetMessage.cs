@@ -1,5 +1,4 @@
-﻿using System;
-using Lure.Net.Data;
+﻿using Lure.Net.Data;
 
 namespace Lure.Net.Messages
 {

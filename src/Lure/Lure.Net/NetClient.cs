@@ -1,6 +1,4 @@
 ﻿using Lure.Net.Messages;
-using Serilog;
-using System.Linq;
 using System.Net;
 
 namespace Lure.Net

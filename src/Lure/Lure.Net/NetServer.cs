@@ -1,5 +1,4 @@
-﻿using Serilog;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 
 namespace Lure.Net
 {

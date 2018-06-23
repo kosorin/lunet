@@ -9,12 +9,11 @@ namespace Lure.Net.Packets.System
     internal sealed class PacketDataPool : IDisposable
     {
         private static readonly Dictionary<PacketDataType, Type> ClassTypes = new Dictionary<PacketDataType, Type>();
-
         private static readonly Dictionary<Type, PacketDataType> DataTypes = new Dictionary<Type, PacketDataType>();
 
-        private bool _disposed;
-
         private readonly Dictionary<PacketDataType, ObjectPool<PacketData>> _pools = new Dictionary<PacketDataType, ObjectPool<PacketData>>();
+
+        private bool _disposed;
 
         static PacketDataPool()
         {
