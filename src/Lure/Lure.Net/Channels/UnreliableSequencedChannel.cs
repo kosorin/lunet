@@ -1,33 +1,37 @@
 ﻿using Lure.Net.Data;
 using Lure.Net.Messages;
 using Lure.Net.Packets;
+using Lure.Net.Packets.Message;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    internal class UnreliableSequencedChannel : PayloadChannel<SequencedPacket, UnreliablePayloadPacketData>
+    internal class UnreliableSequencedChannel : MessageChannel<UnreliableSequencedPacket, UnreliableRawMessage>
     {
-        private readonly Queue<byte[]> _outgoingRawMessageQueue = new Queue<byte[]>();
+        private readonly List<UnreliableRawMessage> _outgoingRawMessageQueue = new List<UnreliableRawMessage>();
 
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketSeq = SeqNo.Zero - 1;
 
-        public UnreliableSequencedChannel(byte id, NetConnection connection)
-            : base(id, connection, PacketDataType.PayloadUnreliableSequenced)
+        public UnreliableSequencedChannel(byte id, NetConnection connection) : base(id, connection)
         {
         }
 
-        public override void SendRawMessage(byte[] rawMessage)
+        public override void SendRawMessage(byte[] data)
         {
+            var rawMessage = _rawMessagePool.Rent();
+            rawMessage.Data = data;
+
             lock (_outgoingRawMessageQueue)
             {
-                _outgoingRawMessageQueue.Enqueue(rawMessage);
+                _outgoingRawMessageQueue.Add(rawMessage);
             }
         }
 
-        protected override bool AcceptIncomingPacket(SequencedPacket packet)
+        protected override bool AcceptIncomingPacket(UnreliableSequencedPacket packet)
         {
             if (_incomingPacketSeq < packet.Seq)
             {
@@ -40,43 +44,26 @@ namespace Lure.Net.Channels
             }
         }
 
-        protected override void PrepareOutgoingPacket(SequencedPacket packet)
+        protected override void PrepareOutgoingPacket(UnreliableSequencedPacket packet)
         {
             packet.Seq = _outgoingPacketSeq++;
         }
 
-        protected override List<UnreliablePayloadPacketData> CollectOutgoingData()
+        protected override List<UnreliableRawMessage> CollectOutgoingRawMessages()
         {
-            var dataList = new List<UnreliablePayloadPacketData>();
-            var data = _dataPool.Rent();
-
             lock (_outgoingRawMessageQueue)
             {
-                while (_outgoingRawMessageQueue.Count > 0)
-                {
-                    var rawMessage = _outgoingRawMessageQueue.Dequeue();
-                    if (data.Length + rawMessage.Length > _connection.MTU)
-                    {
-                        dataList.Add(data);
-                        data = _dataPool.Rent();
-                    }
-                    data.RawMessages.Add(rawMessage);
-                }
+                var rawMessages = _outgoingRawMessageQueue.ToList();
+                _outgoingRawMessageQueue.Clear();
+                return rawMessages;
             }
-
-            if (data.Length > 0)
-            {
-                dataList.Add(data);
-            }
-            return dataList;
         }
 
-        protected override void ParseRawMessages(SequencedPacket packet)
+        protected override void ParseRawMessages(UnreliableSequencedPacket packet)
         {
-            var data = (UnreliablePayloadPacketData)packet.Data;
-            foreach (var rawMessage in data.RawMessages)
+            foreach (var rawMessage in packet.RawMessages)
             {
-                var reader = new NetDataReader(rawMessage);
+                var reader = new NetDataReader(rawMessage.Data);
                 var typeId = reader.ReadUShort();
                 var message = NetMessageManager.Create(typeId);
                 message.Deserialize(reader);

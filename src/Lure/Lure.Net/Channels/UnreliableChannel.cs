@@ -1,26 +1,29 @@
 ﻿using Lure.Net.Data;
 using Lure.Net.Messages;
-using Lure.Net.Packets;
+using Lure.Net.Packets.Message;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    internal class UnreliableChannel : PayloadChannel<UnreliablePacket, UnreliablePayloadPacketData>
+    internal class UnreliableChannel : MessageChannel<UnreliablePacket, UnreliableRawMessage>
     {
-        private readonly Queue<byte[]> _outgoingRawMessageQueue = new Queue<byte[]>();
+        private readonly List<UnreliableRawMessage> _outgoingRawMessageQueue = new List<UnreliableRawMessage>();
 
-        public UnreliableChannel(byte id, NetConnection connection)
-            : base(id, connection, PacketDataType.PayloadUnreliable)
+        public UnreliableChannel(byte id, NetConnection connection) : base(id, connection)
         {
         }
 
-        public override void SendRawMessage(byte[] rawMessage)
+        public override void SendRawMessage(byte[] data)
         {
+            var rawMessage = _rawMessagePool.Rent();
+            rawMessage.Data = data;
+
             lock (_outgoingRawMessageQueue)
             {
-                _outgoingRawMessageQueue.Enqueue(rawMessage);
+                _outgoingRawMessageQueue.Add(rawMessage);
             }
         }
 
@@ -33,38 +36,21 @@ namespace Lure.Net.Channels
         {
         }
 
-        protected override List<UnreliablePayloadPacketData> CollectOutgoingData()
+        protected override List<UnreliableRawMessage> CollectOutgoingRawMessages()
         {
-            var dataList = new List<UnreliablePayloadPacketData>();
-            var data = _dataPool.Rent();
-
             lock (_outgoingRawMessageQueue)
             {
-                while (_outgoingRawMessageQueue.Count > 0)
-                {
-                    var rawMessage = _outgoingRawMessageQueue.Dequeue();
-                    if (data.Length + rawMessage.Length > _connection.MTU)
-                    {
-                        dataList.Add(data);
-                        data = _dataPool.Rent();
-                    }
-                    data.RawMessages.Add(rawMessage);
-                }
+                var rawMessages = _outgoingRawMessageQueue.ToList();
+                _outgoingRawMessageQueue.Clear();
+                return rawMessages;
             }
-
-            if (data.Length > 0)
-            {
-                dataList.Add(data);
-            }
-            return dataList;
         }
 
         protected override void ParseRawMessages(UnreliablePacket packet)
         {
-            var data = (UnreliablePayloadPacketData)packet.Data;
-            foreach (var rawMessage in data.RawMessages)
+            foreach (var rawMessage in packet.RawMessages)
             {
-                var reader = new NetDataReader(rawMessage);
+                var reader = new NetDataReader(rawMessage.Data);
                 var typeId = reader.ReadUShort();
                 var message = NetMessageManager.Create(typeId);
                 message.Deserialize(reader);

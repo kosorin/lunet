@@ -1,10 +1,15 @@
-﻿using Lure.Net.Data;
+﻿using Lure.Collections;
+using Lure.Net.Data;
 using Lure.Net.Extensions;
 
-namespace Lure.Net.Packets
+namespace Lure.Net.Packets.Message
 {
-    internal class SequencedPacket : Packet
+    internal class UnreliableSequencedPacket : MessagePacket<UnreliableRawMessage>
     {
+        public UnreliableSequencedPacket(ObjectPool<UnreliableRawMessage> rawMessagePool) : base(rawMessagePool)
+        {
+        }
+
         public SeqNo Seq { get; set; }
 
         protected override void DeserializeHeaderCore(INetDataReader reader)

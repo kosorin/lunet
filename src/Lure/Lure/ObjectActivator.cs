@@ -11,19 +11,30 @@ namespace Lure
 
     public static class ObjectActivatorFactory
     {
-        public static ObjectActivator<T> Create<T>()
+        public static ObjectActivator<T> CreateDefault<T>()
         {
-            return Create<T>(typeof(T));
+            return CreateDefault<T>(typeof(T));
         }
 
-        public static ObjectActivator<T> Create<T>(Type type)
+        public static ObjectActivator<T> CreateDefault<T>(Type type)
         {
             var ctor = type.GetConstructors().Where(x => x.GetParameters().Length == 0).First();
             return Create<T>(ctor);
         }
 
+        public static ObjectActivator<T> Create<T>(params Type[] types)
+        {
+            var ctor = typeof(T).GetConstructor(types);
+            return Create<T>(ctor);
+        }
+
         public static ObjectActivator<T> Create<T>(ConstructorInfo ctor)
         {
+            if (!typeof(T).IsAssignableFrom(ctor.DeclaringType))
+            {
+                throw new InvalidOperationException("Invalid constructor's declaring type.");
+            }
+
             var activatorParameter = Expression.Parameter(typeof(object[]), "args");
 
             var ctorParams = ctor.GetParameters();

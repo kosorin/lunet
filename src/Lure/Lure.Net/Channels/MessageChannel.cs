@@ -1,6 +1,7 @@
 ﻿using Lure.Collections;
 using Lure.Net.Data;
 using Lure.Net.Packets;
+using Lure.Net.Packets.Message;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -8,25 +9,24 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    internal abstract class PayloadChannel<TPacket, T> : NetChannel
-        where TPacket : Packet
-        where TPacketData : PacketData
+    internal abstract class MessageChannel<TPacket, TRawMessage> : NetChannel
+        where TPacket : MessagePacket<TRawMessage>
+        where TRawMessage : RawMessage
     {
-        protected readonly PacketDataType _dataType;
-        protected readonly ObjectPool<TPacketData> _dataPool;
         protected readonly ObjectPool<TPacket> _packetPool;
+        protected readonly ObjectPool<TRawMessage> _rawMessagePool;
 
         private bool _disposed;
 
-        protected PayloadChannel(byte id, NetConnection connection, PacketDataType dataType) : base(id, connection)
+        protected MessageChannel(byte id, NetConnection connection) : base(id, connection)
         {
-            _dataType = dataType;
-            _dataPool = new ObjectPool<TPacketData>();
-            _packetPool = new ObjectPool<TPacket>();
-            _packetPool.Returned += PacketPool_Returned;
+            _rawMessagePool = new ObjectPool<TRawMessage>();
+
+            var packetActivator = ObjectActivatorFactory.Create<TPacket>(_rawMessagePool.GetType());
+            _packetPool = new ObjectPool<TPacket>(() => packetActivator(_rawMessagePool));
         }
 
-        public abstract void SendRawMessage(byte[] rawMessage);
+        public abstract void SendRawMessage(byte[] data);
 
         public sealed override void ReceivePacket(NetDataReader reader)
         {
@@ -34,19 +34,14 @@ namespace Lure.Net.Channels
 
             packet.DeserializeHeader(reader);
 
-            if (packet.DataType != _dataType)
-            {
-                return;
-            }
             if (!AcceptIncomingPacket(packet))
             {
                 return;
             }
 
-            packet.Data = _dataPool.Rent();
             packet.DeserializeData(reader);
 
-            Log.Verbose("[{RemoteEndPoint}] Data <<< {DataType}", _connection.RemoteEndPoint, packet.DataType);
+            Log.Verbose("[{RemoteEndPoint}] Message <<<", _connection.RemoteEndPoint);
 
             ParseRawMessages(packet);
 
@@ -56,7 +51,24 @@ namespace Lure.Net.Channels
 
         public override void Update()
         {
-            foreach (var packet in CollectOutgoingData().Select(CreateOutgoingPacket))
+            var outgoingRawMessages = CollectOutgoingRawMessages();
+
+            var packet = CreateOutgoingPacket();
+            var packetLength = 0;
+            foreach (var rawMessage in outgoingRawMessages)
+            {
+                if (packetLength + rawMessage.Length > _connection.MTU)
+                {
+                    SendPacket(packet);
+
+                    packet = CreateOutgoingPacket();
+                    packetLength = 0;
+                }
+                packet.RawMessages.Add(rawMessage);
+                packetLength += rawMessage.Length;
+            }
+
+            if (packet.RawMessages.Count > 0)
             {
                 SendPacket(packet);
             }
@@ -66,16 +78,14 @@ namespace Lure.Net.Channels
 
         protected abstract void PrepareOutgoingPacket(TPacket packet);
 
-        protected abstract List<TPacketData> CollectOutgoingData();
+        protected abstract List<TRawMessage> CollectOutgoingRawMessages();
 
         protected abstract void ParseRawMessages(TPacket packet);
 
-        protected TPacket CreateOutgoingPacket(TPacketData data)
+        protected TPacket CreateOutgoingPacket()
         {
             var packet = _packetPool.Rent();
             packet.ChannelId = _id;
-            packet.DataType = _dataType;
-            packet.Data = data;
 
             PrepareOutgoingPacket(packet);
 
@@ -86,7 +96,7 @@ namespace Lure.Net.Channels
         {
             _connection.Peer.SendPacket(_connection, packet);
 
-            Log.Verbose("[{RemoteEndPoint}] Data >>> {DataType}", _connection.RemoteEndPoint, packet.DataType);
+            Log.Verbose("[{RemoteEndPoint}] Message >>>", _connection.RemoteEndPoint);
 
             _packetPool.Return(packet);
             LastOutgoingPacketTimestamp = Timestamp.Current;
@@ -103,16 +113,6 @@ namespace Lure.Net.Channels
                 _disposed = true;
             }
             base.Dispose(disposing);
-        }
-
-        private void PacketPool_Returned(object sender, TPacket packet)
-        {
-            var data = (TPacketData)packet.Data;
-            if (data != null)
-            {
-                packet.Data = null;
-                _dataPool.Return(data);
-            }
         }
     }
 }

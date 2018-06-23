@@ -1,7 +1,7 @@
 ﻿using Lure.Net.Data;
 using System.Diagnostics;
 
-namespace Lure.Net.Packets
+namespace Lure.Net.Packets.System
 {
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     internal abstract class PacketData : IPacketPart

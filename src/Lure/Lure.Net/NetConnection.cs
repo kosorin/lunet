@@ -26,7 +26,7 @@ namespace Lure.Net
 
         private readonly NetPeer _peer;
         private readonly IPEndPoint _remoteEndPoint;
-        private readonly UnreliableSequencedChannel _defaultChannel;
+        private readonly UnreliableChannel _defaultChannel;
         private readonly Dictionary<byte, NetChannel> _channels;
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
@@ -35,7 +35,7 @@ namespace Lure.Net
 
             _peer = peer;
             _remoteEndPoint = remoteEndPoint;
-            _defaultChannel = new UnreliableSequencedChannel(0, this);
+            _defaultChannel = new UnreliableChannel(0, this);
             _channels = new Dictionary<byte, NetChannel>
             {
                 [_defaultChannel.Id] = _defaultChannel,
@@ -139,6 +139,8 @@ namespace Lure.Net
             var channel = GetChannel(channelId);
             if (channel != null)
             {
+                Log.Verbose("[{RemoteEndPoint}:{ChannelId}] Packet <<< (size={Size})", RemoteEndPoint, channelId, reader.Length);
+
                 channel.ReceivePacket(reader);
             }
         }

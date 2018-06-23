@@ -23,7 +23,7 @@ namespace Lure.Collections
                 throw new ArgumentOutOfRangeException(nameof(capacity), capacity, $"Argument {nameof(capacity)} must be greater than zero.");
             }
 
-            var activator = ObjectActivatorFactory.Create<TItem>();
+            var activator = ObjectActivatorFactory.CreateDefault<TItem>();
 
             _capacity = capacity;
             _factory = () => activator();

@@ -1,6 +1,6 @@
 ﻿using Lure.Net.Data;
 
-namespace Lure.Net.Packets
+namespace Lure.Net.Packets.System
 {
     [PacketData(PacketDataType.KeepAlive)]
     internal class KeepAlivePacketData : PacketData

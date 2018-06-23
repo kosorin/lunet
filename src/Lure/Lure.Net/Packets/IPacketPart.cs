@@ -1,10 +1,12 @@
 ﻿using Lure.Net.Data;
-using System;
 
 namespace Lure.Net.Packets
 {
     internal interface IPacketPart
     {
+        /// <summary>
+        /// Gets the length in bytes.
+        /// </summary>
         int Length { get; }
 
         void Deserialize(INetDataReader reader);

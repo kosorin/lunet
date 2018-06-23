@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Lure.Net.Packets
+namespace Lure.Net.Packets.System
 {
     internal sealed class PacketDataPool : IDisposable
     {
@@ -20,9 +20,9 @@ namespace Lure.Net.Packets
         {
             var packetTypes = typeof(PacketDataPool).Assembly
                 .GetTypes()
-                .Select(x => (Attribute: x.GetCustomAttribute<PacketDataAttribute>(false), Type: x))
-                .Where(x => x.Attribute != null && typeof(PacketData).IsAssignableFrom(x.Type))
-                .Select(x => (DataType: x.Attribute.DataType, ClassType: x.Type))
+                .Select(x => (Attribute: x.GetCustomAttribute<PacketDataAttribute>(false), ClassType: x))
+                .Where(x => x.Attribute != null && typeof(PacketData).IsAssignableFrom(x.ClassType))
+                .Select(x => (x.Attribute.DataType, x.ClassType))
                 .ToList();
 
             foreach (var (dataType, classType) in packetTypes)
@@ -90,7 +90,7 @@ namespace Lure.Net.Packets
         {
             if (ClassTypes.TryGetValue(dataType, out var classType))
             {
-                return ObjectActivatorFactory.Create<PacketData>(classType);
+                return ObjectActivatorFactory.CreateDefault<PacketData>(classType);
             }
             else
             {

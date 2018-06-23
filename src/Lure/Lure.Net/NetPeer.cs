@@ -112,7 +112,7 @@ namespace Lure.Net
             token.RemoteEndPoint = connection.RemoteEndPoint;
             StartSend(token);
 
-            Logger.Verbose("[{RemoteEndPoint}] Packet >>> (size={Size})", connection.RemoteEndPoint, writer.Length);
+            Logger.Verbose("[{RemoteEndPoint}:{ChannelId}] Packet >>> (size={Size})", connection.RemoteEndPoint, packet.ChannelId, writer.Length);
         }
 
         internal void Disconnect(NetConnection connection)
@@ -320,8 +320,6 @@ namespace Lure.Net
                 var connection = GetConnection(remoteEndPoint);
 
                 var reader = token.GetReader();
-
-                Logger.Verbose("[{RemoteEndPoint}] Packet <<< (size={Size})", connection.RemoteEndPoint, reader.Length);
 
                 connection.ReceivePacket(reader);
             }

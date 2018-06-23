@@ -7,10 +7,6 @@ namespace Lure.Net.Packets
     {
         public byte ChannelId { get; set; }
 
-        public PacketDataType DataType { get; set; }
-
-        public PacketData Data { get; set; }
-
         private static int SerializeCheck => 0x55555555;
 
         public void DeserializeHeader(INetDataReader reader)
@@ -25,19 +21,6 @@ namespace Lure.Net.Packets
                 // TODO: Handle bad packets
                 throw new NetException();
             }
-
-            DataType = (PacketDataType)reader.ReadByte();
-        }
-
-        public void DeserializeData(INetDataReader reader)
-        {
-            Data.Deserialize(reader);
-
-            if (reader.Position != reader.Length)
-            {
-                // TODO: Handle bad packets
-                throw new NetException("Remaining data in a packet.");
-            }
         }
 
         public void SerializeHeader(INetDataWriter writer)
@@ -48,17 +31,30 @@ namespace Lure.Net.Packets
 
             writer.PadBits();
             writer.WriteInt(SerializeCheck);
+        }
 
-            writer.WriteByte((byte)DataType);
+        public void DeserializeData(INetDataReader reader)
+        {
+            DeserializeDataCore(reader);
+
+            if (reader.Position != reader.Length)
+            {
+                // TODO: Handle bad packets
+                throw new NetException("Remaining data in a packet.");
+            }
         }
 
         public void SerializeData(INetDataWriter writer)
         {
-            Data.Serialize(writer);
+            SerializeDataCore(writer);
         }
 
         protected abstract void DeserializeHeaderCore(INetDataReader reader);
 
         protected abstract void SerializeHeaderCore(INetDataWriter writer);
+
+        protected abstract void DeserializeDataCore(INetDataReader reader);
+
+        protected abstract void SerializeDataCore(INetDataWriter writer);
     }
 }

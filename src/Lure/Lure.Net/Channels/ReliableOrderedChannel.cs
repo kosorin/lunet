@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    internal class ReliableOrderedChannel : PayloadChannel<ReliablePacket, ReliablePayloadPacketData>
+   /* internal class ReliableOrderedChannel : MessageChannel<ReliablePacket, ReliablePayloadPacketData>
     {
         private const int ResendTimeout = 100;
 
@@ -36,7 +36,7 @@ namespace Lure.Net.Channels
             {
                 _requireAcknowledgement = false;
 
-                var data = _dataPool.Rent();
+                var data = _rawMessagePool.Rent();
                 var packet = CreateOutgoingPacket(data);
                 SendPacket(packet);
             }
@@ -77,7 +77,7 @@ namespace Lure.Net.Channels
             packet.AckBuffer = _incomingPacketAckBuffer.Clone(0, ReliablePacket.PacketAckBufferLength);
         }
 
-        protected override List<ReliablePayloadPacketData> CollectOutgoingData()
+        protected override List<ReliablePayloadPacketData> CollectOutgoingRawMessages()
         {
             var dataList = new List<ReliablePayloadPacketData>();
 
@@ -215,5 +215,5 @@ namespace Lure.Net.Channels
                 _packetDataPool.Return(data);
             }
         }
-    }
+    }*/
 }
