@@ -12,7 +12,7 @@ namespace Lure.Net.Channels
         private readonly Queue<byte[]> _outgoingRawMessageQueue = new Queue<byte[]>();
 
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
-        private SeqNo _expectedIncomingPacketSeq = SeqNo.Zero;
+        private SeqNo _incomingPacketSeq = SeqNo.Zero - 1;
 
         public UnreliableSequencedChannel(byte id, NetConnection connection)
             : base(id, connection, PacketDataType.PayloadUnreliableSequenced)
@@ -29,9 +29,9 @@ namespace Lure.Net.Channels
 
         protected override bool AcceptIncomingPacket(SequencedPacket packet)
         {
-            if (_expectedIncomingPacketSeq <= packet.Seq)
+            if (_incomingPacketSeq < packet.Seq)
             {
-                _expectedIncomingPacketSeq = packet.Seq + 1;
+                _incomingPacketSeq = packet.Seq;
                 return true;
             }
             else
@@ -68,7 +68,6 @@ namespace Lure.Net.Channels
             {
                 dataList.Add(data);
             }
-
             return dataList;
         }
 

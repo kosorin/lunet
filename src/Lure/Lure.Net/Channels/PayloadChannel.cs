@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    internal abstract class PayloadChannel<TPacket, TPacketData> : NetChannel
+    internal abstract class PayloadChannel<TPacket, T> : NetChannel
         where TPacket : Packet
         where TPacketData : PacketData
     {

@@ -56,7 +56,6 @@ namespace Lure.Net.Channels
             {
                 dataList.Add(data);
             }
-
             return dataList;
         }
 
