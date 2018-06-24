@@ -18,16 +18,6 @@ namespace Lure.Net.Channels
         {
         }
 
-        public override void SendRawMessage(byte[] data)
-        {
-            var rawMessage = _rawMessagePool.Rent();
-            rawMessage.Data = data;
-
-            lock (_outgoingRawMessageQueue)
-            {
-                _outgoingRawMessageQueue.Add(rawMessage);
-            }
-        }
 
         protected override bool AcceptIncomingPacket(UnreliableSequencedPacket packet)
         {
@@ -42,35 +32,55 @@ namespace Lure.Net.Channels
             }
         }
 
-        protected override void PrepareOutgoingPacket(UnreliableSequencedPacket packet)
+        protected override bool AcceptIncomingRawMessage(UnreliableRawMessage rawMessage)
         {
-            packet.Seq = _outgoingPacketSeq++;
+            return true;
         }
+
+        protected override void OnIncomingPacket(UnreliableSequencedPacket packet)
+        {
+        }
+
+        protected override void OnIncomingRawMessage(UnreliableRawMessage rawMessage)
+        {
+        }
+
 
         protected override List<UnreliableRawMessage> CollectOutgoingRawMessages()
         {
             lock (_outgoingRawMessageQueue)
             {
-                if (_outgoingRawMessageQueue.Count == 0)
+                if (_outgoingRawMessageQueue.Count > 0)
+                {
+                    var rawMessages = _outgoingRawMessageQueue.ToList();
+                    _outgoingRawMessageQueue.Clear();
+                    return rawMessages;
+                }
+                else
                 {
                     return new List<UnreliableRawMessage>();
                 }
-                var rawMessages = _outgoingRawMessageQueue.ToList();
-                _outgoingRawMessageQueue.Clear();
-                return rawMessages;
             }
         }
 
-        protected override void ParseRawMessages(UnreliableSequencedPacket packet)
+        protected override void PrepareOutgoingPacket(UnreliableSequencedPacket packet)
         {
-            foreach (var rawMessage in packet.RawMessages)
-            {
-                var reader = new NetDataReader(rawMessage.Data);
-                var typeId = reader.ReadUShort();
-                var message = NetMessageManager.Create(typeId);
-                message.Deserialize(reader);
+            packet.Seq = _outgoingPacketSeq++;
+        }
 
-                Log.Information("  {Message}", message);
+        protected override void PrepareOutgoingRawMessage(UnreliableRawMessage rawMessage)
+        {
+        }
+
+        protected override void OnOutgoingPacket(UnreliableSequencedPacket packet)
+        {
+        }
+
+        protected override void OnOutgoingRawMessage(UnreliableRawMessage rawMessage)
+        {
+            lock (_outgoingRawMessageQueue)
+            {
+                _outgoingRawMessageQueue.Add(rawMessage);
             }
         }
     }

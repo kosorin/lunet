@@ -47,11 +47,10 @@ namespace Lure.Net
 
         public void SendMessage(NetMessage message)
         {
-            var rawMessage = SerializeMessage(message);
-
-            if (rawMessage.Length < MTU)
+            var data = SerializeMessage(message);
+            if (data.Length < MTU)
             {
-                _defaultChannel.SendRawMessage(rawMessage);
+                _defaultChannel.SendMessage(data);
             }
         }
 

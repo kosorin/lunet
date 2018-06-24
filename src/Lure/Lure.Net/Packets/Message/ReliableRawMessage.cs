@@ -4,11 +4,15 @@ using System;
 
 namespace Lure.Net.Packets.Message
 {
-    internal class ReliableRawMessage : RawMessage, IComparable<ReliableRawMessage>
+    internal class ReliableRawMessage : RawMessage, ISequencedRawMessage, IComparable<ReliableRawMessage>
     {
         public SeqNo Seq { get; set; }
 
+        public int ReferenceCount { get; set; }
+
         public override int Length => sizeof(ushort) + base.Length;
+
+        protected override string DebuggerDisplay => $"({Seq}) {base.DebuggerDisplay}";
 
         public override void Deserialize(INetDataReader reader)
         {

@@ -1,5 +1,6 @@
 ﻿using Lure.Collections;
 using Lure.Net.Data;
+using Lure.Net.Messages;
 using Lure.Net.Packets;
 using Lure.Net.Packets.Message;
 using Serilog;
@@ -24,9 +25,17 @@ namespace Lure.Net.Channels
             _packetPool = new ObjectPool<TPacket>(() => packetActivator(_rawMessagePool));
         }
 
-        public abstract void SendRawMessage(byte[] data);
+        public override void Update()
+        {
+            var outgoingRawMessages = CollectOutgoingRawMessages();
+            var outgoingPackets = PackOutgoingRawMessages(outgoingRawMessages);
+            foreach (var packet in outgoingPackets)
+            {
+                SendPacket(packet);
+            }
+        }
 
-        public sealed override void ReceivePacket(NetDataReader reader)
+        public override void ReceivePacket(NetDataReader reader)
         {
             var packet = _packetPool.Rent();
 
@@ -39,47 +48,39 @@ namespace Lure.Net.Channels
 
             packet.DeserializeData(reader);
 
-            Log.Verbose("[{RemoteEndPoint}] Message <<<", _connection.RemoteEndPoint);
             OnIncomingPacket(packet);
-            LastIncomingPacketTimestamp = Timestamp.Current;
 
-            ParseRawMessages(packet);
+            var now = Timestamp.Current;
+            foreach (var rawMessage in packet.RawMessages)
+            {
+                rawMessage.Timestamp = now;
+                if (AcceptIncomingRawMessage(rawMessage))
+                {
+                    OnIncomingRawMessage(rawMessage);
+                }
+            }
+            LastIncomingPacketTimestamp = now;
 
             _packetPool.Return(packet);
         }
 
-        public override void Update()
+        public void SendMessage(byte[] data)
         {
-            var outgoingRawMessages = CollectOutgoingRawMessages();
-
-            var packet = CreateOutgoingPacket();
-            var packetLength = 0;
-            foreach (var rawMessage in outgoingRawMessages)
-            {
-                if (packetLength + rawMessage.Length > _connection.MTU)
-                {
-                    SendPacket(packet);
-
-                    packet = CreateOutgoingPacket();
-                    packetLength = 0;
-                }
-                packet.RawMessages.Add(rawMessage);
-                packetLength += rawMessage.Length;
-            }
-
-            if (packetLength > 0)
-            {
-                SendPacket(packet);
-            }
+            var rawMessage = CreateOutgoingRawMessage(data);
+            OnOutgoingRawMessage(rawMessage);
         }
+
 
         protected abstract bool AcceptIncomingPacket(TPacket packet);
 
-        protected abstract void PrepareOutgoingPacket(TPacket packet);
+        protected abstract bool AcceptIncomingRawMessage(TRawMessage rawMessage);
+
+        protected abstract void OnIncomingPacket(TPacket packet);
+
+        protected abstract void OnIncomingRawMessage(TRawMessage rawMessage);
+
 
         protected abstract List<TRawMessage> CollectOutgoingRawMessages();
-
-        protected abstract void ParseRawMessages(TPacket packet);
 
         protected TPacket CreateOutgoingPacket()
         {
@@ -92,15 +93,49 @@ namespace Lure.Net.Channels
             return packet;
         }
 
+        protected TRawMessage CreateOutgoingRawMessage(byte[] data)
+        {
+            var rawMessage = _rawMessagePool.Rent();
+            rawMessage.Timestamp = null;
+            rawMessage.Data = data;
+
+            PrepareOutgoingRawMessage(rawMessage);
+
+            return rawMessage;
+        }
+
+        protected abstract void PrepareOutgoingPacket(TPacket packet);
+
+        protected abstract void PrepareOutgoingRawMessage(TRawMessage rawMessage);
+
+        protected abstract void OnOutgoingPacket(TPacket packet);
+
+        protected abstract void OnOutgoingRawMessage(TRawMessage rawMessage);
+
+
         protected void SendPacket(TPacket packet)
         {
             _connection.Peer.SendPacket(_connection, packet);
 
-            Log.Verbose("[{RemoteEndPoint}] Message >>>", _connection.RemoteEndPoint);
             OnOutgoingPacket(packet);
-            LastOutgoingPacketTimestamp = Timestamp.Current;
+
+            var now = Timestamp.Current;
+            foreach (var rawMessage in packet.RawMessages)
+            {
+                rawMessage.Timestamp = now;
+            }
+            LastOutgoingPacketTimestamp = now;
 
             _packetPool.Return(packet);
+        }
+
+        protected NetMessage ParseMessage(byte[] data)
+        {
+            var reader = new NetDataReader(data);
+            var typeId = reader.ReadUShort();
+            var message = NetMessageManager.Create(typeId);
+            message.Deserialize(reader);
+            return message;
         }
 
         protected override void Dispose(bool disposing)
@@ -117,21 +152,27 @@ namespace Lure.Net.Channels
             base.Dispose(disposing);
         }
 
-        protected virtual void OnIncomingPacket(TPacket packet)
-        {
-            var now = Timestamp.Current;
-            foreach (var rawMessage in packet.RawMessages)
-            {
-                rawMessage.Timestamp = now;
-            }
-        }
 
-        protected virtual void OnOutgoingPacket(TPacket packet)
+        private IEnumerable<TPacket> PackOutgoingRawMessages(List<TRawMessage> rawMessages)
         {
-            var now = Timestamp.Current;
-            foreach (var rawMessage in packet.RawMessages)
+            var packet = CreateOutgoingPacket();
+            var packetLength = 0;
+            foreach (var rawMessage in rawMessages)
             {
-                rawMessage.Timestamp = now;
+                if (packetLength + rawMessage.Length > _connection.MTU)
+                {
+                    yield return packet;
+
+                    packet = CreateOutgoingPacket();
+                    packetLength = 0;
+                }
+                packet.RawMessages.Add(rawMessage);
+                packetLength += rawMessage.Length;
+            }
+
+            if (packetLength > 0)
+            {
+                yield return packet;
             }
         }
     }
