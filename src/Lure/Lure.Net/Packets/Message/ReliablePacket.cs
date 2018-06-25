@@ -12,9 +12,9 @@ namespace Lure.Net.Packets.Message
         {
         }
 
-        public static int AckBufferLength { get; } = 8;// 64;
+        public static int AckBufferLength { get; } = 64;
 
-        public static int PacketAckBufferLength { get; } = 4;// sizeof(uint) * NC.BitsPerByte;
+        public static int PacketAckBufferLength { get; } = sizeof(uint) * NC.BitsPerByte;
 
         public SeqNo Seq { get; set; }
 
@@ -31,13 +31,6 @@ namespace Lure.Net.Packets.Message
             if (Direction == PacketDirection.Outgoing)
             {
                 // Outgoing raw messages are saved in a channel and waiting for an ack
-            }
-            else
-            {
-                foreach (var rawMessage in RawMessages)
-                {
-                    _rawMessagePool.Return(rawMessage);
-                }
             }
             RawMessages.Clear();
         }

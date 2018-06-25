@@ -1,7 +1,9 @@
 ﻿using Lure.Collections;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -486,22 +488,33 @@ namespace Lure.Net.Data
         /// <summary>
         /// Returns a byte array.
         /// </summary>
-        public byte[] GetBytes()
+        public byte[] ToBytes()
         {
-            var bytes = new byte[ByteCapacity];
+            return AsBytes().ToArray();
+        }
+
+        /// <summary>
+        /// Returns a bit array.
+        /// </summary>
+        public bool[] ToBits()
+        {
+            return AsBits().ToArray();
+        }
+
+        public IEnumerable<byte> AsBytes()
+        {
             for (int i = 0, b = 0; i < _data.Length; i++)
             {
                 for (int j = 0; j < sizeof(int); j++)
                 {
-                    bytes[b] = (byte)((_data[i] >> (j * NC.BitsPerByte)) & NC.Byte);
+                    var @byte = (byte)((_data[i] >> (j * NC.BitsPerByte)) & NC.Byte);
+                    yield return @byte;
                     if (++b >= ByteCapacity)
                     {
-                        goto End;
+                        yield break;
                     }
                 }
             }
-        End:
-            return bytes;
         }
 
         public IEnumerable<bool> AsBits()
@@ -534,7 +547,7 @@ namespace Lure.Net.Data
 
         #region IEquatable
 
-        private static readonly ArrayEqualityComparer<int> dataComparer = new ArrayEqualityComparer<int>();
+        private static readonly ArrayEqualityComparer<int> DataComparer = new ArrayEqualityComparer<int>();
 
         public static bool operator ==(BitVector left, BitVector right)
         {
@@ -586,7 +599,7 @@ namespace Lure.Net.Data
 
         public override int GetHashCode()
         {
-            return dataComparer.GetHashCode(_data);
+            return DataComparer.GetHashCode(_data);
         }
 
         private bool EqualsCore(BitVector other)
@@ -595,7 +608,7 @@ namespace Lure.Net.Data
             {
                 return false;
             }
-            return dataComparer.Equals(_data, other._data);
+            return DataComparer.Equals(_data, other._data);
         }
 
         #endregion IEquatable

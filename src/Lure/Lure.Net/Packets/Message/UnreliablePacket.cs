@@ -15,9 +15,12 @@ namespace Lure.Net.Packets.Message
 
         void IPoolable.OnReturn()
         {
-            foreach (var rawMessage in RawMessages)
+            if (Direction == PacketDirection.Outgoing)
             {
-                _rawMessagePool.Return(rawMessage);
+                foreach (var rawMessage in RawMessages)
+                {
+                    _rawMessagePool.Return(rawMessage);
+                }
             }
             RawMessages.Clear();
         }

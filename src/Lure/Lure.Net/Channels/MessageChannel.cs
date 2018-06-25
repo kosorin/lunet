@@ -3,12 +3,11 @@ using Lure.Net.Data;
 using Lure.Net.Messages;
 using Lure.Net.Packets;
 using Lure.Net.Packets.Message;
-using Serilog;
 using System.Collections.Generic;
 
 namespace Lure.Net.Channels
 {
-    internal abstract class MessageChannel<TPacket, TRawMessage> : NetChannel
+    internal abstract class MessageChannel<TPacket, TRawMessage> : NetChannel, IMessageChannel
         where TPacket : MessagePacket<TRawMessage>
         where TRawMessage : RawMessage
     {
@@ -27,7 +26,7 @@ namespace Lure.Net.Channels
 
         public override void Update()
         {
-            var outgoingRawMessages = CollectOutgoingRawMessages();
+            var outgoingRawMessages = GetOutgoingRawMessages();
             var outgoingPackets = PackOutgoingRawMessages(outgoingRawMessages);
             foreach (var packet in outgoingPackets)
             {
@@ -39,14 +38,35 @@ namespace Lure.Net.Channels
         {
             var packet = _packetPool.Rent();
 
-            packet.DeserializeHeader(reader);
+            try
+            {
+                packet.DeserializeHeader(reader);
+            }
+            catch (NetSerializationException)
+            {
+                _packetPool.Return(packet);
+                return;
+            }
 
             if (!AcceptIncomingPacket(packet))
             {
                 return;
             }
 
-            packet.DeserializeData(reader);
+            try
+            {
+                packet.DeserializeData(reader);
+            }
+            catch (NetSerializationException)
+            {
+                foreach (var rawMessage in packet.RawMessages)
+                {
+                    _rawMessagePool.Return(rawMessage);
+                }
+                packet.RawMessages.Clear();
+                _packetPool.Return(packet);
+                return;
+            }
 
             OnIncomingPacket(packet);
 
@@ -58,11 +78,17 @@ namespace Lure.Net.Channels
                 {
                     OnIncomingRawMessage(rawMessage);
                 }
+                else
+                {
+                    _rawMessagePool.Return(rawMessage);
+                }
             }
             LastIncomingPacketTimestamp = now;
 
             _packetPool.Return(packet);
         }
+
+        public abstract IEnumerable<RawMessage> GetReceivedRawMessages();
 
         public void SendMessage(byte[] data)
         {
@@ -80,7 +106,7 @@ namespace Lure.Net.Channels
         protected abstract void OnIncomingRawMessage(TRawMessage rawMessage);
 
 
-        protected abstract List<TRawMessage> CollectOutgoingRawMessages();
+        protected abstract List<TRawMessage> GetOutgoingRawMessages();
 
         protected TPacket CreateOutgoingPacket()
         {
@@ -127,15 +153,6 @@ namespace Lure.Net.Channels
             LastOutgoingPacketTimestamp = now;
 
             _packetPool.Return(packet);
-        }
-
-        protected NetMessage ParseMessage(byte[] data)
-        {
-            var reader = new NetDataReader(data);
-            var typeId = reader.ReadUShort();
-            var message = NetMessageManager.Create(typeId);
-            message.Deserialize(reader);
-            return message;
         }
 
         protected override void Dispose(bool disposing)

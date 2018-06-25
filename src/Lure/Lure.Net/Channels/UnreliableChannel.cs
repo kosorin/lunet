@@ -7,9 +7,17 @@ namespace Lure.Net.Channels
     internal class UnreliableChannel : MessageChannel<UnreliablePacket, UnreliableRawMessage>
     {
         private readonly List<UnreliableRawMessage> _outgoingRawMessageQueue = new List<UnreliableRawMessage>();
+        private readonly List<UnreliableRawMessage> _incomingRawMessageQueue = new List<UnreliableRawMessage>();
 
         public UnreliableChannel(byte id, NetConnection connection) : base(id, connection)
         {
+        }
+
+        public override IEnumerable<RawMessage> GetReceivedRawMessages()
+        {
+            var receivedRawMessages = _incomingRawMessageQueue.ToList();
+            _incomingRawMessageQueue.Clear();
+            return receivedRawMessages;
         }
 
 
@@ -29,10 +37,11 @@ namespace Lure.Net.Channels
 
         protected override void OnIncomingRawMessage(UnreliableRawMessage rawMessage)
         {
+            _incomingRawMessageQueue.Add(rawMessage);
         }
 
 
-        protected override List<UnreliableRawMessage> CollectOutgoingRawMessages()
+        protected override List<UnreliableRawMessage> GetOutgoingRawMessages()
         {
             lock (_outgoingRawMessageQueue)
             {

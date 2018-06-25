@@ -4,7 +4,7 @@ using System;
 
 namespace Lure.Net.Channels
 {
-    internal abstract class NetChannel : IDisposable
+    internal abstract class NetChannel : IDisposable, INetChannel
     {
         protected readonly byte _id;
         protected readonly NetConnection _connection;

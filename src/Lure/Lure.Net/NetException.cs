@@ -2,19 +2,18 @@
 
 namespace Lure.Net
 {
-    public sealed class NetException : Exception
+    public class NetException : Exception
     {
-        public NetException()
-            : base()
+        internal NetException()
         {
         }
 
-        public NetException(string message)
+        internal NetException(string message)
             : base(message)
         {
         }
 
-        public NetException(string message, Exception inner)
+        internal NetException(string message, Exception inner)
             : base(message, inner)
         {
         }

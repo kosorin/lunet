@@ -22,7 +22,7 @@ namespace Lure.Net
 
         private readonly NetPeer _peer;
         private readonly IPEndPoint _remoteEndPoint;
-        private readonly ReliableOrderedChannel _defaultChannel;
+        private readonly ReliableOrderedChannel _systemChannel;
         private readonly Dictionary<byte, NetChannel> _channels;
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
@@ -31,10 +31,10 @@ namespace Lure.Net
 
             _peer = peer;
             _remoteEndPoint = remoteEndPoint;
-            _defaultChannel = new ReliableOrderedChannel(0, this);
+            _systemChannel = new ReliableOrderedChannel(0, this);
             _channels = new Dictionary<byte, NetChannel>
             {
-                [_defaultChannel.Id] = _defaultChannel,
+                [_systemChannel.Id] = _systemChannel,
             };
         }
 
@@ -50,7 +50,7 @@ namespace Lure.Net
             var data = SerializeMessage(message);
             if (data.Length < MTU)
             {
-                _defaultChannel.SendMessage(data);
+                _systemChannel.SendMessage(data);
             }
         }
 
@@ -80,6 +80,18 @@ namespace Lure.Net
                 {
                     lastIncomingPacketTimestamp = channel.LastIncomingPacketTimestamp;
                 }
+
+                if (channel is IMessageChannel messageChannel)
+                {
+                    foreach (var rawMessage in messageChannel.GetReceivedRawMessages())
+                    {
+                        var message = ParseMessage(rawMessage.Data);
+                        if (message is TestMessage testMessage && testMessage.Integer % 100 == 0)
+                        {
+                            Log.Information("Message: {Message}", message); 
+                        }
+                    }
+                }
             }
 
             var now = Timestamp.Current;
@@ -105,8 +117,6 @@ namespace Lure.Net
             var channel = GetChannel(channelId);
             if (channel != null)
             {
-                Log.Verbose("[{RemoteEndPoint}:{ChannelId}] Packet <<< (size={Size})", RemoteEndPoint, channelId, reader.Length);
-
                 channel.ReceivePacket(reader);
             }
         }
@@ -138,6 +148,15 @@ namespace Lure.Net
             {
                 _writerPool.Return(writer);
             }
+        }
+
+        private NetMessage ParseMessage(byte[] data)
+        {
+            var reader = new NetDataReader(data);
+            var typeId = reader.ReadUShort();
+            var message = NetMessageManager.Create(typeId);
+            message.Deserialize(reader);
+            return message;
         }
     }
 }

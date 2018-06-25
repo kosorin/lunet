@@ -26,7 +26,7 @@ namespace Pegi.Client
 
                 Thread.Sleep(500);
 
-                for (int i = 0; i < 1000; i++)
+                for (int i = 0; i <= 1_000_000; i++)
                 {
                     if (resetEvent.WaitOne(0))
                     {
@@ -39,7 +39,7 @@ namespace Pegi.Client
                         Float = i * 1.5f,
                     };
                     client.SendMessage(message);
-                    Thread.Sleep(500);
+                    Thread.Sleep(1000/50);
                 }
 
                 resetEvent.WaitOne();

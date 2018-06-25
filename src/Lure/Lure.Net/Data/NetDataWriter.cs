@@ -76,7 +76,7 @@ namespace Lure.Net.Data
             }
             EnsureWriteSize(capacity);
 
-            var bytes = vector.GetBytes();
+            var bytes = vector.ToBytes();
 
             if (capacity % NC.BitsPerByte == 0 && FastWrite(bytes))
             {

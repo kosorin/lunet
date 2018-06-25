@@ -13,7 +13,7 @@ namespace Lure.Net
 {
     public abstract class NetPeer : IDisposable
     {
-        private const int FPS = 1;
+        private const int FPS = 60;
         private const int MillisecondsPerSecond = 1000;
 
         private static readonly ILogger Logger = Log.ForContext<NetPeer>();
@@ -99,18 +99,26 @@ namespace Lure.Net
         internal void SendPacket(NetConnection connection, Packet packet)
         {
             var token = _sendTokenPool.Rent();
-            var writer = (NetDataWriter)token.UserToken;
 
-            writer.Reset();
-            packet.SerializeHeader(writer);
-            packet.SerializeData(writer);
-            writer.Flush();
+            var writer = (NetDataWriter)token.UserToken;
+            try
+            {
+                writer.Reset();
+                packet.SerializeHeader(writer);
+                packet.SerializeData(writer);
+                writer.Flush();
+            }
+            catch (NetSerializationException)
+            {
+                _sendTokenPool.Return(token);
+                return;
+            }
 
             token.SetWriter(writer);
             token.RemoteEndPoint = connection.RemoteEndPoint;
             StartSend(token);
 
-            Logger.Verbose("[{RemoteEndPoint}:{ChannelId}] Packet >>> (size={Size})", connection.RemoteEndPoint, packet.ChannelId, writer.Length);
+            //Logger.Verbose("[{RemoteEndPoint}] Packet >>> (size={Size})", connection.RemoteEndPoint, writer.Length);
         }
 
         internal void Disconnect(NetConnection connection)
@@ -318,6 +326,8 @@ namespace Lure.Net
                 var connection = GetConnection(remoteEndPoint);
 
                 var reader = token.GetReader();
+
+                //Log.Verbose("[{RemoteEndPoint}] Packet <<< (size={Size})", remoteEndPoint, reader.Length);
 
                 connection.ReceivePacket(reader);
             }
