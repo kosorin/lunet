@@ -5,7 +5,6 @@ namespace Lure.Net.Data
 {
     internal class NetDataReader : INetDataReader
     {
-        private readonly bool _isShared;
         private readonly byte[] _data;
         private readonly int _offset;
         private readonly int _length;
@@ -26,8 +25,6 @@ namespace Lure.Net.Data
                 throw new ArgumentOutOfRangeException("Offset + length could not be bigger than data length.");
             }
 
-            _isShared = true;
-
             _data = data;
             _offset = offset;
             _length = length;
@@ -41,8 +38,6 @@ namespace Lure.Net.Data
         public int BitLength => _length * NC.BitsPerByte;
 
         public int BitPosition => (_position * NC.BitsPerByte) + _bitPosition;
-
-        internal bool IsShared => _isShared;
 
         internal byte[] Data => _data;
 

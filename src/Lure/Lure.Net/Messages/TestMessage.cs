@@ -2,7 +2,8 @@
 
 namespace Lure.Net.Messages
 {
-    [NetMessage(SystemMessageType.Test)]
+#if LURE_NET_DEBUG
+    [NetMessage(11)]
     public class TestMessage : NetMessage
     {
         public int Integer { get; set; }
@@ -26,4 +27,5 @@ namespace Lure.Net.Messages
             writer.WriteFloat(Float);
         }
     }
+#endif
 }

@@ -89,7 +89,7 @@ namespace Lure.Net.Packets.System
         {
             if (ClassTypes.TryGetValue(dataType, out var classType))
             {
-                return ObjectActivatorFactory.CreateDefault<PacketData>(classType);
+                return ObjectActivatorFactory.Create<PacketData>(classType);
             }
             else
             {

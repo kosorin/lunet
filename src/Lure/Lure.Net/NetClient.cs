@@ -26,7 +26,7 @@ namespace Lure.Net
 
         public NetConnection Connection => _connection;
 
-        public IPEndPoint RemoteEndPoint => _connection.RemoteEndPoint;
+        public IPEndPoint RemoteEndPoint => _connection?.RemoteEndPoint;
 
 
         public void SendMessage(NetMessage message)

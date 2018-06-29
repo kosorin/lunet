@@ -7,7 +7,8 @@ namespace Lure.Net.Messages
 {
     public static class NetMessageManager
     {
-        private static readonly Dictionary<ushort, Type> Types = new Dictionary<ushort, Type>();
+        private static readonly Dictionary<Type, ushort> TypeActivators = new Dictionary<Type, ushort>();
+        private static readonly Dictionary<ushort, ObjectActivator<NetMessage>> IdActivators = new Dictionary<ushort, ObjectActivator<NetMessage>>();
 
         static NetMessageManager()
         {
@@ -20,20 +21,33 @@ namespace Lure.Net.Messages
                 .GetTypes()
                 .Select(x => (Attribute: x.GetCustomAttribute<NetMessageAttribute>(false), Type: x))
                 .Where(x => x.Attribute != null && typeof(NetMessage).IsAssignableFrom(x.Type))
-                .Select(x => (x.Attribute.Id, x.Type))
+                .Select(x => (x.Attribute.MessageTypeId, x.Type))
                 .ToList();
 
-            foreach (var (typeId, type) in messageTypes)
+            foreach (var (messageTypeId, type) in messageTypes)
             {
-                Types.Add(typeId, type);
+                TypeActivators.Add(type, messageTypeId);
+                IdActivators.Add(messageTypeId, ObjectActivatorFactory.Create<NetMessage>(type));
+            }
+        }
+
+        public static TMessage Create<TMessage>() where TMessage : NetMessage
+        {
+            if (TypeActivators.TryGetValue(typeof(TMessage), out var messageTypeId))
+            {
+                return (TMessage)Create(messageTypeId);
+            }
+            else
+            {
+                return null;
             }
         }
 
         internal static NetMessage Create(ushort typeId)
         {
-            if (Types.TryGetValue(typeId, out var type))
+            if (IdActivators.TryGetValue(typeId, out var activator))
             {
-                var message = (NetMessage)Activator.CreateInstance(type);
+                var message = activator();
                 message.TypeId = typeId;
                 return message;
             }

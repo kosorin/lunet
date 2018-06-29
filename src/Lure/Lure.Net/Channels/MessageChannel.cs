@@ -20,7 +20,7 @@ namespace Lure.Net.Channels
         {
             _rawMessagePool = new ObjectPool<TRawMessage>();
 
-            var packetActivator = ObjectActivatorFactory.Create<TPacket>(_rawMessagePool.GetType());
+            var packetActivator = ObjectActivatorFactory.CreateParameterized<ObjectPool<TRawMessage>, TPacket>();
             _packetPool = new ObjectPool<TPacket>(() => packetActivator(_rawMessagePool));
         }
 

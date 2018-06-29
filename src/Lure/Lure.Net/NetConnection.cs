@@ -14,7 +14,6 @@ namespace Lure.Net
     /// </summary>
     public sealed class NetConnection : IDisposable
     {
-        private const int ResendTimeout = 100;
         private const int KeepAliveTimeout = 1000;
         private const int DisconnectTimeout = 8000;
 
@@ -27,7 +26,7 @@ namespace Lure.Net
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
         {
-            _writerPool = new ObjectPool<NetDataWriter>(16, () => new NetDataWriter(MTU));
+            _writerPool = new ObjectPool<NetDataWriter>(() => new NetDataWriter(MTU));
 
             _peer = peer;
             _remoteEndPoint = remoteEndPoint;
@@ -86,7 +85,7 @@ namespace Lure.Net
                     foreach (var rawMessage in messageChannel.GetReceivedRawMessages())
                     {
                         var message = ParseMessage(rawMessage.Data);
-                        if (message is TestMessage testMessage && testMessage.Integer % 100 == 0)
+                        if (message is TestMessage testMessage && testMessage.Integer % 10 == 0)
                         {
                             Log.Information("Message: {Message}", message);
                         }
@@ -114,6 +113,7 @@ namespace Lure.Net
             }
         }
 
+
         private NetChannel GetChannel(byte channeId)
         {
             if (_channels.TryGetValue(channeId, out var channel))
@@ -125,6 +125,7 @@ namespace Lure.Net
                 return null;
             }
         }
+
 
         private byte[] SerializeMessage(NetMessage message)
         {

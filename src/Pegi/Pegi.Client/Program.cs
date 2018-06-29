@@ -14,7 +14,7 @@ namespace Pegi.Client
 
             using (var client = new NetClient("localhost", 45685))
             {
-                var resetEvent = new ManualResetEvent(false);
+                var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
                 {
                     e.Cancel = true;
@@ -28,21 +28,19 @@ namespace Pegi.Client
 
                 for (int i = 0; i <= 1_000_000; i++)
                 {
-                    if (resetEvent.WaitOne(0))
+                    if (resetEvent.Wait(0))
                     {
                         break;
                     }
 
-                    var message = new TestMessage
-                    {
-                        Integer = i * 10,
-                        Float = i * 1.5f,
-                    };
+                    var message = NetMessageManager.Create<TestMessage>();
+                    message.Integer = i;
+                    message.Float = i * 3;
                     client.SendMessage(message);
-                    Thread.Sleep(1000/50);
+                    Thread.Sleep(1000 / 50);
                 }
 
-                resetEvent.WaitOne();
+                resetEvent.Wait();
 
                 client.Stop();
             }

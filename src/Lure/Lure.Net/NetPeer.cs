@@ -22,14 +22,14 @@ namespace Lure.Net
         private readonly NetPeerConfiguration _config;
 
         private volatile NetPeerState _state;
-        private Thread _thread;
         private bool _disposed;
 
+        private Socket _socket;
+        private Thread _thread;
         private SocketAsyncEventArgs _receiveToken;
         private ObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
-        private Socket _socket;
-        private Dictionary<IPEndPoint, NetConnection> _connections;
+        private ConcurrentDictionary<IPEndPoint, NetConnection> _connections;
 
         private protected NetPeer(NetPeerConfiguration config)
         {
@@ -46,7 +46,7 @@ namespace Lure.Net
 
         public bool IsRunning => _state == NetPeerState.Running;
 
-        public IPEndPoint LocalEndPoint => (IPEndPoint)_socket.LocalEndPoint;
+        public IPEndPoint LocalEndPoint => (IPEndPoint)_socket?.LocalEndPoint;
 
 
         public void Start()
@@ -150,25 +150,21 @@ namespace Lure.Net
 
         private protected void InjectConnection(NetConnection connection)
         {
-            try
+            if (!_connections.TryAdd(connection.RemoteEndPoint, connection))
             {
-                _connections.Add(connection.RemoteEndPoint, connection);
-            }
-            catch (ArgumentException e)
-            {
-                throw new NetException($"Could not inject connection. Connection with remote end point {connection.RemoteEndPoint} already exists.", e);
+                throw new NetException($"Could not inject connection. Connection with remote end point {connection.RemoteEndPoint} already exists.");
             }
         }
 
 
         private void Setup()
         {
-            _receiveToken = CreateReceiveToken();
-            _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(_config.MaxClients * 4, CreateSendToken);
-
-            _connections = new Dictionary<IPEndPoint, NetConnection>();
-
             BindSocket();
+
+            _receiveToken = CreateReceiveToken();
+            _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateSendToken);
+
+            _connections = new ConcurrentDictionary<IPEndPoint, NetConnection>();
 
             OnSetup();
         }

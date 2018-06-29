@@ -14,7 +14,7 @@ namespace Pegi.Server
 
             using (var server = new NetServer(45685, AddressFamily.InterNetwork))
             {
-                var resetEvent = new ManualResetEvent(false);
+                var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
                 {
                     e.Cancel = true;
@@ -24,7 +24,7 @@ namespace Pegi.Server
 
                 server.Start();
 
-                resetEvent.WaitOne();
+                resetEvent.Wait();
 
                 server.Stop();
             }

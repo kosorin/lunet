@@ -8,7 +8,7 @@ namespace Lure.Collections
         where TItem : class
     {
         private readonly int _capacity;
-        private readonly Func<TItem> _factory;
+        private readonly ObjectActivator<TItem> _activator;
         private readonly ConcurrentQueue<TItem> _objects;
         private bool _disposed;
 
@@ -17,38 +17,36 @@ namespace Lure.Collections
         {
         }
 
-        public ObjectPool(int capacity)
+        public ObjectPool(ObjectActivator<TItem> activator)
+            : this(int.MaxValue, activator)
+        {
+        }
+
+        private ObjectPool(int capacity)
         {
             if (capacity <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(capacity), capacity, $"Argument {nameof(capacity)} must be greater than zero.");
             }
 
-            var activator = ObjectActivatorFactory.CreateDefault<TItem>();
-
             _capacity = capacity;
-            _factory = () => activator();
+            _activator = ObjectActivatorFactory.Create<TItem>();
             _objects = new ConcurrentQueue<TItem>();
         }
 
-        public ObjectPool(Func<TItem> factory)
-            : this(int.MaxValue, factory)
-        {
-        }
-
-        public ObjectPool(int capacity, Func<TItem> factory)
+        private ObjectPool(int capacity, ObjectActivator<TItem> activator)
         {
             if (capacity <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(capacity), capacity, $"Argument {nameof(capacity)} must be greater than zero.");
             }
-            if (factory == null)
+            if (activator == null)
             {
-                throw new ArgumentNullException(nameof(factory));
+                throw new ArgumentNullException(nameof(activator));
             }
 
             _capacity = capacity;
-            _factory = factory;
+            _activator = activator;
             _objects = new ConcurrentQueue<TItem>();
         }
 
@@ -61,7 +59,7 @@ namespace Lure.Collections
             TItem item;
             if (!_objects.TryDequeue(out item))
             {
-                item = _factory();
+                item = _activator();
             }
 
             OnItemRented(item);
