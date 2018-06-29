@@ -6,6 +6,7 @@ namespace Lure.Net
     public sealed class NetClient : NetPeer
     {
         private readonly NetClientConfiguration _config;
+
         private NetConnection _connection;
 
         public NetClient(string hostname, int port)
@@ -23,8 +24,6 @@ namespace Lure.Net
             _config = config;
         }
 
-        public override bool IsServer => false;
-
         public NetConnection Connection => _connection;
 
         public IPEndPoint RemoteEndPoint => _connection.RemoteEndPoint;
@@ -35,7 +34,7 @@ namespace Lure.Net
             _connection.SendMessage(message);
         }
 
-        protected override void OnStart()
+        protected override void OnSetup()
         {
             var hostAddress = NetHelper.ResolveAddress(_config.Hostname, _config.AddressFamily);
             if (hostAddress == null)
@@ -44,9 +43,13 @@ namespace Lure.Net
             }
             var remoteEndPoint = new IPEndPoint(hostAddress, _config.Port);
 
-            _connection = GetConnection(remoteEndPoint);
+            _connection = new NetConnection(this, remoteEndPoint);
 
-            base.OnStart();
+            InjectConnection(_connection);
+        }
+
+        protected override void OnCleanup()
+        {
         }
     }
 }

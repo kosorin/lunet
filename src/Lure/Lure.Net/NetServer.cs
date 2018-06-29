@@ -21,6 +21,12 @@ namespace Lure.Net
             _config = config;
         }
 
-        public override bool IsServer => true;
+        protected override void OnSetup()
+        {
+        }
+
+        protected override void OnCleanup()
+        {
+        }
     }
 }

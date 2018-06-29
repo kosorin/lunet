@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Concurrent;
 
 namespace Lure.Collections
@@ -86,9 +87,13 @@ namespace Lure.Collections
             {
                 _objects.Enqueue(item);
             }
-            else if (item is IDisposable disposable)
+            else
             {
-                disposable.Dispose();
+                if (item is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+                Log.Verbose("ObjectPool<{ItemType}> overflow.", typeof(TItem).Name);
             }
         }
 

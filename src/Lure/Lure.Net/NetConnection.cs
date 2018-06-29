@@ -88,7 +88,7 @@ namespace Lure.Net
                         var message = ParseMessage(rawMessage.Data);
                         if (message is TestMessage testMessage && testMessage.Integer % 100 == 0)
                         {
-                            Log.Information("Message: {Message}", message); 
+                            Log.Information("Message: {Message}", message);
                         }
                     }
                 }
@@ -96,18 +96,11 @@ namespace Lure.Net
 
             var now = Timestamp.Current;
 
-            if (Peer.IsServer)
+            if (now - lastIncomingPacketTimestamp > DisconnectTimeout)
             {
-                if (now - lastIncomingPacketTimestamp > DisconnectTimeout)
-                {
-                    Peer.Disconnect(this);
-                }
             }
-            else
+            if (now - lastOutgoingPacketTimestamp > KeepAliveTimeout)
             {
-                if (now - lastOutgoingPacketTimestamp > KeepAliveTimeout)
-                {
-                }
             }
         }
 

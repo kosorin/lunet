@@ -14,5 +14,10 @@ namespace Lure.Net.Extensions
         {
             token.SetBuffer(writer.Data, writer.Offset, writer.Length);
         }
+
+        public static bool IsOk(this SocketAsyncEventArgs token)
+        {
+            return token.SocketError == SocketError.Success && token.BytesTransferred > 0;
+        }
     }
 }

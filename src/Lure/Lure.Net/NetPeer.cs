@@ -5,6 +5,7 @@ using Lure.Net.Packets;
 using Serilog;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -20,7 +21,7 @@ namespace Lure.Net
 
         private readonly NetPeerConfiguration _config;
 
-        private volatile bool _isRunning;
+        private volatile NetPeerState _state;
         private Thread _thread;
         private bool _disposed;
 
@@ -28,7 +29,7 @@ namespace Lure.Net
         private ObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
         private Socket _socket;
-        private ConcurrentDictionary<IPEndPoint, NetConnection> _connections;
+        private Dictionary<IPEndPoint, NetConnection> _connections;
 
         private protected NetPeer(NetPeerConfiguration config)
         {
@@ -37,55 +38,66 @@ namespace Lure.Net
                 config.Lock();
             }
             _config = config;
+
+            _state = NetPeerState.Unstarted;
         }
 
-        public bool IsRunning => _isRunning;
+        public NetPeerState State => _state;
 
-        public abstract bool IsServer { get; }
+        public bool IsRunning => _state == NetPeerState.Running;
 
         public IPEndPoint LocalEndPoint => (IPEndPoint)_socket.LocalEndPoint;
 
 
-        // Thread: Main
         public void Start()
         {
-            if (_isRunning)
+            if (_state != NetPeerState.Unstarted)
             {
                 return;
             }
-            _isRunning = true;
 
+            _state = NetPeerState.Starting;
             Logger.Verbose("Starting peer");
 
-            Setup();
-            OnStart();
-            StartLoop();
+            try
+            {
+                Setup();
 
-            Logger.Debug("Peer started");
+                _state = NetPeerState.Running;
+                Logger.Debug("Peer started");
+
+                StartLoop();
+            }
+            catch
+            {
+                _state = NetPeerState.Error;
+                throw;
+            }
         }
 
-        // Thread: -
         public void Stop()
         {
-            if (!_isRunning)
+            if (_state != NetPeerState.Running)
             {
                 return;
             }
-            _isRunning = false;
 
+            _state = NetPeerState.Stopping;
             Logger.Verbose("Stopping peer");
 
             try
             {
                 StopLoop();
-                OnStop();
+
                 Cleanup();
 
+                _state = NetPeerState.Stopped;
                 Logger.Debug("Peer stopped");
             }
-            catch (Exception e)
+            catch
             {
-                Logger.Error(e, "Stop peer");
+                _state = NetPeerState.Error;
+                throw;
             }
         }
 
@@ -95,7 +107,6 @@ namespace Lure.Net
         }
 
 
-        // Thread: Loop
         internal void SendPacket(NetConnection connection, Packet packet)
         {
             var token = _sendTokenPool.Rent();
@@ -117,29 +128,13 @@ namespace Lure.Net
             token.SetWriter(writer);
             token.RemoteEndPoint = connection.RemoteEndPoint;
             StartSend(token);
-
-            //Logger.Verbose("[{RemoteEndPoint}] Packet >>> (size={Size})", connection.RemoteEndPoint, writer.Length);
-        }
-
-        internal void Disconnect(NetConnection connection)
-        {
-            _connections.TryRemove(connection.RemoteEndPoint, out var _);
-
-            Logger.Debug("[{RemoteEndPoint}] Disconnected", connection.RemoteEndPoint);
         }
 
 
-        // Thread: Main
-        protected virtual void OnStart()
-        {
-        }
+        protected abstract void OnSetup();
 
-        // Thread: -
-        protected virtual void OnStop()
-        {
-        }
+        protected abstract void OnCleanup();
 
-        // Thread: -
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
@@ -152,18 +147,17 @@ namespace Lure.Net
             }
         }
 
-        // Thread: -
-        protected NetConnection GetConnection(IPEndPoint remoteEndPoint)
+
+        private protected void InjectConnection(NetConnection connection)
         {
-            if (!_connections.TryGetValue(remoteEndPoint, out var connection))
+            try
             {
-                connection = new NetConnection(this, remoteEndPoint);
-                _connections[remoteEndPoint] = connection;
-
-                Logger.Debug("[{RemoteEndPoint}] Connected", connection.RemoteEndPoint);
+                _connections.Add(connection.RemoteEndPoint, connection);
             }
-
-            return connection;
+            catch (ArgumentException e)
+            {
+                throw new NetException($"Could not inject connection. Connection with remote end point {connection.RemoteEndPoint} already exists.", e);
+            }
         }
 
 
@@ -171,19 +165,25 @@ namespace Lure.Net
         {
             _receiveToken = CreateReceiveToken();
             _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(_config.MaxClients * 4, CreateSendToken);
-            _connections = new ConcurrentDictionary<IPEndPoint, NetConnection>();
+
+            _connections = new Dictionary<IPEndPoint, NetConnection>();
 
             BindSocket();
+
+            OnSetup();
         }
 
         private void Cleanup()
         {
+            OnCleanup();
+
             if (_connections != null)
             {
                 foreach (var connection in _connections.Values)
                 {
                     connection.Dispose();
                 }
+                _connections.Clear();
                 _connections = null;
             }
 
@@ -192,6 +192,7 @@ namespace Lure.Net
                 _receiveToken.Dispose();
                 _receiveToken = null;
             }
+
             if (_sendTokenPool != null)
             {
                 _sendTokenPool.Dispose();
@@ -228,7 +229,6 @@ namespace Lure.Net
         }
 
 
-        // Thread: Main
         private void StartLoop()
         {
             _thread = new Thread(Loop)
@@ -239,13 +239,11 @@ namespace Lure.Net
             _thread.Start();
         }
 
-        // Thread: -
         private void StopLoop()
         {
             _thread.Join();
         }
 
-        // Thread: Loop
         private void Loop()
         {
             const int frame = MillisecondsPerSecond / FPS;
@@ -253,7 +251,7 @@ namespace Lure.Net
             StartReceive();
 
             var previous = Timestamp.Current;
-            while (_isRunning)
+            while (IsRunning)
             {
                 Update();
 
@@ -271,7 +269,6 @@ namespace Lure.Net
             }
         }
 
-        // Thread: Loop
         private void Update()
         {
             foreach (var connection in _connections.Values)
@@ -281,7 +278,20 @@ namespace Lure.Net
         }
 
 
-        // Thread: Main
+        private NetConnection GetConnection(IPEndPoint remoteEndPoint)
+        {
+            if (!_connections.TryGetValue(remoteEndPoint, out var connection))
+            {
+                connection = new NetConnection(this, remoteEndPoint);
+                _connections[remoteEndPoint] = connection;
+
+                Logger.Debug("[{RemoteEndPoint}] Connected", connection.RemoteEndPoint);
+            }
+
+            return connection;
+        }
+
+
         private SocketAsyncEventArgs CreateReceiveToken()
         {
             var buffer = new byte[_config.PacketBufferSize];
@@ -295,10 +305,9 @@ namespace Lure.Net
             return token;
         }
 
-        // Thread: Loop, IOCP
         private void StartReceive()
         {
-            if (!_isRunning)
+            if (!IsRunning)
             {
                 return;
             }
@@ -311,23 +320,20 @@ namespace Lure.Net
             }
         }
 
-        // Thread: Loop, IOCP
         private void ProcessReceive()
         {
-            if (!_isRunning)
+            if (!IsRunning)
             {
                 return;
             }
 
             var token = _receiveToken;
-            if (ProcessError(token))
+            if (token.IsOk())
             {
                 var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
                 var connection = GetConnection(remoteEndPoint);
 
                 var reader = token.GetReader();
-
-                //Log.Verbose("[{RemoteEndPoint}] Packet <<< (size={Size})", remoteEndPoint, reader.Length);
 
                 connection.ReceivePacket(reader);
             }
@@ -336,7 +342,6 @@ namespace Lure.Net
         }
 
 
-        // Thread: Loop, IOCP
         private SocketAsyncEventArgs CreateSendToken()
         {
             var token = new SocketAsyncEventArgs
@@ -347,34 +352,26 @@ namespace Lure.Net
             return token;
         }
 
-        // Thread: Loop
         private void StartSend(SocketAsyncEventArgs token)
         {
-            if (_isRunning)
+            if (!IsRunning)
             {
-                if (!_socket.SendToAsync(token))
-                {
-                    ProcessSend(token);
-                }
+                _sendTokenPool.Return(token);
+                return;
+            }
+
+            if (!_socket.SendToAsync(token))
+            {
+                ProcessSend(token);
             }
         }
 
-        // Thread: Loop, IOCP
         private void ProcessSend(SocketAsyncEventArgs token)
         {
-            if (_isRunning)
-            {
-                if (ProcessError(token))
-                {
-                    // TODO: Finish send operation
-                }
-            }
-
             _sendTokenPool.Return(token);
         }
 
 
-        // Thread: IOCP
         private void IO_Completed(object sender, SocketAsyncEventArgs token)
         {
             switch (token.LastOperation)
@@ -390,24 +387,6 @@ namespace Lure.Net
             default:
                 throw new InvalidOperationException("Unexpected socket async operation.");
             }
-        }
-
-        // Thread: Loop, IOCP
-        private bool ProcessError(SocketAsyncEventArgs token)
-        {
-            if (token.SocketError == SocketError.Success)
-            {
-                if (token.BytesTransferred <= 0)
-                {
-                    return false;
-                }
-                return true;
-            }
-            if (token.SocketError == SocketError.OperationAborted)
-            {
-                return false;
-            }
-            return false;
         }
     }
 }
