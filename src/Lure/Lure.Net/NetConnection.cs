@@ -62,6 +62,7 @@ namespace Lure.Net
             }
         }
 
+
         internal void Update()
         {
             var lastOutgoingPacketTimestamp = 0L;

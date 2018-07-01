@@ -2,7 +2,7 @@
 
 namespace Lure.Net.Messages
 {
-#if LURE_NET_DEBUG
+#if true || LURE_NET_DEBUG
     [NetMessage(11)]
     public class TestMessage : NetMessage
     {

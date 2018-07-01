@@ -3,6 +3,7 @@ using Lure.Net.Data;
 using Lure.Net.Messages;
 using Lure.Net.Packets.Message;
 using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -22,7 +23,7 @@ namespace Lure.Net.Channels
 
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketAck = SeqNo.Zero - 1;
-        private BitVector _incomingPacketAckBuffer = new BitVector(ReliablePacket.AckBufferLength);
+        private BitVector _incomingPacketAckBuffer = new BitVector(ReliablePacket.ChannelAckBufferLength);
 
         private bool _requireAcknowledgement;
 
@@ -91,15 +92,7 @@ namespace Lure.Net.Channels
 
         protected override void OnIncomingRawMessage(ReliableRawMessage rawMessage)
         {
-            try
-            {
-                _incomingRawMessageQueue[rawMessage.Seq] = rawMessage;
-            }
-            catch (System.Exception e)
-            {
-                System.Diagnostics.Debugger.Break();
-                throw;
-            }
+            _incomingRawMessageQueue[rawMessage.Seq] = rawMessage;
         }
 
 

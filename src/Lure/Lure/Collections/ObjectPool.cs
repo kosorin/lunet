@@ -50,9 +50,11 @@ namespace Lure.Collections
             _objects = new ConcurrentQueue<TItem>();
         }
 
-        public event EventHandler<TItem> Rented;
+        public event EventHandler<TItem> ItemCreated;
 
-        public event EventHandler<TItem> Returned;
+        public event EventHandler<TItem> ItemRented;
+
+        public event EventHandler<TItem> ItemReturned;
 
         public TItem Rent()
         {
@@ -60,6 +62,7 @@ namespace Lure.Collections
             if (!_objects.TryDequeue(out item))
             {
                 item = _activator();
+                OnItemCreated(item);
             }
 
             OnItemRented(item);
@@ -118,13 +121,18 @@ namespace Lure.Collections
             }
         }
 
+        protected virtual void OnItemCreated(TItem item)
+        {
+            ItemCreated?.Invoke(this, item);
+        }
+
         protected virtual void OnItemRented(TItem item)
         {
             if (item is IPoolable poolable)
             {
                 poolable.OnRent();
             }
-            Rented?.Invoke(this, item);
+            ItemRented?.Invoke(this, item);
         }
 
         protected virtual void OnItemReturned(TItem item)
@@ -133,7 +141,7 @@ namespace Lure.Collections
             {
                 poolable.OnReturn();
             }
-            Returned?.Invoke(this, item);
+            ItemReturned?.Invoke(this, item);
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Lure.Net.Packets.System
 {
-    internal enum PacketDataType : byte
+    internal enum SystemPacketType : byte
     {
         ConnectionRequest = 0,
         ConnectionReject = 1,

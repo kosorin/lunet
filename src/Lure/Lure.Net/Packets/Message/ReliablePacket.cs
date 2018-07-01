@@ -1,8 +1,6 @@
 ﻿using Lure.Collections;
 using Lure.Net.Data;
 using Lure.Net.Extensions;
-using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace Lure.Net.Packets.Message
 {
@@ -12,9 +10,9 @@ namespace Lure.Net.Packets.Message
         {
         }
 
-        public static int AckBufferLength { get; } = 64;
+        public static int ChannelAckBufferLength { get; } = 128;
 
-        public static int PacketAckBufferLength { get; } = sizeof(uint) * NC.BitsPerByte;
+        public static int PacketAckBufferLength { get; } = 32;
 
         public SeqNo Seq { get; set; }
 

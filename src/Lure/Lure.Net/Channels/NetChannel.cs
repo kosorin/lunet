@@ -27,14 +27,15 @@ namespace Lure.Net.Channels
 
         public long LastIncomingPacketTimestamp { get; protected set; }
 
-        public void Dispose()
-        {
-            Dispose(true);
-        }
 
         public abstract void Update();
 
         public abstract void ReceivePacket(NetDataReader reader);
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
 
 
         protected virtual void Dispose(bool disposing)
