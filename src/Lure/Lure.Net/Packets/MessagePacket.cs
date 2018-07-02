@@ -2,7 +2,7 @@
 using Lure.Net.Data;
 using System.Collections.Generic;
 
-namespace Lure.Net.Packets.Message
+namespace Lure.Net.Packets
 {
     internal abstract class MessagePacket<TRawMessage> : Packet
         where TRawMessage : RawMessage

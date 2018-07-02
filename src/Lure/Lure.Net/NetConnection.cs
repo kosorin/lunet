@@ -22,7 +22,7 @@ namespace Lure.Net
         private readonly NetPeer _peer;
         private readonly IPEndPoint _remoteEndPoint;
         private readonly ReliableOrderedChannel _systemChannel;
-        private readonly Dictionary<byte, NetChannel> _channels;
+        private readonly Dictionary<byte, INetChannel> _channels;
 
         internal NetConnection(NetPeer peer, IPEndPoint remoteEndPoint)
         {
@@ -31,7 +31,7 @@ namespace Lure.Net
             _peer = peer;
             _remoteEndPoint = remoteEndPoint;
             _systemChannel = new ReliableOrderedChannel(0, this);
-            _channels = new Dictionary<byte, NetChannel>
+            _channels = new Dictionary<byte, INetChannel>
             {
                 [_systemChannel.Id] = _systemChannel,
             };
@@ -41,12 +41,19 @@ namespace Lure.Net
 
         public IPEndPoint RemoteEndPoint => _remoteEndPoint;
 
-        public int MTU => 1000;
+        internal int MTU => 1000;
 
 
-        public void SendMessage(NetMessage message)
+        public void SendMessage(byte channeId, NetMessage message)
         {
-            var data = SerializeMessage(message);
+            var channelId = reader.ReadByte();
+            var channel = GetChannel(channelId);
+            if (channel != null)
+            {
+                channel.ReceivePacket(reader);
+                var data = SerializeMessage(message);
+            }
+
             if (data.Length < MTU)
             {
                 _systemChannel.SendMessage(data);
@@ -72,21 +79,12 @@ namespace Lure.Net
             {
                 channel.Update();
 
-                if (lastOutgoingPacketTimestamp < channel.LastOutgoingPacketTimestamp)
-                {
-                    lastOutgoingPacketTimestamp = channel.LastOutgoingPacketTimestamp;
-                }
-                if (lastIncomingPacketTimestamp < channel.LastIncomingPacketTimestamp)
-                {
-                    lastIncomingPacketTimestamp = channel.LastIncomingPacketTimestamp;
-                }
-
                 if (channel is IMessageChannel messageChannel)
                 {
                     foreach (var rawMessage in messageChannel.GetReceivedRawMessages())
                     {
-                        var message = ParseMessage(rawMessage.Data);
-                        if (message is TestMessage testMessage && testMessage.Integer % 10 == 0)
+                        var message = DeserializeMessage(rawMessage.Data);
+                        if (message is DebugMessage testMessage && testMessage.Integer % 10 == 0)
                         {
                             Log.Information("Message: {Message}", message);
                         }
@@ -115,7 +113,7 @@ namespace Lure.Net
         }
 
 
-        private NetChannel GetChannel(byte channeId)
+        private INetChannel GetChannel(byte channeId)
         {
             if (_channels.TryGetValue(channeId, out var channel))
             {
@@ -127,6 +125,15 @@ namespace Lure.Net
             }
         }
 
+
+        private NetMessage DeserializeMessage(byte[] data)
+        {
+            var reader = new NetDataReader(data);
+            var typeId = reader.ReadUShort();
+            var message = NetMessageManager.Create(typeId);
+            message.Deserialize(reader);
+            return message;
+        }
 
         private byte[] SerializeMessage(NetMessage message)
         {
@@ -143,15 +150,6 @@ namespace Lure.Net
             {
                 _writerPool.Return(writer);
             }
-        }
-
-        private NetMessage ParseMessage(byte[] data)
-        {
-            var reader = new NetDataReader(data);
-            var typeId = reader.ReadUShort();
-            var message = NetMessageManager.Create(typeId);
-            message.Deserialize(reader);
-            return message;
         }
     }
 }

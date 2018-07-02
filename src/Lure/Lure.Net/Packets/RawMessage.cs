@@ -2,7 +2,7 @@
 using Lure.Net.Extensions;
 using System.Diagnostics;
 
-namespace Lure.Net.Packets.Message
+namespace Lure.Net.Packets
 {
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     internal abstract class RawMessage : IPacketPart

@@ -2,7 +2,7 @@
 using Lure.Net.Extensions;
 using System;
 
-namespace Lure.Net.Packets.Message
+namespace Lure.Net.Packets
 {
     internal class ReliableRawMessage : RawMessage, ISequencedRawMessage, IComparable<ReliableRawMessage>
     {

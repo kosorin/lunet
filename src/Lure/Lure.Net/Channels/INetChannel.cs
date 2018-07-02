@@ -1,15 +1,14 @@
 ﻿using Lure.Net.Data;
+using System;
 
 namespace Lure.Net.Channels
 {
-    internal interface INetChannel
+    internal interface INetChannel : IDisposable
     {
         byte Id { get; }
-        long LastIncomingPacketTimestamp { get; }
-        long LastOutgoingPacketTimestamp { get; }
 
-        void Dispose();
-        void ReceivePacket(NetDataReader reader);
         void Update();
+
+        void ReceivePacket(NetDataReader reader);
     }
 }

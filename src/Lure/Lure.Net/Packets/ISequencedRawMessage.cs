@@ -1,4 +1,4 @@
-﻿namespace Lure.Net.Packets.Message
+﻿namespace Lure.Net.Packets
 {
     internal interface ISequencedRawMessage
     {

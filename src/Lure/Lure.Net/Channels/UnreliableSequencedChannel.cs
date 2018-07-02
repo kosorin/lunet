@@ -1,6 +1,6 @@
 ﻿using Lure.Net.Data;
 using Lure.Net.Messages;
-using Lure.Net.Packets.Message;
+using Lure.Net.Packets;
 using Serilog;
 using System.Collections.Generic;
 using System.Linq;

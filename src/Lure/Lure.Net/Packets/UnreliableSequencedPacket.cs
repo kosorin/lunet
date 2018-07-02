@@ -1,13 +1,16 @@
 ﻿using Lure.Collections;
 using Lure.Net.Data;
+using Lure.Net.Extensions;
 
-namespace Lure.Net.Packets.Message
+namespace Lure.Net.Packets
 {
-    internal class UnreliablePacket : MessagePacket<UnreliableRawMessage>, IPoolable
+    internal class UnreliableSequencedPacket : MessagePacket<UnreliableRawMessage>, IPoolable
     {
-        public UnreliablePacket(ObjectPool<UnreliableRawMessage> rawMessagePool) : base(rawMessagePool)
+        public UnreliableSequencedPacket(ObjectPool<UnreliableRawMessage> rawMessagePool) : base(rawMessagePool)
         {
         }
+
+        public SeqNo Seq { get; set; }
 
         void IPoolable.OnRent()
         {
@@ -27,10 +30,12 @@ namespace Lure.Net.Packets.Message
 
         protected override void DeserializeHeaderCore(INetDataReader reader)
         {
+            Seq = reader.ReadSeqNo();
         }
 
         protected override void SerializeHeaderCore(INetDataWriter writer)
         {
+            writer.WriteSeqNo(Seq);
         }
     }
 }

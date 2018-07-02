@@ -33,7 +33,7 @@ namespace Pegi.Client
                         break;
                     }
 
-                    var message = NetMessageManager.Create<TestMessage>();
+                    var message = NetMessageManager.Create<DebugMessage>();
                     message.Integer = i;
                     message.Float = i * 3;
                     client.SendMessage(message);

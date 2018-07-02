@@ -1,8 +1,6 @@
 ﻿using Lure.Collections;
 using Lure.Net.Data;
-using Lure.Net.Messages;
 using Lure.Net.Packets;
-using Lure.Net.Packets.Message;
 using System.Collections.Generic;
 
 namespace Lure.Net.Channels
@@ -23,6 +21,7 @@ namespace Lure.Net.Channels
             var packetActivator = ObjectActivatorFactory.CreateParameterized<ObjectPool<TRawMessage>, TPacket>();
             _packetPool = new ObjectPool<TPacket>(() => packetActivator(_rawMessagePool));
         }
+
 
         public override void Update()
         {
@@ -83,7 +82,6 @@ namespace Lure.Net.Channels
                     _rawMessagePool.Return(rawMessage);
                 }
             }
-            LastIncomingPacketTimestamp = now;
 
             _packetPool.Return(packet);
         }
@@ -150,7 +148,6 @@ namespace Lure.Net.Channels
             {
                 rawMessage.Timestamp = now;
             }
-            LastOutgoingPacketTimestamp = now;
 
             _packetPool.Return(packet);
         }

@@ -1,14 +1,14 @@
-﻿using Lure.Net.Packets.Message;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Lure.Net.Data;
+using Lure.Net.Packets;
 
 namespace Lure.Net.Channels
 {
     internal interface IMessageChannel : INetChannel
     {
         IEnumerable<RawMessage> GetReceivedRawMessages();
+
+        void SendMessage(byte[] data);
     }
 }

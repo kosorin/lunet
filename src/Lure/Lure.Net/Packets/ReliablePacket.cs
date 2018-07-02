@@ -2,7 +2,7 @@
 using Lure.Net.Data;
 using Lure.Net.Extensions;
 
-namespace Lure.Net.Packets.Message
+namespace Lure.Net.Packets
 {
     internal class ReliablePacket : MessagePacket<ReliableRawMessage>, IPoolable
     {

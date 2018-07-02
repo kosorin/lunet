@@ -1,7 +1,7 @@
 ﻿using Lure.Extensions.NetCore;
 using Lure.Net.Data;
 using Lure.Net.Messages;
-using Lure.Net.Packets.Message;
+using Lure.Net.Packets;
 using Serilog;
 using System;
 using System.Collections.Generic;

@@ -4,7 +4,7 @@ using System;
 
 namespace Lure.Net.Channels
 {
-    internal abstract class NetChannel : IDisposable, INetChannel
+    internal abstract class NetChannel : INetChannel
     {
         protected readonly byte _id;
         protected readonly NetConnection _connection;
@@ -15,17 +15,9 @@ namespace Lure.Net.Channels
         {
             _id = id;
             _connection = connection;
-
-            var now = Timestamp.Current;
-            LastOutgoingPacketTimestamp = now;
-            LastIncomingPacketTimestamp = now;
         }
 
         public byte Id => _id;
-
-        public long LastOutgoingPacketTimestamp { get; protected set; }
-
-        public long LastIncomingPacketTimestamp { get; protected set; }
 
 
         public abstract void Update();
