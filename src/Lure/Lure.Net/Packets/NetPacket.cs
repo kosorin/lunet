@@ -1,13 +1,25 @@
-﻿using Lure.Net.Data;
+﻿using Lure.Collections;
+using Lure.Net.Data;
 using System;
+using System.Collections.Generic;
 
 namespace Lure.Net.Packets
 {
-    internal abstract class Packet
+    internal abstract class NetPacket<TRawMessage> : INetPacket
+        where TRawMessage : RawMessage
     {
+        protected readonly ObjectPool<TRawMessage> _rawMessagePool;
+
+        protected NetPacket(ObjectPool<TRawMessage> rawMessagePool)
+        {
+            _rawMessagePool = rawMessagePool;
+        }
+
         public byte ChannelId { get; set; }
 
-        public PacketDirection Direction { get; set; }
+        public List<TRawMessage> RawMessages { get; set; } = new List<TRawMessage>();
+
+        public NetPacketDirection Direction { get; set; }
 
         private static int SerializationCheck => 0x55555555;
 
@@ -81,10 +93,25 @@ namespace Lure.Net.Packets
 
         protected abstract void DeserializeHeaderCore(INetDataReader reader);
 
-        protected abstract void DeserializeDataCore(INetDataReader reader);
+        protected virtual void DeserializeDataCore(INetDataReader reader)
+        {
+            RawMessages.Clear();
+            while (reader.Position < reader.Length)
+            {
+                var rawMessage = _rawMessagePool.Rent();
+                rawMessage.Deserialize(reader);
+                RawMessages.Add(rawMessage);
+            }
+        }
 
         protected abstract void SerializeHeaderCore(INetDataWriter writer);
 
-        protected abstract void SerializeDataCore(INetDataWriter writer);
+        protected virtual void SerializeDataCore(INetDataWriter writer)
+        {
+            foreach (var rawMessage in RawMessages)
+            {
+                rawMessage.Serialize(writer);
+            }
+        }
     }
 }

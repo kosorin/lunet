@@ -13,7 +13,7 @@ namespace Lure.Net.Channels
 
         void ReceivePacket(NetDataReader reader);
 
-        IEnumerable<RawMessageBase> GetReceivedRawMessages();
+        IEnumerable<RawMessage> GetReceivedRawMessages();
 
         void SendMessage(byte[] data);
     }

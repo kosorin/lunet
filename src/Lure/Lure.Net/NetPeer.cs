@@ -107,7 +107,7 @@ namespace Lure.Net
         }
 
 
-        internal void SendPacket(NetConnection connection, Packet packet)
+        internal void SendPacket(NetConnection connection, INetPacket packet)
         {
             var token = _sendTokenPool.Rent();
 
@@ -276,15 +276,15 @@ namespace Lure.Net
 
         private NetConnection GetConnection(IPEndPoint remoteEndPoint)
         {
-            if (!_connections.TryGetValue(remoteEndPoint, out var connection))
+            //Logger.Debug("[{RemoteEndPoint}] Connected", connection.RemoteEndPoint);
+            if (_connections.TryGetValue(remoteEndPoint, out var connection))
             {
-                connection = new NetConnection(this, remoteEndPoint);
-                _connections[remoteEndPoint] = connection;
-
-                Logger.Debug("[{RemoteEndPoint}] Connected", connection.RemoteEndPoint);
+                return connection;
             }
-
-            return connection;
+            else
+            {
+                return null;
+            }
         }
 
 
@@ -327,11 +327,13 @@ namespace Lure.Net
             if (token.IsOk())
             {
                 var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
+
                 var connection = GetConnection(remoteEndPoint);
-
-                var reader = token.GetReader();
-
-                connection.ReceivePacket(reader);
+                if (connection != null)
+                {
+                    var reader = token.GetReader();
+                    connection.ReceivePacket(reader);
+                }
             }
 
             StartReceive();

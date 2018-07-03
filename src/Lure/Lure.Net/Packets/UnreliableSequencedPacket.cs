@@ -4,7 +4,7 @@ using Lure.Net.Extensions;
 
 namespace Lure.Net.Packets
 {
-    internal class UnreliableSequencedPacket : MessagePacket<SequencedRawMessage>, IPoolable
+    internal class UnreliableSequencedPacket : NetPacket<SequencedRawMessage>, IPoolable
     {
         public UnreliableSequencedPacket(ObjectPool<SequencedRawMessage> rawMessagePool) : base(rawMessagePool)
         {
@@ -18,7 +18,7 @@ namespace Lure.Net.Packets
 
         void IPoolable.OnReturn()
         {
-            if (Direction == PacketDirection.Outgoing)
+            if (Direction == NetPacketDirection.Outgoing)
             {
                 foreach (var rawMessage in RawMessages)
                 {

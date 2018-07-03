@@ -6,8 +6,8 @@ using System.Collections.Generic;
 namespace Lure.Net.Channels
 {
     internal abstract class NetChannel<TPacket, TRawMessage> : INetChannel
-        where TPacket : MessagePacket<TRawMessage>
-        where TRawMessage : RawMessageBase
+        where TPacket : NetPacket<TRawMessage>
+        where TRawMessage : RawMessage
     {
         protected readonly byte _id;
         protected readonly NetConnection _connection;
@@ -98,7 +98,7 @@ namespace Lure.Net.Channels
             _packetPool.Return(packet);
         }
 
-        public abstract IEnumerable<RawMessageBase> GetReceivedRawMessages();
+        public abstract IEnumerable<RawMessage> GetReceivedRawMessages();
 
         public void SendMessage(byte[] data)
         {
@@ -121,7 +121,7 @@ namespace Lure.Net.Channels
         protected TPacket CreateOutgoingPacket()
         {
             var packet = _packetPool.Rent();
-            packet.Direction = PacketDirection.Outgoing;
+            packet.Direction = NetPacketDirection.Outgoing;
             packet.ChannelId = _id;
 
             PrepareOutgoingPacket(packet);

@@ -3,7 +3,7 @@ using Lure.Net.Data;
 
 namespace Lure.Net.Packets
 {
-    internal class UnreliablePacket : MessagePacket<RawMessage>, IPoolable
+    internal class UnreliablePacket : NetPacket<RawMessage>, IPoolable
     {
         public UnreliablePacket(ObjectPool<RawMessage> rawMessagePool) : base(rawMessagePool)
         {
@@ -15,7 +15,7 @@ namespace Lure.Net.Packets
 
         void IPoolable.OnReturn()
         {
-            if (Direction == PacketDirection.Outgoing)
+            if (Direction == NetPacketDirection.Outgoing)
             {
                 foreach (var rawMessage in RawMessages)
                 {

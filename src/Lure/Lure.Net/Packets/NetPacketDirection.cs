@@ -1,6 +1,6 @@
 ﻿namespace Lure.Net.Packets
 {
-    public enum PacketDirection
+    public enum NetPacketDirection
     {
         Unspecified,
         Incoming,

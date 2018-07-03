@@ -4,7 +4,7 @@ using Lure.Net.Extensions;
 
 namespace Lure.Net.Packets
 {
-    internal class ReliablePacket : MessagePacket<SequencedRawMessage>, IPoolable
+    internal class ReliablePacket : NetPacket<SequencedRawMessage>, IPoolable
     {
         public ReliablePacket(ObjectPool<SequencedRawMessage> rawMessagePool) : base(rawMessagePool)
         {
@@ -26,7 +26,7 @@ namespace Lure.Net.Packets
 
         void IPoolable.OnReturn()
         {
-            if (Direction == PacketDirection.Outgoing)
+            if (Direction == NetPacketDirection.Outgoing)
             {
                 // Outgoing raw messages are saved in a channel and waiting for an ack
             }

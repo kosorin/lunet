@@ -20,9 +20,9 @@ namespace Lure.Net.Channels
         }
 
         /// <summary>
-        /// Tracks raw message seqs.
+        /// Tracks sequenced raw messages.
         /// </summary>
-        public void Track(SeqNo packetSeq, IEnumerable<ISequencedRawMessage> rawMessages)
+        public void Track(SeqNo packetSeq, IEnumerable<SequencedRawMessage> rawMessages)
         {
             var index = GetIndex(packetSeq);
 
@@ -34,7 +34,7 @@ namespace Lure.Net.Channels
         }
 
         /// <summary>
-        /// Stops tracking raw message seqs and gets assigned raw message seqs to packet seq.
+        /// Stops tracking sequenced raw messages and gets assigned raw message seqs to packet seq.
         /// May return <c>null</c>.
         /// </summary>
         public IEnumerable<SeqNo> Clear(SeqNo packetSeq)
