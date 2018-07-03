@@ -4,9 +4,9 @@ using Lure.Net.Extensions;
 
 namespace Lure.Net.Packets
 {
-    internal class UnreliableSequencedPacket : MessagePacket<UnreliableRawMessage>, IPoolable
+    internal class UnreliableSequencedPacket : MessagePacket<SequencedRawMessage>, IPoolable
     {
-        public UnreliableSequencedPacket(ObjectPool<UnreliableRawMessage> rawMessagePool) : base(rawMessagePool)
+        public UnreliableSequencedPacket(ObjectPool<SequencedRawMessage> rawMessagePool) : base(rawMessagePool)
         {
         }
 

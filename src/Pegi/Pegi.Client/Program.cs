@@ -36,13 +36,13 @@ namespace Pegi.Client
                     var message = NetMessageManager.Create<DebugMessage>();
                     message.Integer = i;
                     message.Float = i * 3;
-                    client.SendMessage(message);
+                    client.Connection.SendMessage(message);
                     Thread.Sleep(1000 / 50);
                 }
 
                 resetEvent.Wait();
 
-                client.Stop();
+                client.Disconnect();
             }
 
             Thread.Sleep(1000);

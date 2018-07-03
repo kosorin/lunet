@@ -14,6 +14,9 @@ namespace Lure.Net
     /// </summary>
     public sealed class NetConnection : IDisposable
     {
+        public static byte DefaultChannelId { get; } = 1;
+        internal static byte SystemChannelId { get; } = 0;
+
         private const int KeepAliveTimeout = 1000;
         private const int DisconnectTimeout = 8000;
 
@@ -30,10 +33,11 @@ namespace Lure.Net
 
             _peer = peer;
             _remoteEndPoint = remoteEndPoint;
-            _systemChannel = new ReliableOrderedChannel(0, this);
+            _systemChannel = new ReliableOrderedChannel(SystemChannelId, this);
             _channels = new Dictionary<byte, INetChannel>
             {
-                [_systemChannel.Id] = _systemChannel,
+                [SystemChannelId] = _systemChannel,
+                [DefaultChannelId] = new ReliableOrderedChannel(DefaultChannelId, this),
             };
         }
 
@@ -44,19 +48,22 @@ namespace Lure.Net
         internal int MTU => 1000;
 
 
-        public void SendMessage(byte channeId, NetMessage message)
+        public void SendMessage(NetMessage message)
         {
-            var channelId = reader.ReadByte();
+            SendMessage(DefaultChannelId, message);
+        }
+
+        public void SendMessage(byte channelId, NetMessage message)
+        {
             var channel = GetChannel(channelId);
             if (channel != null)
             {
-                channel.ReceivePacket(reader);
                 var data = SerializeMessage(message);
-            }
-
-            if (data.Length < MTU)
-            {
-                _systemChannel.SendMessage(data);
+                if (data.Length > MTU)
+                {
+                    throw new NetException("MTU");
+                }
+                channel.SendMessage(data);
             }
         }
 
@@ -79,15 +86,12 @@ namespace Lure.Net
             {
                 channel.Update();
 
-                if (channel is IMessageChannel messageChannel)
+                foreach (var rawMessage in channel.GetReceivedRawMessages())
                 {
-                    foreach (var rawMessage in messageChannel.GetReceivedRawMessages())
+                    var message = DeserializeMessage(rawMessage.Data);
+                    if (message is DebugMessage testMessage && testMessage.Integer % 10 == 0)
                     {
-                        var message = DeserializeMessage(rawMessage.Data);
-                        if (message is DebugMessage testMessage && testMessage.Integer % 10 == 0)
-                        {
-                            Log.Information("Message: {Message}", message);
-                        }
+                        Log.Information("Message: {Message}", message);
                     }
                 }
             }

@@ -3,9 +3,9 @@ using Lure.Net.Data;
 
 namespace Lure.Net.Packets
 {
-    internal class UnreliablePacket : MessagePacket<UnreliableRawMessage>, IPoolable
+    internal class UnreliablePacket : MessagePacket<RawMessage>, IPoolable
     {
-        public UnreliablePacket(ObjectPool<UnreliableRawMessage> rawMessagePool) : base(rawMessagePool)
+        public UnreliablePacket(ObjectPool<RawMessage> rawMessagePool) : base(rawMessagePool)
         {
         }
 

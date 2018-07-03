@@ -29,9 +29,24 @@ namespace Lure.Net
         public IPEndPoint RemoteEndPoint => _connection?.RemoteEndPoint;
 
 
-        public void SendMessage(NetMessage message)
+        public void Connect()
         {
-            _connection.SendMessage(message);
+            Start();
+            if (!IsRunning)
+            {
+                return;
+            }
+        }
+
+        public void Disconnect()
+        {
+            if (State != NetPeerState.Running)
+            {
+                return;
+            }
+
+            //Connection.Disconnect();
+            Stop();
         }
 
         protected override void OnSetup()

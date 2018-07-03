@@ -1,5 +1,7 @@
 ﻿using Lure.Net.Data;
+using Lure.Net.Packets;
 using System;
+using System.Collections.Generic;
 
 namespace Lure.Net.Channels
 {
@@ -10,5 +12,9 @@ namespace Lure.Net.Channels
         void Update();
 
         void ReceivePacket(NetDataReader reader);
+
+        IEnumerable<RawMessageBase> GetReceivedRawMessages();
+
+        void SendMessage(byte[] data);
     }
 }

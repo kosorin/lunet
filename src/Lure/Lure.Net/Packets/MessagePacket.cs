@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace Lure.Net.Packets
 {
     internal abstract class MessagePacket<TRawMessage> : Packet
-        where TRawMessage : RawMessage
+        where TRawMessage : RawMessageBase
     {
         protected readonly ObjectPool<TRawMessage> _rawMessagePool;
 

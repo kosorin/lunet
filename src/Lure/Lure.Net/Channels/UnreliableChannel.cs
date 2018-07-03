@@ -4,16 +4,16 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    internal class UnreliableChannel : MessageChannel<UnreliablePacket, UnreliableRawMessage>
+    internal class UnreliableChannel : NetChannel<UnreliablePacket, RawMessage>
     {
-        private readonly List<UnreliableRawMessage> _outgoingRawMessageQueue = new List<UnreliableRawMessage>();
-        private readonly List<UnreliableRawMessage> _incomingRawMessageQueue = new List<UnreliableRawMessage>();
+        private readonly List<RawMessage> _outgoingRawMessageQueue = new List<RawMessage>();
+        private readonly List<RawMessage> _incomingRawMessageQueue = new List<RawMessage>();
 
         public UnreliableChannel(byte id, NetConnection connection) : base(id, connection)
         {
         }
 
-        public override IEnumerable<RawMessage> GetReceivedRawMessages()
+        public override IEnumerable<RawMessageBase> GetReceivedRawMessages()
         {
             var receivedRawMessages = _incomingRawMessageQueue.ToList();
             _incomingRawMessageQueue.Clear();
@@ -26,7 +26,7 @@ namespace Lure.Net.Channels
             return true;
         }
 
-        protected override bool AcceptIncomingRawMessage(UnreliableRawMessage rawMessage)
+        protected override bool AcceptIncomingRawMessage(RawMessage rawMessage)
         {
             return true;
         }
@@ -35,13 +35,13 @@ namespace Lure.Net.Channels
         {
         }
 
-        protected override void OnIncomingRawMessage(UnreliableRawMessage rawMessage)
+        protected override void OnIncomingRawMessage(RawMessage rawMessage)
         {
             _incomingRawMessageQueue.Add(rawMessage);
         }
 
 
-        protected override List<UnreliableRawMessage> GetOutgoingRawMessages()
+        protected override List<RawMessage> GetOutgoingRawMessages()
         {
             lock (_outgoingRawMessageQueue)
             {
@@ -53,7 +53,7 @@ namespace Lure.Net.Channels
                 }
                 else
                 {
-                    return new List<UnreliableRawMessage>();
+                    return new List<RawMessage>();
                 }
             }
         }
@@ -62,7 +62,7 @@ namespace Lure.Net.Channels
         {
         }
 
-        protected override void PrepareOutgoingRawMessage(UnreliableRawMessage rawMessage)
+        protected override void PrepareOutgoingRawMessage(RawMessage rawMessage)
         {
         }
 
@@ -70,7 +70,7 @@ namespace Lure.Net.Channels
         {
         }
 
-        protected override void OnOutgoingRawMessage(UnreliableRawMessage rawMessage)
+        protected override void OnOutgoingRawMessage(RawMessage rawMessage)
         {
             lock (_outgoingRawMessageQueue)
             {

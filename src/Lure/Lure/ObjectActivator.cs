@@ -64,6 +64,30 @@ namespace Lure
             return CreateParameterizedCore<ParameterizedObjectActivator<TArg1, TArg2, TArg3, TArg4, TObject>, TObject>(ctor);
         }
 
+        public static ObjectActivator<TObject> CreateParameterized<TArg, TObject>(TArg arg)
+        {
+            var parameterizedActivator = CreateParameterized<TArg, TObject>();
+            return () => parameterizedActivator(arg);
+        }
+
+        public static ObjectActivator<TObject> CreateParameterized<TArg1, TArg2, TObject>(TArg1 arg1, TArg2 arg2)
+        {
+            var parameterizedActivator = CreateParameterized<TArg1, TArg2, TObject>();
+            return () => parameterizedActivator(arg1, arg2);
+        }
+
+        public static ObjectActivator<TObject> CreateParameterized<TArg1, TArg2, TArg3, TObject>(TArg1 arg1, TArg2 arg2, TArg3 arg3)
+        {
+            var parameterizedActivator = CreateParameterized<TArg1, TArg2, TArg3, TObject>();
+            return () => parameterizedActivator(arg1, arg2, arg3);
+        }
+
+        public static ObjectActivator<TObject> CreateParameterized<TArg1, TArg2, TArg3, TArg4, TObject>(TArg1 arg1, TArg2 arg2, TArg3 arg3, TArg4 arg4)
+        {
+            var parameterizedActivator = CreateParameterized<TArg1, TArg2, TArg3, TArg4, TObject>();
+            return () => parameterizedActivator(arg1, arg2, arg3, arg4);
+        }
+
 
         private static ObjectActivator<TObject> CreateCore<TObject>(ConstructorInfo ctor)
         {
