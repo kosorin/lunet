@@ -106,7 +106,7 @@ namespace Lure.Net
             }
         }
 
-        internal void ReceivePacket(NetDataReader reader)
+        internal void ReceivePacket(INetDataReader reader)
         {
             var channelId = reader.ReadByte();
             var channel = GetChannel(channelId);

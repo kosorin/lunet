@@ -11,7 +11,7 @@ namespace Lure.Net.Channels
 
         void Update();
 
-        void ReceivePacket(NetDataReader reader);
+        void ReceivePacket(INetDataReader reader);
 
         IEnumerable<RawMessage> GetReceivedRawMessages();
 

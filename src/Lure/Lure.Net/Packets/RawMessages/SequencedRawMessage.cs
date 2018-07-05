@@ -8,8 +8,6 @@ namespace Lure.Net.Packets
     {
         public SeqNo Seq { get; set; }
 
-        public int ReferenceCount { get; set; }
-
         public override int Length => sizeof(ushort) + base.Length;
 
         protected override string DebuggerDisplay => $"({Seq}) {base.DebuggerDisplay}";

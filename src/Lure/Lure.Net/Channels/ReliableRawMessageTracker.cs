@@ -4,14 +4,14 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    internal class SequencedRawMessageTracker
+    internal class ReliableRawMessageTracker
     {
         private const int BufferSize = 1024;
 
         private readonly SeqNo[] _packetSeqBuffer = new SeqNo[BufferSize];
         private readonly List<SeqNo>[] _rawMessageSeqBuffer = new List<SeqNo>[BufferSize];
 
-        public SequencedRawMessageTracker()
+        public ReliableRawMessageTracker()
         {
             for (int i = 0; i < BufferSize; i++)
             {

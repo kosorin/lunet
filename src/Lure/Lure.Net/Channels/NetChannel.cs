@@ -45,7 +45,7 @@ namespace Lure.Net.Channels
             }
         }
 
-        public virtual void ReceivePacket(NetDataReader reader)
+        public virtual void ReceivePacket(INetDataReader reader)
         {
             var packet = _packetPool.Rent();
 

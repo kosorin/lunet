@@ -327,16 +327,20 @@ namespace Lure.Net
             if (token.IsOk())
             {
                 var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
-
-                var connection = GetConnection(remoteEndPoint);
-                if (connection != null)
-                {
-                    var reader = token.GetReader();
-                    connection.ReceivePacket(reader);
-                }
+                var reader = token.GetReader();
+                OnPacketReceived(remoteEndPoint, reader);
             }
 
             StartReceive();
+        }
+
+        private void OnPacketReceived(IPEndPoint remoteEndPoint, INetDataReader reader)
+        {
+            var connection = GetConnection(remoteEndPoint);
+            if (connection != null)
+            {
+                connection.ReceivePacket(reader);
+            }
         }
 
 

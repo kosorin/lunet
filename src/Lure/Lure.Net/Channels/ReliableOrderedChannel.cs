@@ -13,7 +13,7 @@ namespace Lure.Net.Channels
     {
         private const int ResendTimeout = 100;
 
-        private readonly SequencedRawMessageTracker _outgoingRawMessageTracker = new SequencedRawMessageTracker();
+        private readonly ReliableRawMessageTracker _outgoingRawMessageTracker = new ReliableRawMessageTracker();
         private readonly Dictionary<SeqNo, SequencedRawMessage> _outgoingRawMessageQueue = new Dictionary<SeqNo, SequencedRawMessage>();
         private SeqNo _outgoingRawMessageSeq = SeqNo.Zero;
 
