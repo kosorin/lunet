@@ -31,11 +31,13 @@ namespace Lure.Net.Packets
         protected override void DeserializeHeaderCore(INetDataReader reader)
         {
             Seq = reader.ReadSeqNo();
+            base.DeserializeHeaderCore(reader);
         }
 
         protected override void SerializeHeaderCore(INetDataWriter writer)
         {
             writer.WriteSeqNo(Seq);
+            base.SerializeHeaderCore(writer);
         }
     }
 }

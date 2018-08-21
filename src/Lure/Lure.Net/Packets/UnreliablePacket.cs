@@ -24,13 +24,5 @@ namespace Lure.Net.Packets
             }
             RawMessages.Clear();
         }
-
-        protected override void DeserializeHeaderCore(INetDataReader reader)
-        {
-        }
-
-        protected override void SerializeHeaderCore(INetDataWriter writer)
-        {
-        }
     }
 }

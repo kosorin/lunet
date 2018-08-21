@@ -13,11 +13,11 @@ namespace Lure.Net.Channels
         {
         }
 
-        public override IEnumerable<RawMessage> GetReceivedRawMessages()
+        public override IList<byte[]> GetReceivedMessages()
         {
-            var receivedRawMessages = _incomingRawMessageQueue.ToList();
+            var receivedMessages = _incomingRawMessageQueue.Select(x => x.Data).ToList();
             _incomingRawMessageQueue.Clear();
-            return receivedRawMessages;
+            return receivedMessages;
         }
 
 

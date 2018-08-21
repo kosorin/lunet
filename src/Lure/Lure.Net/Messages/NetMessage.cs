@@ -6,22 +6,22 @@ namespace Lure.Net.Messages
     {
         internal ushort TypeId { get; set; }
 
-        internal void Deserialize(INetDataReader reader)
+        internal void DeserializeLib(INetDataReader reader)
         {
             // Skip reading a type id - already read and used to create a message
 
-            DeserializeCore(reader);
+            Deserialize(reader);
         }
 
-        internal void Serialize(INetDataWriter writer)
+        internal void SerializeLib(INetDataWriter writer)
         {
             writer.WriteUShort(TypeId);
 
-            SerializeCore(writer);
+            Serialize(writer);
         }
 
-        protected abstract void DeserializeCore(INetDataReader reader);
+        protected abstract void Deserialize(INetDataReader reader);
 
-        protected abstract void SerializeCore(INetDataWriter writer);
+        protected abstract void Serialize(INetDataWriter writer);
     }
 }

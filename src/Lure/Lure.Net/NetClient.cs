@@ -1,5 +1,7 @@
 ﻿using Lure.Net.Messages;
+using System;
 using System.Net;
+using System.Net.Sockets;
 
 namespace Lure.Net
 {
@@ -9,11 +11,12 @@ namespace Lure.Net
 
         private NetConnection _connection;
 
-        public NetClient(string hostname, int port)
+        public NetClient(string hostname, int port, AddressFamily addressFamily = AddressFamily.InterNetwork)
             : this(new NetClientConfiguration
             {
                 Hostname = hostname,
                 Port = port,
+                AddressFamily = addressFamily,
             })
         {
         }
@@ -31,22 +34,17 @@ namespace Lure.Net
 
         public void Connect()
         {
-            Start();
-            if (!IsRunning)
+            if (Connection.State == NetConnectionState.Disconnected)
             {
-                return;
+                var message = NetMessageManager.Create(SystemMessageType.ConnectionRequest);
+                Connection.SendSystemMessage(message);
             }
         }
 
         public void Disconnect()
         {
-            if (State != NetPeerState.Running)
-            {
-                return;
-            }
-
-            //Connection.Disconnect();
-            Stop();
+            // TODO: Graceful client disconnect
+            throw new NotImplementedException();
         }
 
         protected override void OnSetup()
@@ -58,7 +56,7 @@ namespace Lure.Net
             }
             var remoteEndPoint = new IPEndPoint(hostAddress, _config.Port);
 
-            _connection = new NetConnection(this, remoteEndPoint);
+            _connection = new NetConnection(remoteEndPoint, this);
 
             InjectConnection(_connection);
         }

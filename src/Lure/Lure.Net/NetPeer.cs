@@ -15,17 +15,13 @@ namespace Lure.Net
     public abstract class NetPeer : IDisposable
     {
         private const int FPS = 60;
-        private const int MillisecondsPerSecond = 1000;
-
-        private static readonly ILogger Logger = Log.ForContext<NetPeer>();
 
         private readonly NetPeerConfiguration _config;
-
         private volatile NetPeerState _state;
-        private bool _disposed;
 
         private Socket _socket;
         private Thread _thread;
+
         private SocketAsyncEventArgs _receiveToken;
         private ObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
@@ -42,11 +38,15 @@ namespace Lure.Net
             _state = NetPeerState.Unstarted;
         }
 
+        public NetPeerConfiguration Config => _config;
+
         public NetPeerState State => _state;
 
         public bool IsRunning => _state == NetPeerState.Running;
 
         public IPEndPoint LocalEndPoint => (IPEndPoint)_socket?.LocalEndPoint;
+
+        public IEnumerable<NetConnection> Connections => _connections.Values;
 
 
         public void Start()
@@ -57,14 +57,14 @@ namespace Lure.Net
             }
 
             _state = NetPeerState.Starting;
-            Logger.Verbose("Starting peer");
+            Log.Verbose("Starting peer");
 
             try
             {
                 Setup();
 
                 _state = NetPeerState.Running;
-                Logger.Debug("Peer started");
+                Log.Debug("Peer started");
 
                 StartLoop();
             }
@@ -83,7 +83,7 @@ namespace Lure.Net
             }
 
             _state = NetPeerState.Stopping;
-            Logger.Verbose("Stopping peer");
+            Log.Verbose("Stopping peer");
 
             try
             {
@@ -92,7 +92,7 @@ namespace Lure.Net
                 Cleanup();
 
                 _state = NetPeerState.Stopped;
-                Logger.Debug("Peer stopped");
+                Log.Debug("Peer stopped");
             }
             catch
             {
@@ -101,54 +101,13 @@ namespace Lure.Net
             }
         }
 
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-
-
-        internal void SendPacket(NetConnection connection, INetPacket packet)
-        {
-            var token = _sendTokenPool.Rent();
-
-            var writer = (NetDataWriter)token.UserToken;
-            try
-            {
-                writer.Reset();
-                packet.SerializeHeader(writer);
-                packet.SerializeData(writer);
-                writer.Flush();
-            }
-            catch (NetSerializationException)
-            {
-                _sendTokenPool.Return(token);
-                return;
-            }
-
-            token.SetWriter(writer);
-            token.RemoteEndPoint = connection.RemoteEndPoint;
-            StartSend(token);
-        }
-
 
         protected abstract void OnSetup();
 
         protected abstract void OnCleanup();
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    Cleanup();
-                }
-                _disposed = true;
-            }
-        }
 
-
-        private protected void InjectConnection(NetConnection connection)
+        protected void InjectConnection(NetConnection connection)
         {
             if (!_connections.TryAdd(connection.RemoteEndPoint, connection))
             {
@@ -242,7 +201,7 @@ namespace Lure.Net
 
         private void Loop()
         {
-            const int frame = MillisecondsPerSecond / FPS;
+            const int frame = Time.MillisecondsPerSecond / FPS;
 
             StartReceive();
 
@@ -274,20 +233,6 @@ namespace Lure.Net
         }
 
 
-        private NetConnection GetConnection(IPEndPoint remoteEndPoint)
-        {
-            //Logger.Debug("[{RemoteEndPoint}] Connected", connection.RemoteEndPoint);
-            if (_connections.TryGetValue(remoteEndPoint, out var connection))
-            {
-                return connection;
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-
         private SocketAsyncEventArgs CreateReceiveToken()
         {
             var buffer = new byte[_config.PacketBufferSize];
@@ -308,22 +253,21 @@ namespace Lure.Net
                 return;
             }
 
-            // TODO: Is it necessary to reset remote end point?
+            // TODO: Is it necessary to reset remote end point every receive call?
             _receiveToken.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
             if (!_socket.ReceiveFromAsync(_receiveToken))
             {
-                ProcessReceive();
+                ProcessReceive(_receiveToken);
             }
         }
 
-        private void ProcessReceive()
+        private void ProcessReceive(SocketAsyncEventArgs token)
         {
             if (!IsRunning)
             {
                 return;
             }
 
-            var token = _receiveToken;
             if (token.IsOk())
             {
                 var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
@@ -336,13 +280,51 @@ namespace Lure.Net
 
         private void OnPacketReceived(IPEndPoint remoteEndPoint, INetDataReader reader)
         {
-            var connection = GetConnection(remoteEndPoint);
+            NetConnection connection;
+            if (Config.AcceptIncomingConnections)
+            {
+                connection = _connections.GetOrAdd(remoteEndPoint, x => new NetConnection(x, this));
+            }
+            else
+            {
+                _connections.TryGetValue(remoteEndPoint, out connection);
+            }
+
             if (connection != null)
             {
-                connection.ReceivePacket(reader);
+                connection.ProcessIncomingPacket(reader);
             }
         }
 
+
+        internal void SendPacket(NetConnection connection, INetPacket packet)
+        {
+            if (packet.Direction != NetPacketDirection.Outgoing)
+            {
+                throw new ArgumentException("Invalid packet direction.", nameof(packet));
+            }
+
+            var token = _sendTokenPool.Rent();
+
+            var writer = (NetDataWriter)token.UserToken;
+            try
+            {
+                writer.Reset();
+                packet.SerializeHeader(writer);
+                packet.SerializeData(writer);
+                writer.Flush();
+            }
+            catch (NetSerializationException)
+            {
+                _sendTokenPool.Return(token);
+                return;
+            }
+
+            token.SetWriter(writer);
+            token.RemoteEndPoint = connection.RemoteEndPoint;
+
+            StartSend(token);
+        }
 
         private SocketAsyncEventArgs CreateSendToken()
         {
@@ -379,7 +361,7 @@ namespace Lure.Net
             switch (token.LastOperation)
             {
             case SocketAsyncOperation.ReceiveFrom:
-                ProcessReceive();
+                ProcessReceive(token);
                 break;
 
             case SocketAsyncOperation.SendTo:
@@ -388,6 +370,26 @@ namespace Lure.Net
 
             default:
                 throw new InvalidOperationException("Unexpected socket async operation.");
+            }
+        }
+
+
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    Cleanup();
+                }
+                _disposed = true;
             }
         }
     }

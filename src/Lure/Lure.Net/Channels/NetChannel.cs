@@ -15,8 +15,6 @@ namespace Lure.Net.Channels
         protected readonly ObjectPool<TPacket> _packetPool;
         protected readonly ObjectPool<TRawMessage> _rawMessagePool;
 
-        private bool _disposed;
-
         protected NetChannel(byte id, NetConnection connection)
         {
             _id = id;
@@ -30,11 +28,6 @@ namespace Lure.Net.Channels
         public byte Id => _id;
 
 
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-
         public virtual void Update()
         {
             var outgoingRawMessages = GetOutgoingRawMessages();
@@ -45,7 +38,7 @@ namespace Lure.Net.Channels
             }
         }
 
-        public virtual void ReceivePacket(INetDataReader reader)
+        public virtual void ProcessIncomingPacket(INetDataReader reader)
         {
             var packet = _packetPool.Rent();
 
@@ -98,7 +91,7 @@ namespace Lure.Net.Channels
             _packetPool.Return(packet);
         }
 
-        public abstract IEnumerable<RawMessage> GetReceivedRawMessages();
+        public abstract IList<byte[]> GetReceivedMessages();
 
         public void SendMessage(byte[] data)
         {
@@ -164,19 +157,6 @@ namespace Lure.Net.Channels
             _packetPool.Return(packet);
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _packetPool.Dispose();
-                    _rawMessagePool.Dispose();
-                }
-                _disposed = true;
-            }
-        }
-
 
         private IEnumerable<TPacket> PackOutgoingRawMessages(List<TRawMessage> rawMessages)
         {
@@ -198,6 +178,27 @@ namespace Lure.Net.Channels
             if (packetLength > 0)
             {
                 yield return packet;
+            }
+        }
+
+
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _packetPool.Dispose();
+                    _rawMessagePool.Dispose();
+                }
+                _disposed = true;
             }
         }
     }

@@ -21,6 +21,7 @@ namespace Lure.Net
             _config = config;
         }
 
+
         protected override void OnSetup()
         {
         }

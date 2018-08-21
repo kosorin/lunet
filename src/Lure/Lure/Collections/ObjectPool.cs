@@ -7,6 +7,7 @@ namespace Lure.Collections
     public class ObjectPool<TItem> : IObjectPool<TItem>
         where TItem : class
     {
+        private readonly bool isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
         private readonly int _capacity;
         private readonly ObjectActivator<TItem> _activator;
         private readonly ConcurrentQueue<TItem> _objects;
@@ -56,6 +57,8 @@ namespace Lure.Collections
 
         public event EventHandler<TItem> ItemReturned;
 
+        public event EventHandler<TItem> ItemDisposed;
+
         public TItem Rent()
         {
             TItem item;
@@ -82,18 +85,14 @@ namespace Lure.Collections
                 return;
             }
 
-            OnItemReturned(item);
-
             if (_objects.Count < _capacity)
             {
+                OnItemReturned(item);
                 _objects.Enqueue(item);
             }
             else
             {
-                if (item is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
+                OnItemDisposed(item);
                 Log.Verbose("ObjectPool<{ItemType}> overflow.", typeof(TItem).Name);
             }
         }
@@ -109,12 +108,9 @@ namespace Lure.Collections
             {
                 if (disposing)
                 {
-                    if (typeof(IDisposable).IsAssignableFrom(typeof(TItem)))
+                    foreach (var item in _objects)
                     {
-                        foreach (IDisposable disposable in _objects)
-                        {
-                            disposable.Dispose();
-                        }
+                        OnItemDisposed(item);
                     }
                 }
                 _disposed = true;
@@ -142,6 +138,15 @@ namespace Lure.Collections
                 poolable.OnReturn();
             }
             ItemReturned?.Invoke(this, item);
+        }
+
+        protected virtual void OnItemDisposed(TItem item)
+        {
+            if (isItemDisposable)
+            {
+                ((IDisposable)item).Dispose();
+            }
+            ItemDisposed?.Invoke(this, item);
         }
     }
 }

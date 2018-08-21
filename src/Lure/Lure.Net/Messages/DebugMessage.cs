@@ -14,13 +14,13 @@ namespace Lure.Net.Messages
             return $"Int: {Integer}; Float: {Float}";
         }
 
-        protected override void DeserializeCore(INetDataReader reader)
+        protected override void Deserialize(INetDataReader reader)
         {
             Integer = reader.ReadInt();
             Float = reader.ReadFloat();
         }
 
-        protected override void SerializeCore(INetDataWriter writer)
+        protected override void Serialize(INetDataWriter writer)
         {
             writer.WriteInt(Integer);
             writer.WriteFloat(Float);

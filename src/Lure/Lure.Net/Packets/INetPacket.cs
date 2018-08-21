@@ -4,8 +4,6 @@ namespace Lure.Net.Packets
 {
     internal interface INetPacket
     {
-        byte ChannelId { get; set; }
-
         NetPacketDirection Direction { get; set; }
 
         void DeserializeHeader(INetDataReader reader);

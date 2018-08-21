@@ -38,6 +38,7 @@ namespace Lure.Net.Packets
             Seq = reader.ReadSeqNo();
             Ack = reader.ReadSeqNo();
             AckBuffer = reader.ReadBits(PacketAckBufferLength);
+            base.DeserializeHeaderCore(reader);
         }
 
         protected override void DeserializeDataCore(INetDataReader reader)
@@ -52,6 +53,7 @@ namespace Lure.Net.Packets
             writer.WriteSeqNo(Seq);
             writer.WriteSeqNo(Ack);
             writer.WriteBits(AckBuffer);
+            base.SerializeHeaderCore(writer);
         }
     }
 }

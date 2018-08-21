@@ -12,7 +12,7 @@ namespace Pegi.Server
         {
             PegiLogging.Configure("Server");
 
-            using (var server = new NetServer(45685, AddressFamily.InterNetwork))
+            using (var server = new NetServer(45685))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>

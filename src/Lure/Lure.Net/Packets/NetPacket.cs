@@ -91,7 +91,9 @@ namespace Lure.Net.Packets
             }
         }
 
-        protected abstract void DeserializeHeaderCore(INetDataReader reader);
+        protected virtual void DeserializeHeaderCore(INetDataReader reader)
+        {
+        }
 
         protected virtual void DeserializeDataCore(INetDataReader reader)
         {
@@ -104,7 +106,9 @@ namespace Lure.Net.Packets
             }
         }
 
-        protected abstract void SerializeHeaderCore(INetDataWriter writer);
+        protected virtual void SerializeHeaderCore(INetDataWriter writer)
+        {
+        }
 
         protected virtual void SerializeDataCore(INetDataWriter writer)
         {

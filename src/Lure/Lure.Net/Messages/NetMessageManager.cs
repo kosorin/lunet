@@ -57,9 +57,9 @@ namespace Lure.Net.Messages
             }
         }
 
-        internal static NetMessage Create(SystemMessageType systemMessageType)
+        internal static SystemMessage Create(SystemMessageType systemMessageType)
         {
-            return Create((ushort)systemMessageType);
+            return (SystemMessage)Create((ushort)systemMessageType);
         }
     }
 }

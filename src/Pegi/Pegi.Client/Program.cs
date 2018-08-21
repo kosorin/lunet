@@ -23,6 +23,7 @@ namespace Pegi.Client
                 };
 
                 client.Start();
+                client.Connect();
 
                 Thread.Sleep(500);
 
@@ -33,16 +34,20 @@ namespace Pegi.Client
                         break;
                     }
 
-                    var message = NetMessageManager.Create<DebugMessage>();
-                    message.Integer = i;
-                    message.Float = i * 3;
-                    client.Connection.SendMessage(message);
-                    Thread.Sleep(1000 / 50);
+                    if (client.IsRunning && client.Connection.State == NetConnectionState.Connected)
+                    {
+                        var message = NetMessageManager.Create<DebugMessage>();
+                        message.Integer = i;
+                        message.Float = i * 3;
+                        client.Connection.SendMessage(message);
+                        Thread.Sleep(1000 / 50);
+                    }
                 }
 
                 resetEvent.Wait();
 
                 client.Disconnect();
+                client.Stop();
             }
 
             Thread.Sleep(1000);

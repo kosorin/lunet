@@ -3,13 +3,13 @@
 namespace Lure.Net.Messages
 {
     [NetMessage(SystemMessageType.ConnectionReject)]
-    internal sealed class ConnectionRejectMessage : NetMessage
+    internal sealed class ConnectionRejectMessage : SystemMessage
     {
-        protected override void DeserializeCore(INetDataReader reader)
+        protected override void Deserialize(INetDataReader reader)
         {
         }
 
-        protected override void SerializeCore(INetDataWriter writer)
+        protected override void Serialize(INetDataWriter writer)
         {
         }
     }

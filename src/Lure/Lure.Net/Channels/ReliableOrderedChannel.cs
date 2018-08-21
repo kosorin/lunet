@@ -43,14 +43,14 @@ namespace Lure.Net.Channels
             }
         }
 
-        public override IEnumerable<RawMessage> GetReceivedRawMessages()
+        public override IList<byte[]> GetReceivedMessages()
         {
-            var receivedRawMessages = new List<SequencedRawMessage>();
+            var receivedMessages = new List<byte[]>();
             while (true)
             {
                 if (_incomingRawMessageQueue.Remove(_incomingReadRawMessageSeq, out var rawMessage))
                 {
-                    receivedRawMessages.Add(rawMessage);
+                    receivedMessages.Add(rawMessage.Data);
                     _incomingReadRawMessageSeq++;
                 }
                 else
@@ -58,7 +58,7 @@ namespace Lure.Net.Channels
                     break;
                 }
             }
-            return receivedRawMessages;
+            return receivedMessages;
         }
 
 
