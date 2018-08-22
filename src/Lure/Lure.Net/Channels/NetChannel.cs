@@ -30,15 +30,10 @@ namespace Lure.Net.Channels
 
         public virtual void Update()
         {
-            var outgoingRawMessages = GetOutgoingRawMessages();
-            var outgoingPackets = PackOutgoingRawMessages(outgoingRawMessages);
-            foreach (var packet in outgoingPackets)
-            {
-                SendPacket(packet);
-            }
+            SendOutgoingMessages();
         }
 
-        public virtual void ProcessIncomingPacket(INetDataReader reader)
+        public void ProcessIncomingPacket(INetDataReader reader)
         {
             var packet = _packetPool.Rent();
 
@@ -108,6 +103,16 @@ namespace Lure.Net.Channels
 
         protected abstract void OnIncomingRawMessage(TRawMessage rawMessage);
 
+
+        private void SendOutgoingMessages()
+        {
+            var outgoingRawMessages = GetOutgoingRawMessages();
+            var outgoingPackets = PackOutgoingRawMessages(outgoingRawMessages);
+            foreach (var packet in outgoingPackets)
+            {
+                SendPacket(packet);
+            }
+        }
 
         protected abstract List<TRawMessage> GetOutgoingRawMessages();
 

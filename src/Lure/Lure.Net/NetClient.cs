@@ -34,11 +34,7 @@ namespace Lure.Net
 
         public void Connect()
         {
-            if (Connection.State == NetConnectionState.Disconnected)
-            {
-                var message = NetMessageManager.Create(SystemMessageType.ConnectionRequest);
-                Connection.SendSystemMessage(message);
-            }
+            Connection.Connect();
         }
 
         public void Disconnect()
