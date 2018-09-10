@@ -21,6 +21,8 @@ namespace Lure.Net
             _config = config;
         }
 
+        public new NetServerConfiguration Config => _config;
+
 
         protected override void OnSetup()
         {

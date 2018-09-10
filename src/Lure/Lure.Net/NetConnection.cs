@@ -18,8 +18,6 @@ namespace Lure.Net
         internal static byte SystemChannelId => 0;
         public static byte DefaultChannelId => 1;
 
-        private const int KeepAliveTimeout = 1000;
-        private const int DisconnectTimeout = 8000;
         private const int InitialMessageBufferSize = 32;
 
         private readonly ObjectPool<NetDataWriter> _messageWriterPool;
@@ -64,6 +62,16 @@ namespace Lure.Net
             }
         }
 
+        internal void Disconnect()
+        {
+            if (_state == NetConnectionState.Connected)
+            {
+                var message = NetMessageManager.Create<DisconnectMessage>();
+                SendSystemMessage(message);
+            }
+            _state = NetConnectionState.Disconnected;
+        }
+
         internal void Update()
         {
             SystemUpdate();
@@ -95,6 +103,7 @@ namespace Lure.Net
                 var systemMessage = DeserializeMessage(data) as SystemMessage;
                 if (systemMessage != null)
                 {
+                    Log.Information("...");
                     switch (systemMessage.Type)
                     {
                     case SystemMessageType.ConnectionRequest:
@@ -128,11 +137,16 @@ namespace Lure.Net
                         break;
                     case SystemMessageType.ConnectionAccept:
                         _state = NetConnectionState.Connected;
-                            Log.Information("ConnectionAccept");
+                        Log.Information("ConnectionAccept");
                         break;
                     case SystemMessageType.ConnectionReject:
+                        _state = NetConnectionState.Error;
+                        Log.Information("ConnectionReject");
+                        break;
+
+                    case SystemMessageType.Disconnect:
                         _state = NetConnectionState.Disconnected;
-                            Log.Information("ConnectionReject");
+                        Log.Information("Disconnected");
                         break;
 
                     default:
@@ -168,6 +182,7 @@ namespace Lure.Net
         internal void SendSystemMessage(SystemMessage message)
         {
             SendMessage(SystemChannelId, message);
+            _systemChannel.Update();
         }
 
         public void SendMessage(NetMessage message)
@@ -180,20 +195,26 @@ namespace Lure.Net
             INetChannel channel;
             if (channelId == SystemChannelId)
             {
-                if (!(message is SystemMessage))
+                if (message is SystemMessage)
+                {
+                    channel = _systemChannel;
+                }
+                else
                 {
                     throw new NetException("Using reserved system channel.");
                 }
-                channel = _systemChannel;
             }
             else
             {
-                if (_state != NetConnectionState.Connected)
+                if (_state == NetConnectionState.Connected)
+                {
+                    _channels.TryGetValue(channelId, out channel);
+                }
+                else
                 {
                     // Drop messages before connect
                     return;
                 }
-                _channels.TryGetValue(channelId, out channel);
             }
 
             if (channel != null)

@@ -136,6 +136,7 @@ namespace Lure.Net
             {
                 foreach (var connection in _connections.Values)
                 {
+                    connection.Disconnect();
                     connection.Dispose();
                 }
                 _connections.Clear();

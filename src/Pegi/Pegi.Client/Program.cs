@@ -22,7 +22,6 @@ namespace Pegi.Client
                     resetEvent.Set();
                 };
 
-                client.Start();
                 client.Connect();
 
                 Thread.Sleep(500);
@@ -41,13 +40,17 @@ namespace Pegi.Client
                         message.Float = i * 3;
                         client.Connection.SendMessage(message);
                         Thread.Sleep(1000 / 50);
+
+                        if (i == 200)
+                        {
+                            client.Disconnect();
+                        }
                     }
                 }
 
                 resetEvent.Wait();
 
                 client.Disconnect();
-                client.Stop();
             }
 
             Thread.Sleep(1000);

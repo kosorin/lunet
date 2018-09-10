@@ -1,6 +1,4 @@
-﻿using Lure.Net.Messages;
-using System;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 
 namespace Lure.Net
@@ -27,20 +25,21 @@ namespace Lure.Net
             _config = config;
         }
 
-        public NetConnection Connection => _connection;
+        public new NetClientConfiguration Config => _config;
 
-        public IPEndPoint RemoteEndPoint => _connection?.RemoteEndPoint;
+        public NetConnection Connection => _connection;
 
 
         public void Connect()
         {
+            Start();
             Connection.Connect();
         }
 
         public void Disconnect()
         {
-            // TODO: Graceful client disconnect
-            throw new NotImplementedException();
+            Connection.Disconnect();
+            Stop();
         }
 
         protected override void OnSetup()
