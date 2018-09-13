@@ -1,28 +1,11 @@
-﻿using Lure.Collections;
-using Lure.Net.Data;
+﻿using System;
 
 namespace Lure.Net.Packets
 {
-    internal class UnreliablePacket : NetPacket<RawMessage>, IPoolable
+    internal class UnreliablePacket : NetPacket<RawMessage>
     {
-        public UnreliablePacket(IObjectPool<RawMessage> rawMessagePool) : base(rawMessagePool)
+        public UnreliablePacket(Func<RawMessage> rawMessageActivator) : base(rawMessageActivator)
         {
-        }
-
-        void IPoolable.OnRent()
-        {
-        }
-
-        void IPoolable.OnReturn()
-        {
-            if (Direction == NetPacketDirection.Outgoing)
-            {
-                foreach (var rawMessage in RawMessages)
-                {
-                    _rawMessagePool.Return(rawMessage);
-                }
-            }
-            RawMessages.Clear();
         }
     }
 }

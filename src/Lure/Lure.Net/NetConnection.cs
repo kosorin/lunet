@@ -3,7 +3,6 @@ using Lure.Extensions;
 using Lure.Net.Channels;
 using Lure.Net.Data;
 using Lure.Net.Messages;
-using Lure.Net.Packets;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -23,7 +22,8 @@ namespace Lure.Net
 
         internal NetConnection(IPEndPoint remoteEndPoint, NetPeer peer)
         {
-            _messageWriterPool = new ObjectPool<NetDataWriter>(() => new NetDataWriter(peer.Config.MessageBufferSize));
+            var dataWriterActivator = ObjectActivatorFactory.CreateWithValues<int, NetDataWriter>(peer.Config.MessageBufferSize);
+            _messageWriterPool = new ObjectPool<NetDataWriter>(dataWriterActivator);
             _channels = peer.ChannelFactory.Create(this);
 
             RemoteEndPoint = remoteEndPoint;
@@ -60,7 +60,6 @@ namespace Lure.Net
         internal void ProcessIncomingPacket(INetDataReader reader)
         {
             var channelId = reader.ReadByte();
-
             if (_channels.TryGetValue(channelId, out var channel))
             {
                 channel.ProcessIncomingPacket(reader);
@@ -140,11 +139,6 @@ namespace Lure.Net
                 if (disposing)
                 {
                     _messageWriterPool.Dispose();
-
-                    foreach (var channel in _channels.Values)
-                    {
-                        channel.Dispose();
-                    }
                 }
                 _disposed = true;
             }

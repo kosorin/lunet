@@ -10,18 +10,14 @@ namespace Lure.Net.Packets
     {
         private static int SerializationCheck => 0x55555555;
 
-        protected readonly IObjectPool<TRawMessage> _rawMessagePool;
+        private readonly Func<TRawMessage> _rawMessageActivator;
 
-        protected NetPacket(IObjectPool<TRawMessage> rawMessagePool)
+        protected NetPacket(Func<TRawMessage> rawMessageActivator)
         {
-            _rawMessagePool = rawMessagePool;
+            _rawMessageActivator = rawMessageActivator;
         }
 
         public List<TRawMessage> RawMessages { get; set; } = new List<TRawMessage>();
-
-        public byte ChannelId { get; set; }
-
-        public NetPacketDirection Direction { get; set; }
 
         public void DeserializeHeader(INetDataReader reader)
         {
@@ -96,7 +92,7 @@ namespace Lure.Net.Packets
             RawMessages.Clear();
             while (reader.Position < reader.Length)
             {
-                var rawMessage = _rawMessagePool.Rent();
+                var rawMessage = _rawMessageActivator();
                 rawMessage.Deserialize(reader);
                 RawMessages.Add(rawMessage);
             }

@@ -1,6 +1,6 @@
-﻿using Lure.Collections;
-using Lure.Net.Data;
+﻿using Lure.Net.Data;
 using Lure.Net.Packets;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -12,21 +12,20 @@ namespace Lure.Net.Channels
     {
         protected readonly NetConnection _connection;
 
-        protected readonly IObjectPool<TPacket> _packetPool;
-        protected readonly IObjectPool<TRawMessage> _rawMessagePool;
+        private readonly Func<TPacket> _packetActivator;
+        private readonly Func<TRawMessage> _rawMessageActivator;
 
         protected NetChannel(NetConnection connection)
         {
             _connection = connection;
 
-            var packetActivator = ObjectActivatorFactory.CreateParameterized<IObjectPool<TRawMessage>, TPacket>();
-            _packetPool = new ObjectPool<TPacket>(() => packetActivator(_rawMessagePool));
-            _rawMessagePool = new ObjectPool<TRawMessage>();
+            _rawMessageActivator = ObjectActivatorFactory.Create<TRawMessage>();
+            _packetActivator = ObjectActivatorFactory.CreateWithValues<Func<TRawMessage>, TPacket>(_rawMessageActivator);
         }
 
         public void ProcessIncomingPacket(INetDataReader reader)
         {
-            var packet = _packetPool.Rent();
+            var packet = _packetActivator();
 
             try
             {
@@ -34,7 +33,6 @@ namespace Lure.Net.Channels
             }
             catch (NetSerializationException)
             {
-                _packetPool.Return(packet);
                 return;
             }
 
@@ -49,12 +47,6 @@ namespace Lure.Net.Channels
             }
             catch (NetSerializationException)
             {
-                foreach (var rawMessage in packet.RawMessages)
-                {
-                    _rawMessagePool.Return(rawMessage);
-                }
-                packet.RawMessages.Clear();
-                _packetPool.Return(packet);
                 return;
             }
 
@@ -68,13 +60,7 @@ namespace Lure.Net.Channels
                 {
                     OnIncomingRawMessage(rawMessage);
                 }
-                else
-                {
-                    _rawMessagePool.Return(rawMessage);
-                }
             }
-
-            _packetPool.Return(packet);
         }
 
         public IList<INetPacket> CollectOutgoingPackets()
@@ -90,9 +76,6 @@ namespace Lure.Net.Channels
                 {
                     rawMessage.Timestamp = now;
                 }
-
-#error Pool Packet
-                _packetPool.Return(packet);
             }
             return outgoingPackets.Cast<INetPacket>().ToList();
         }
@@ -144,8 +127,7 @@ namespace Lure.Net.Channels
 
         protected TPacket CreateOutgoingPacket()
         {
-            var packet = _packetPool.Rent();
-            packet.Direction = NetPacketDirection.Outgoing;
+            var packet = _packetActivator();
 
             PrepareOutgoingPacket(packet);
 
@@ -156,7 +138,7 @@ namespace Lure.Net.Channels
 
         protected TRawMessage CreateOutgoingRawMessage(byte[] data)
         {
-            var rawMessage = _rawMessagePool.Rent();
+            var rawMessage = _rawMessageActivator();
             rawMessage.Timestamp = null;
             rawMessage.Data = data;
 
@@ -172,26 +154,5 @@ namespace Lure.Net.Channels
         protected abstract void OnOutgoingPacket(TPacket packet);
 
         protected abstract void OnOutgoingRawMessage(TRawMessage rawMessage);
-
-
-        private bool _disposed;
-
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _packetPool.Dispose();
-                    _rawMessagePool.Dispose();
-                }
-                _disposed = true;
-            }
-        }
     }
 }

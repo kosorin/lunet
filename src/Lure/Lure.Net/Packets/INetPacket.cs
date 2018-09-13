@@ -5,9 +5,6 @@ namespace Lure.Net.Packets
 {
     public interface INetPacket
     {
-        [Obsolete]
-        NetPacketDirection Direction { get; set; }
-
         void DeserializeHeader(INetDataReader reader);
 
         void DeserializeData(INetDataReader reader);

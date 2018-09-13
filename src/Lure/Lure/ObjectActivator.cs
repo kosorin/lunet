@@ -14,7 +14,7 @@ namespace Lure
 
         public static Func<TObject> Create<TObject>(Type objectType)
         {
-            var ctor = objectType.GetConstructors().Where(x => x.GetParameters().Length == 0).Single();
+            var ctor = objectType.GetConstructors().Single(x => x.GetParameters().Length == 0);
             return CreateCore<TObject>(ctor);
         }
 

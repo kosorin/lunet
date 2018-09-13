@@ -215,10 +215,7 @@ namespace Lure.Net.Channels
                 {
                     foreach (var rawMessageSeq in rawMessageSeqs)
                     {
-                        if (_outgoingRawMessageQueue.Remove(rawMessageSeq, out var rawMessage))
-                        {
-                            _rawMessagePool.Return(rawMessage);
-                        }
+                        _outgoingRawMessageQueue.Remove(rawMessageSeq);
                     }
                 }
             }

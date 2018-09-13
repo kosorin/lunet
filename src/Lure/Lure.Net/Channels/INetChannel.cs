@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Lure.Net.Channels
 {
-    public interface INetChannel : IDisposable
+    public interface INetChannel
     {
         void ProcessIncomingPacket(INetDataReader reader);
 

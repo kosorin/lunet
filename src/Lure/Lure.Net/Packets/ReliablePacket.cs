@@ -1,12 +1,12 @@
-﻿using Lure.Collections;
-using Lure.Net.Data;
+﻿using Lure.Net.Data;
 using Lure.Net.Extensions;
+using System;
 
 namespace Lure.Net.Packets
 {
-    internal class ReliablePacket : NetPacket<SequencedRawMessage>, IPoolable
+    internal class ReliablePacket : NetPacket<SequencedRawMessage>
     {
-        public ReliablePacket(IObjectPool<SequencedRawMessage> rawMessagePool) : base(rawMessagePool)
+        public ReliablePacket(Func<SequencedRawMessage> rawMessageActivator) : base(rawMessageActivator)
         {
         }
 
@@ -19,19 +19,6 @@ namespace Lure.Net.Packets
         public SeqNo Ack { get; set; }
 
         public BitVector AckBuffer { get; set; }
-
-        void IPoolable.OnRent()
-        {
-        }
-
-        void IPoolable.OnReturn()
-        {
-            if (Direction == NetPacketDirection.Outgoing)
-            {
-                // Outgoing raw messages are saved in a channel and waiting for an ack
-            }
-            RawMessages.Clear();
-        }
 
         protected override void DeserializeHeaderCore(INetDataReader reader)
         {

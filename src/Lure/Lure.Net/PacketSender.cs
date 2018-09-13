@@ -26,11 +26,6 @@ namespace Lure.Net
                 return;
             }
 
-            if (packet.Direction != NetPacketDirection.Outgoing)
-            {
-                throw new ArgumentException("Invalid packet direction.", nameof(packet));
-            }
-
             var token = _tokenPool.Rent();
 
             var writer = (NetDataWriter)token.UserToken;

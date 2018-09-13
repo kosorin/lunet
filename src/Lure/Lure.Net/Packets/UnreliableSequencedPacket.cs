@@ -1,32 +1,16 @@
-﻿using Lure.Collections;
-using Lure.Net.Data;
+﻿using Lure.Net.Data;
 using Lure.Net.Extensions;
+using System;
 
 namespace Lure.Net.Packets
 {
-    internal class UnreliableSequencedPacket : NetPacket<SequencedRawMessage>, IPoolable
+    internal class UnreliableSequencedPacket : NetPacket<SequencedRawMessage>
     {
-        public UnreliableSequencedPacket(IObjectPool<SequencedRawMessage> rawMessagePool) : base(rawMessagePool)
+        public UnreliableSequencedPacket(Func<SequencedRawMessage> rawMessageActivator) : base(rawMessageActivator)
         {
         }
 
         public SeqNo Seq { get; set; }
-
-        void IPoolable.OnRent()
-        {
-        }
-
-        void IPoolable.OnReturn()
-        {
-            if (Direction == NetPacketDirection.Outgoing)
-            {
-                foreach (var rawMessage in RawMessages)
-                {
-                    _rawMessagePool.Return(rawMessage);
-                }
-            }
-            RawMessages.Clear();
-        }
 
         protected override void DeserializeHeaderCore(INetDataReader reader)
         {
