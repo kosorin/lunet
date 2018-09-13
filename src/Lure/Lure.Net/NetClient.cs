@@ -30,18 +30,6 @@ namespace Lure.Net
         public NetConnection Connection => _connection;
 
 
-        public void Connect()
-        {
-            Start();
-            Connection.Connect();
-        }
-
-        public void Disconnect()
-        {
-            Connection.Disconnect();
-            Stop();
-        }
-
         protected override void OnSetup()
         {
             var hostAddress = NetHelper.ResolveAddress(_config.Hostname, _config.AddressFamily);

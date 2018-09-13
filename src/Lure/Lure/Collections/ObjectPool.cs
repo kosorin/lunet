@@ -9,7 +9,7 @@ namespace Lure.Collections
     {
         private readonly bool isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
         private readonly int _capacity;
-        private readonly ObjectActivator<TItem> _activator;
+        private readonly Func<TItem> _activator;
         private readonly ConcurrentQueue<TItem> _objects;
         private bool _disposed;
 
@@ -18,7 +18,7 @@ namespace Lure.Collections
         {
         }
 
-        public ObjectPool(ObjectActivator<TItem> activator)
+        public ObjectPool(Func<TItem> activator)
             : this(int.MaxValue, activator)
         {
         }
@@ -35,7 +35,7 @@ namespace Lure.Collections
             _objects = new ConcurrentQueue<TItem>();
         }
 
-        private ObjectPool(int capacity, ObjectActivator<TItem> activator)
+        private ObjectPool(int capacity, Func<TItem> activator)
         {
             if (capacity <= 0)
             {

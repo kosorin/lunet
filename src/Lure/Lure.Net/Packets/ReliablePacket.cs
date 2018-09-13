@@ -6,7 +6,7 @@ namespace Lure.Net.Packets
 {
     internal class ReliablePacket : NetPacket<SequencedRawMessage>, IPoolable
     {
-        public ReliablePacket(ObjectPool<SequencedRawMessage> rawMessagePool) : base(rawMessagePool)
+        public ReliablePacket(IObjectPool<SequencedRawMessage> rawMessagePool) : base(rawMessagePool)
         {
         }
 

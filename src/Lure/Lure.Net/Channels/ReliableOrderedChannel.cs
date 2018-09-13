@@ -1,9 +1,6 @@
 ﻿using Lure.Extensions.NetCore;
 using Lure.Net.Data;
-using Lure.Net.Messages;
 using Lure.Net.Packets;
-using Serilog;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -27,20 +24,8 @@ namespace Lure.Net.Channels
 
         private bool _requireAcknowledgement;
 
-        public ReliableOrderedChannel(byte id, NetConnection connection) : base(id, connection)
+        public ReliableOrderedChannel(NetConnection connection) : base(connection)
         {
-        }
-
-        public override void Update()
-        {
-            base.Update();
-
-            if (_requireAcknowledgement)
-            {
-                _requireAcknowledgement = false;
-
-                SendPacket(CreateOutgoingPacket());
-            }
         }
 
         public override IList<byte[]> GetReceivedMessages()
@@ -95,6 +80,21 @@ namespace Lure.Net.Channels
             _incomingRawMessageQueue[rawMessage.Seq] = rawMessage;
         }
 
+
+        protected override IList<ReliablePacket> PackOutgoingRawMessages(List<SequencedRawMessage> rawMessages)
+        {
+            var packets = base.PackOutgoingRawMessages(rawMessages);
+
+            if (_requireAcknowledgement)
+            {
+                _requireAcknowledgement = false;
+
+                var ackPacket = CreateOutgoingPacket();
+                packets.Add(ackPacket);
+            }
+
+            return packets;
+        }
 
         protected override List<SequencedRawMessage> GetOutgoingRawMessages()
         {

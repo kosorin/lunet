@@ -22,35 +22,26 @@ namespace Pegi.Client
                     resetEvent.Set();
                 };
 
-                client.Connect();
+                client.Start();
 
                 Thread.Sleep(500);
 
-                for (int i = 0; i <= 1_000_000; i++)
+                for (int i = 0; ; i++)
                 {
-                    if (resetEvent.Wait(0))
+                    if (resetEvent.IsSet)
                     {
                         break;
                     }
 
-                    if (client.IsRunning && client.Connection.State == NetConnectionState.Connected)
-                    {
-                        var message = NetMessageManager.Create<DebugMessage>();
-                        message.Integer = i;
-                        message.Float = i * 3;
-                        client.Connection.SendMessage(message);
-                        Thread.Sleep(1000 / 50);
+                    var message = NetMessageManager.Create<DebugMessage>();
+                    message.Integer = i;
+                    message.Float = i * 3;
+                    client.Connection.SendMessage(1, message);
 
-                        if (i == 200)
-                        {
-                            client.Disconnect();
-                        }
-                    }
+                    Thread.Sleep(1000 / 50);
                 }
 
-                resetEvent.Wait();
-
-                client.Disconnect();
+                client.Stop();
             }
 
             Thread.Sleep(1000);

@@ -2,6 +2,7 @@
 using Lure.Net.Data;
 using Lure.Net.Packets;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Lure.Net.Channels
 {
@@ -9,28 +10,18 @@ namespace Lure.Net.Channels
         where TPacket : NetPacket<TRawMessage>
         where TRawMessage : RawMessage
     {
-        protected readonly byte _id;
         protected readonly NetConnection _connection;
 
-        protected readonly ObjectPool<TPacket> _packetPool;
-        protected readonly ObjectPool<TRawMessage> _rawMessagePool;
+        protected readonly IObjectPool<TPacket> _packetPool;
+        protected readonly IObjectPool<TRawMessage> _rawMessagePool;
 
-        protected NetChannel(byte id, NetConnection connection)
+        protected NetChannel(NetConnection connection)
         {
-            _id = id;
             _connection = connection;
 
-            var packetActivator = ObjectActivatorFactory.CreateParameterized<ObjectPool<TRawMessage>, TPacket>();
+            var packetActivator = ObjectActivatorFactory.CreateParameterized<IObjectPool<TRawMessage>, TPacket>();
             _packetPool = new ObjectPool<TPacket>(() => packetActivator(_rawMessagePool));
             _rawMessagePool = new ObjectPool<TRawMessage>();
-        }
-
-        public byte Id => _id;
-
-
-        public virtual void Update()
-        {
-            SendOutgoingMessages();
         }
 
         public void ProcessIncomingPacket(INetDataReader reader)
@@ -86,6 +77,26 @@ namespace Lure.Net.Channels
             _packetPool.Return(packet);
         }
 
+        public IList<INetPacket> CollectOutgoingPackets()
+        {
+            var outgoingRawMessages = GetOutgoingRawMessages();
+            var outgoingPackets = PackOutgoingRawMessages(outgoingRawMessages);
+            foreach (var packet in outgoingPackets)
+            {
+                OnOutgoingPacket(packet);
+
+                var now = Timestamp.Current;
+                foreach (var rawMessage in packet.RawMessages)
+                {
+                    rawMessage.Timestamp = now;
+                }
+
+#error Pool Packet
+                _packetPool.Return(packet);
+            }
+            return outgoingPackets.Cast<INetPacket>().ToList();
+        }
+
         public abstract IList<byte[]> GetReceivedMessages();
 
         public void SendMessage(byte[] data)
@@ -104,28 +115,44 @@ namespace Lure.Net.Channels
         protected abstract void OnIncomingRawMessage(TRawMessage rawMessage);
 
 
-        private void SendOutgoingMessages()
+        protected virtual IList<TPacket> PackOutgoingRawMessages(List<TRawMessage> rawMessages)
         {
-            var outgoingRawMessages = GetOutgoingRawMessages();
-            var outgoingPackets = PackOutgoingRawMessages(outgoingRawMessages);
-            foreach (var packet in outgoingPackets)
-            {
-                SendPacket(packet);
-            }
-        }
+            var packets = new List<TPacket>();
 
-        protected abstract List<TRawMessage> GetOutgoingRawMessages();
+            var packet = CreateOutgoingPacket();
+            var packetLength = 0;
+            foreach (var rawMessage in rawMessages)
+            {
+                if (packetLength + rawMessage.Length > _connection.MTU)
+                {
+                    packets.Add(packet);
+
+                    packet = CreateOutgoingPacket();
+                    packetLength = 0;
+                }
+                packet.RawMessages.Add(rawMessage);
+                packetLength += rawMessage.Length;
+            }
+
+            if (packetLength > 0)
+            {
+                packets.Add(packet);
+            }
+
+            return packets;
+        }
 
         protected TPacket CreateOutgoingPacket()
         {
             var packet = _packetPool.Rent();
             packet.Direction = NetPacketDirection.Outgoing;
-            packet.ChannelId = _id;
 
             PrepareOutgoingPacket(packet);
 
             return packet;
         }
+
+        protected abstract List<TRawMessage> GetOutgoingRawMessages();
 
         protected TRawMessage CreateOutgoingRawMessage(byte[] data)
         {
@@ -145,46 +172,6 @@ namespace Lure.Net.Channels
         protected abstract void OnOutgoingPacket(TPacket packet);
 
         protected abstract void OnOutgoingRawMessage(TRawMessage rawMessage);
-
-
-        protected void SendPacket(TPacket packet)
-        {
-            _connection.Peer.SendPacket(_connection, packet);
-
-            OnOutgoingPacket(packet);
-
-            var now = Timestamp.Current;
-            foreach (var rawMessage in packet.RawMessages)
-            {
-                rawMessage.Timestamp = now;
-            }
-
-            _packetPool.Return(packet);
-        }
-
-
-        private IEnumerable<TPacket> PackOutgoingRawMessages(List<TRawMessage> rawMessages)
-        {
-            var packet = CreateOutgoingPacket();
-            var packetLength = 0;
-            foreach (var rawMessage in rawMessages)
-            {
-                if (packetLength + rawMessage.Length > _connection.MTU)
-                {
-                    yield return packet;
-
-                    packet = CreateOutgoingPacket();
-                    packetLength = 0;
-                }
-                packet.RawMessages.Add(rawMessage);
-                packetLength += rawMessage.Length;
-            }
-
-            if (packetLength > 0)
-            {
-                yield return packet;
-            }
-        }
 
 
         private bool _disposed;

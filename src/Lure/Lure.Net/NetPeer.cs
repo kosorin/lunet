@@ -1,5 +1,4 @@
-﻿using Lure.Collections;
-using Lure.Net.Data;
+﻿using Lure.Net.Channels;
 using Lure.Net.Extensions;
 using Lure.Net.Packets;
 using Serilog;
@@ -22,8 +21,8 @@ namespace Lure.Net
         private Socket _socket;
         private Thread _thread;
 
-        private SocketAsyncEventArgs _receiveToken;
-        private ObjectPool<SocketAsyncEventArgs> _sendTokenPool;
+        private PacketReceiver _packetReceiver;
+        private PacketSender _packetSender;
 
         private ConcurrentDictionary<IPEndPoint, NetConnection> _connections;
 
@@ -36,7 +35,10 @@ namespace Lure.Net
             _config = config;
 
             _state = NetPeerState.Unstarted;
+
+            ChannelFactory = new NetChannelFactory();
         }
+
 
         public NetPeerConfiguration Config => _config;
 
@@ -46,14 +48,26 @@ namespace Lure.Net
 
         public IPEndPoint LocalEndPoint => (IPEndPoint)_socket?.LocalEndPoint;
 
+        public NetChannelFactory ChannelFactory { get; }
+
         public IEnumerable<NetConnection> Connections => _connections.Values;
+
+        internal Socket Socket => _socket;
+
+        internal PacketReceiver PacketReceiver => _packetReceiver;
+
+        internal PacketSender PacketSender => _packetSender;
 
 
         public void Start()
         {
-            if (_state != NetPeerState.Unstarted)
+            if (_state == NetPeerState.Starting || _state == NetPeerState.Running)
             {
                 return;
+            }
+            else if (_state != NetPeerState.Unstarted)
+            {
+                throw new NetException("Peer is in wrong state.");
             }
 
             _state = NetPeerState.Starting;
@@ -61,6 +75,8 @@ namespace Lure.Net
 
             try
             {
+                ChannelFactory.Lock();
+
                 Setup();
 
                 _state = NetPeerState.Running;
@@ -77,9 +93,13 @@ namespace Lure.Net
 
         public void Stop()
         {
-            if (_state != NetPeerState.Running)
+            if (_state == NetPeerState.Stopping || _state == NetPeerState.Stopped)
             {
                 return;
+            }
+            else if (_state != NetPeerState.Running)
+            {
+                throw new NetException("Peer is in wrong state.");
             }
 
             _state = NetPeerState.Stopping;
@@ -120,8 +140,10 @@ namespace Lure.Net
         {
             BindSocket();
 
-            _receiveToken = CreateReceiveToken();
-            _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateSendToken);
+            _packetSender = new PacketSender(this);
+
+            _packetReceiver = new PacketReceiver(this);
+            _packetReceiver.Received += OnPacketReceived;
 
             _connections = new ConcurrentDictionary<IPEndPoint, NetConnection>();
 
@@ -136,23 +158,23 @@ namespace Lure.Net
             {
                 foreach (var connection in _connections.Values)
                 {
-                    connection.Disconnect();
                     connection.Dispose();
                 }
                 _connections.Clear();
                 _connections = null;
             }
 
-            if (_receiveToken != null)
+            if (_packetReceiver != null)
             {
-                _receiveToken.Dispose();
-                _receiveToken = null;
+                _packetReceiver.Received -= OnPacketReceived;
+                _packetReceiver.Dispose();
+                _packetReceiver = null;
             }
 
-            if (_sendTokenPool != null)
+            if (_packetSender != null)
             {
-                _sendTokenPool.Dispose();
-                _sendTokenPool = null;
+                _packetSender.Dispose();
+                _packetSender = null;
             }
 
             if (_socket != null)
@@ -204,7 +226,7 @@ namespace Lure.Net
         {
             const int frame = Time.MillisecondsPerSecond / FPS;
 
-            StartReceive();
+            _packetReceiver.StartReceive();
 
             var previous = Timestamp.Current;
             while (IsRunning)
@@ -234,143 +256,21 @@ namespace Lure.Net
         }
 
 
-        private SocketAsyncEventArgs CreateReceiveToken()
-        {
-            var buffer = new byte[_config.PacketBufferSize];
-            var token = new SocketAsyncEventArgs
-            {
-                RemoteEndPoint = _config.AddressFamily.GetAnyEndPoint(),
-                UserToken = new NetDataReader(buffer),
-            };
-            token.Completed += IO_Completed;
-            token.SetBuffer(buffer, 0, buffer.Length);
-            return token;
-        }
-
-        private void StartReceive()
-        {
-            if (!IsRunning)
-            {
-                return;
-            }
-
-            // TODO: Is it necessary to reset remote end point every receive call?
-            _receiveToken.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
-            if (!_socket.ReceiveFromAsync(_receiveToken))
-            {
-                ProcessReceive(_receiveToken);
-            }
-        }
-
-        private void ProcessReceive(SocketAsyncEventArgs token)
-        {
-            if (!IsRunning)
-            {
-                return;
-            }
-
-            if (token.IsOk())
-            {
-                var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
-                var reader = token.GetReader();
-                OnPacketReceived(remoteEndPoint, reader);
-            }
-
-            StartReceive();
-        }
-
-        private void OnPacketReceived(IPEndPoint remoteEndPoint, INetDataReader reader)
+        private void OnPacketReceived(IPacketReceiver sender, ReceivedPacketEventArgs args)
         {
             NetConnection connection;
             if (Config.AcceptIncomingConnections)
             {
-                connection = _connections.GetOrAdd(remoteEndPoint, x => new NetConnection(x, this));
+                connection = _connections.GetOrAdd(args.RemoteEndPoint, x => new NetConnection(x, this));
             }
             else
             {
-                _connections.TryGetValue(remoteEndPoint, out connection);
+                _connections.TryGetValue(args.RemoteEndPoint, out connection);
             }
 
             if (connection != null)
             {
-                connection.ProcessIncomingPacket(reader);
-            }
-        }
-
-
-        internal void SendPacket(NetConnection connection, INetPacket packet)
-        {
-            if (packet.Direction != NetPacketDirection.Outgoing)
-            {
-                throw new ArgumentException("Invalid packet direction.", nameof(packet));
-            }
-
-            var token = _sendTokenPool.Rent();
-
-            var writer = (NetDataWriter)token.UserToken;
-            try
-            {
-                writer.Reset();
-                packet.SerializeHeader(writer);
-                packet.SerializeData(writer);
-                writer.Flush();
-            }
-            catch (NetSerializationException)
-            {
-                _sendTokenPool.Return(token);
-                return;
-            }
-
-            token.SetWriter(writer);
-            token.RemoteEndPoint = connection.RemoteEndPoint;
-
-            StartSend(token);
-        }
-
-        private SocketAsyncEventArgs CreateSendToken()
-        {
-            var token = new SocketAsyncEventArgs
-            {
-                UserToken = new NetDataWriter(_config.PacketBufferSize),
-            };
-            token.Completed += IO_Completed;
-            return token;
-        }
-
-        private void StartSend(SocketAsyncEventArgs token)
-        {
-            if (!IsRunning)
-            {
-                _sendTokenPool.Return(token);
-                return;
-            }
-
-            if (!_socket.SendToAsync(token))
-            {
-                ProcessSend(token);
-            }
-        }
-
-        private void ProcessSend(SocketAsyncEventArgs token)
-        {
-            _sendTokenPool.Return(token);
-        }
-
-
-        private void IO_Completed(object sender, SocketAsyncEventArgs token)
-        {
-            switch (token.LastOperation)
-            {
-            case SocketAsyncOperation.ReceiveFrom:
-                ProcessReceive(token);
-                break;
-
-            case SocketAsyncOperation.SendTo:
-                ProcessSend(token);
-                break;
-
-            default:
-                throw new InvalidOperationException("Unexpected socket async operation.");
+                connection.ProcessIncomingPacket(args.Reader);
             }
         }
 

@@ -14,12 +14,9 @@ namespace Lure.Net
         private int _sendBufferSize = 10 * 1024 * 1024; // 10 MB
         private int _receiveBufferSize = 10 * 1024 * 1024; // 10 MB
         private int _packetBufferSize = 2 * 1024; // 2 kB
+        private int _messageBufferSize = 32; // 32 B
         private int _closeTimeout = 2; // 2 seconds
         private int _maxClients = 32;
-        private Dictionary<byte, NetChannelType> _channels = new Dictionary<byte, NetChannelType>
-        {
-            [NetConnection.DefaultChannelId] = NetChannelType.ReliableOrdered,
-        };
 
 
         public bool AcceptIncomingConnections
@@ -64,6 +61,12 @@ namespace Lure.Net
             set => Set(ref _packetBufferSize, value);
         }
 
+        public int MessageBufferSize
+        {
+            get => _messageBufferSize;
+            set => Set(ref _messageBufferSize, value);
+        }
+
         public int CloseTimeout
         {
             get => _closeTimeout;
@@ -74,12 +77,6 @@ namespace Lure.Net
         {
             get => _maxClients;
             set => Set(ref _maxClients, value);
-        }
-
-        public Dictionary<byte, NetChannelType> Channels
-        {
-            get => _channels;
-            set => Set(ref _channels, value);
         }
 
 

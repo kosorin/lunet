@@ -8,27 +8,25 @@ namespace Lure.Net.Packets
     internal abstract class NetPacket<TRawMessage> : INetPacket
         where TRawMessage : RawMessage
     {
-        protected readonly ObjectPool<TRawMessage> _rawMessagePool;
+        private static int SerializationCheck => 0x55555555;
 
-        protected NetPacket(ObjectPool<TRawMessage> rawMessagePool)
+        protected readonly IObjectPool<TRawMessage> _rawMessagePool;
+
+        protected NetPacket(IObjectPool<TRawMessage> rawMessagePool)
         {
             _rawMessagePool = rawMessagePool;
         }
 
-        public byte ChannelId { get; set; }
-
         public List<TRawMessage> RawMessages { get; set; } = new List<TRawMessage>();
 
-        public NetPacketDirection Direction { get; set; }
+        public byte ChannelId { get; set; }
 
-        private static int SerializationCheck => 0x55555555;
+        public NetPacketDirection Direction { get; set; }
 
         public void DeserializeHeader(INetDataReader reader)
         {
             try
             {
-                // Skip reading a channel id - already read and used to create a channel
-
                 DeserializeHeaderCore(reader);
 
                 reader.PadBits();
@@ -66,8 +64,6 @@ namespace Lure.Net.Packets
         {
             try
             {
-                writer.WriteByte(ChannelId);
-
                 SerializeHeaderCore(writer);
 
                 writer.PadBits();

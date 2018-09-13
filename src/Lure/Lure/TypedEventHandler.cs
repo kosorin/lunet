@@ -2,7 +2,7 @@
 
 namespace Lure
 {
-    public delegate void TypedEventHandler<in TSender>(TSender sender, EventArgs e);
+    public delegate void TypedEventHandler<in TSender>(TSender sender, EventArgs args);
 
-    public delegate void TypedEventHandler<in TSender, in TArgs>(TSender sender, TArgs e);
+    public delegate void TypedEventHandler<in TSender, in TArgs>(TSender sender, TArgs args);
 }

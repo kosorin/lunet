@@ -1,7 +1,6 @@
 ﻿using Lure.Net;
 using Serilog;
 using System;
-using System.Net.Sockets;
 using System.Threading;
 
 namespace Pegi.Server

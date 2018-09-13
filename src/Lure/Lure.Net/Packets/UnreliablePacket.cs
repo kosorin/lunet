@@ -5,7 +5,7 @@ namespace Lure.Net.Packets
 {
     internal class UnreliablePacket : NetPacket<RawMessage>, IPoolable
     {
-        public UnreliablePacket(ObjectPool<RawMessage> rawMessagePool) : base(rawMessagePool)
+        public UnreliablePacket(IObjectPool<RawMessage> rawMessagePool) : base(rawMessagePool)
         {
         }
 

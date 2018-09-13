@@ -2,7 +2,7 @@
 
 namespace Lure.Net.Messages
 {
-    [NetMessage(SystemMessageType.Debug)]
+    [NetMessage(0)]
     public class DebugMessage : NetMessage
     {
         public int Integer { get; set; }

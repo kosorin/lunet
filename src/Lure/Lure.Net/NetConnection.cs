@@ -3,6 +3,7 @@ using Lure.Extensions;
 using Lure.Net.Channels;
 using Lure.Net.Data;
 using Lure.Net.Messages;
+using Lure.Net.Packets;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -15,35 +16,19 @@ namespace Lure.Net
     /// </summary>
     public class NetConnection : IDisposable
     {
-        internal static byte SystemChannelId => 0;
-        public static byte DefaultChannelId => 1;
+        internal static byte DefaultChannelId => 1;
 
-        private const int InitialMessageBufferSize = 32;
-
-        private readonly ObjectPool<NetDataWriter> _messageWriterPool;
-        private readonly INetChannel _systemChannel;
-        private readonly Dictionary<byte, INetChannel> _channels;
-        private volatile NetConnectionState _state;
-
-        private string _challengeCode;
+        private readonly IObjectPool<NetDataWriter> _messageWriterPool;
+        private readonly IDictionary<byte, INetChannel> _channels;
 
         internal NetConnection(IPEndPoint remoteEndPoint, NetPeer peer)
         {
-            _messageWriterPool = new ObjectPool<NetDataWriter>(() => new NetDataWriter(InitialMessageBufferSize));
-
-            _systemChannel = new ReliableOrderedChannel(SystemChannelId, this);
-            _channels = new Dictionary<byte, INetChannel>
-            {
-                [DefaultChannelId] = new ReliableOrderedChannel(DefaultChannelId, this),
-            };
-
-            _state = NetConnectionState.Disconnected;
+            _messageWriterPool = new ObjectPool<NetDataWriter>(() => new NetDataWriter(peer.Config.MessageBufferSize));
+            _channels = peer.ChannelFactory.Create(this);
 
             RemoteEndPoint = remoteEndPoint;
             Peer = peer;
         }
-
-        public NetConnectionState State => _state;
 
         public IPEndPoint RemoteEndPoint { get; }
 
@@ -52,105 +37,21 @@ namespace Lure.Net
         internal int MTU => 1000;
 
 
-        internal void Connect()
-        {
-            if (_state == NetConnectionState.Disconnected)
-            {
-                var message = NetMessageManager.Create<ConnectionRequestMessage>();
-                SendSystemMessage(message);
-                _state = NetConnectionState.Connecting;
-            }
-        }
-
-        internal void Disconnect()
-        {
-            if (_state == NetConnectionState.Connected)
-            {
-                var message = NetMessageManager.Create<DisconnectMessage>();
-                SendSystemMessage(message);
-            }
-            _state = NetConnectionState.Disconnected;
-        }
-
         internal void Update()
         {
-            SystemUpdate();
-
             foreach (var (channelId, channel) in _channels)
             {
-                channel.Update();
+                foreach (var packet in channel.CollectOutgoingPackets())
+                {
+                    Peer.PacketSender.Send(RemoteEndPoint, channelId, packet);
+                }
 
                 foreach (var data in channel.GetReceivedMessages())
                 {
                     var message = DeserializeMessage(data);
-                    if (message != null)
+                    if (message != null && message is DebugMessage testMessage && testMessage.Integer % 10 == 0)
                     {
-                        if (message is DebugMessage testMessage && testMessage.Integer % 10 == 0)
-                        {
-                            Log.Information("Message: {Message}", message);
-                        }
-                    }
-                }
-            }
-        }
-
-        private void SystemUpdate()
-        {
-            _systemChannel.Update();
-
-            foreach (var data in _systemChannel.GetReceivedMessages())
-            {
-                var systemMessage = DeserializeMessage(data) as SystemMessage;
-                if (systemMessage != null)
-                {
-                    Log.Information("...");
-                    switch (systemMessage.Type)
-                    {
-                    case SystemMessageType.ConnectionRequest:
-                        if (_state == NetConnectionState.Disconnected)
-                        {
-                            _challengeCode = "TEST";
-                            var challengeMessage = NetMessageManager.Create<ConnectionChallengeMessage>();
-                            SendSystemMessage(challengeMessage);
-                            _state = NetConnectionState.Connecting;
-                            Log.Information("ConnectionRequest");
-                        }
-                        break;
-                    case SystemMessageType.ConnectionChallenge:
-                        if (_state == NetConnectionState.Connecting && _challengeCode == null)
-                        {
-                            _challengeCode = "TEST";
-                            var responseMessage = NetMessageManager.Create<ConnectionResponseMessage>();
-                            SendSystemMessage(responseMessage);
-                            Log.Information("ConnectionChallenge");
-                        }
-                        break;
-                    case SystemMessageType.ConnectionResponse:
-                        if (_state == NetConnectionState.Connecting && _challengeCode != null)
-                        {
-                            _challengeCode = "TEST";
-                            var acceptMessage = NetMessageManager.Create<ConnectionAcceptMessage>();
-                            SendSystemMessage(acceptMessage);
-                            _state = NetConnectionState.Connected;
-                            Log.Information("ConnectionResponse");
-                        }
-                        break;
-                    case SystemMessageType.ConnectionAccept:
-                        _state = NetConnectionState.Connected;
-                        Log.Information("ConnectionAccept");
-                        break;
-                    case SystemMessageType.ConnectionReject:
-                        _state = NetConnectionState.Error;
-                        Log.Information("ConnectionReject");
-                        break;
-
-                    case SystemMessageType.Disconnect:
-                        _state = NetConnectionState.Disconnected;
-                        Log.Information("Disconnected");
-                        break;
-
-                    default:
-                        break;
+                        Log.Information("Message: {Message}", message);
                     }
                 }
             }
@@ -160,30 +61,12 @@ namespace Lure.Net
         {
             var channelId = reader.ReadByte();
 
-            if (channelId == SystemChannelId)
-            {
-                _systemChannel.ProcessIncomingPacket(reader);
-                return;
-            }
-
-            if (_state != NetConnectionState.Connected)
-            {
-                // Drop packets before connect
-                return;
-            }
-
             if (_channels.TryGetValue(channelId, out var channel))
             {
                 channel.ProcessIncomingPacket(reader);
             }
         }
 
-
-        internal void SendSystemMessage(SystemMessage message)
-        {
-            SendMessage(SystemChannelId, message);
-            _systemChannel.Update();
-        }
 
         public void SendMessage(NetMessage message)
         {
@@ -192,32 +75,7 @@ namespace Lure.Net
 
         public void SendMessage(byte channelId, NetMessage message)
         {
-            INetChannel channel;
-            if (channelId == SystemChannelId)
-            {
-                if (message is SystemMessage)
-                {
-                    channel = _systemChannel;
-                }
-                else
-                {
-                    throw new NetException("Using reserved system channel.");
-                }
-            }
-            else
-            {
-                if (_state == NetConnectionState.Connected)
-                {
-                    _channels.TryGetValue(channelId, out channel);
-                }
-                else
-                {
-                    // Drop messages before connect
-                    return;
-                }
-            }
-
-            if (channel != null)
+            if (_channels.TryGetValue(channelId, out var channel))
             {
                 var data = SerializeMessage(message);
                 if (data.Length > MTU)
@@ -283,7 +141,6 @@ namespace Lure.Net
                 {
                     _messageWriterPool.Dispose();
 
-                    _systemChannel.Dispose();
                     foreach (var channel in _channels.Values)
                     {
                         channel.Dispose();

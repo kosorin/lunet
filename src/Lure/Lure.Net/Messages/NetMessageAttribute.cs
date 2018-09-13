@@ -10,11 +10,6 @@ namespace Lure.Net.Messages
             MessageTypeId = messageTypeId;
         }
 
-        internal NetMessageAttribute(SystemMessageType systemMessageType)
-        {
-            MessageTypeId = (ushort)systemMessageType;
-        }
-
         public ushort MessageTypeId { get; }
     }
 }

@@ -8,7 +8,7 @@ namespace Lure.Net.Messages
     public static class NetMessageManager
     {
         private static readonly Dictionary<Type, ushort> TypeActivators = new Dictionary<Type, ushort>();
-        private static readonly Dictionary<ushort, ObjectActivator<NetMessage>> IdActivators = new Dictionary<ushort, ObjectActivator<NetMessage>>();
+        private static readonly Dictionary<ushort, Func<NetMessage>> IdActivators = new Dictionary<ushort, Func<NetMessage>>();
 
         static NetMessageManager()
         {
@@ -55,11 +55,6 @@ namespace Lure.Net.Messages
             {
                 return null;
             }
-        }
-
-        internal static SystemMessage Create(SystemMessageType systemMessageType)
-        {
-            return (SystemMessage)Create((ushort)systemMessageType);
         }
     }
 }

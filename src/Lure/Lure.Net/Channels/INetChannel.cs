@@ -1,16 +1,15 @@
 ﻿using Lure.Net.Data;
+using Lure.Net.Packets;
 using System;
 using System.Collections.Generic;
 
 namespace Lure.Net.Channels
 {
-    internal interface INetChannel : IDisposable
+    public interface INetChannel : IDisposable
     {
-        byte Id { get; }
-
-        void Update();
-
         void ProcessIncomingPacket(INetDataReader reader);
+
+        IList<INetPacket> CollectOutgoingPackets();
 
         IList<byte[]> GetReceivedMessages();
 
