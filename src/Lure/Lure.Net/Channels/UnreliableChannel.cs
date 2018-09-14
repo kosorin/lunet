@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    internal class UnreliableChannel : NetChannel<UnreliablePacket, RawMessage>
+    public class UnreliableChannel : NetChannel<UnreliablePacket, RawMessage>
     {
         private readonly List<RawMessage> _outgoingRawMessageQueue = new List<RawMessage>();
         private readonly List<RawMessage> _incomingRawMessageQueue = new List<RawMessage>();

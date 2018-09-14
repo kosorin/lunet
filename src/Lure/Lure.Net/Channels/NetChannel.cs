@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    internal abstract class NetChannel<TPacket, TRawMessage> : INetChannel
+    public abstract class NetChannel<TPacket, TRawMessage> : INetChannel
         where TPacket : NetPacket<TRawMessage>
         where TRawMessage : RawMessage
     {

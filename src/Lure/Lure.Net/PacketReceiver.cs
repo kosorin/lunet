@@ -1,13 +1,12 @@
 ﻿using Lure.Net.Data;
 using Lure.Net.Extensions;
-using Lure.Net.Packets;
 using System;
 using System.Net;
 using System.Net.Sockets;
 
 namespace Lure.Net
 {
-    internal class PacketReceiver : IPacketReceiver, IDisposable
+    internal class PacketReceiver : IDisposable
     {
         private readonly NetPeer _peer;
         private readonly SocketAsyncEventArgs _token;
@@ -19,8 +18,6 @@ namespace Lure.Net
 
             StartReceive();
         }
-
-        public event TypedEventHandler<IPacketReceiver, ReceivedPacketEventArgs> Received;
 
         public void StartReceive()
         {
@@ -62,15 +59,11 @@ namespace Lure.Net
             {
                 var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
                 var reader = token.GetReader();
-                OnReceived(remoteEndPoint, reader);
+                var channelId = reader.ReadByte();
+                _peer.OnReceivedPacket(remoteEndPoint, channelId, reader);
             }
 
             StartReceive();
-        }
-
-        protected virtual void OnReceived(IPEndPoint remoteEndPoint, INetDataReader reader)
-        {
-            Received?.Invoke(this, new ReceivedPacketEventArgs(remoteEndPoint, reader));
         }
 
 

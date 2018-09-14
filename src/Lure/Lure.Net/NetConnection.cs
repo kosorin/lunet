@@ -17,22 +17,23 @@ namespace Lure.Net
     {
         internal static byte DefaultChannelId => 1;
 
+        private readonly NetPeer _peer;
+
         private readonly IObjectPool<NetDataWriter> _messageWriterPool;
         private readonly IDictionary<byte, INetChannel> _channels;
 
         internal NetConnection(IPEndPoint remoteEndPoint, NetPeer peer)
         {
-            var dataWriterActivator = ObjectActivatorFactory.CreateWithValues<int, NetDataWriter>(peer.Config.MessageBufferSize);
+            _peer = peer;
+
+            var dataWriterActivator = ObjectActivatorFactory.CreateWithValues<int, NetDataWriter>(_peer.Config.MessageBufferSize);
             _messageWriterPool = new ObjectPool<NetDataWriter>(dataWriterActivator);
-            _channels = peer.ChannelFactory.Create(this);
+            _channels = _peer.ChannelFactory.Create(this);
 
             RemoteEndPoint = remoteEndPoint;
-            Peer = peer;
         }
 
         public IPEndPoint RemoteEndPoint { get; }
-
-        public NetPeer Peer { get; }
 
         internal int MTU => 1000;
 
@@ -43,7 +44,7 @@ namespace Lure.Net
             {
                 foreach (var packet in channel.CollectOutgoingPackets())
                 {
-                    Peer.PacketSender.Send(RemoteEndPoint, channelId, packet);
+                    _peer.SendPacket(RemoteEndPoint, channelId, packet);
                 }
 
                 foreach (var data in channel.GetReceivedMessages())
@@ -57,9 +58,8 @@ namespace Lure.Net
             }
         }
 
-        internal void ProcessIncomingPacket(INetDataReader reader)
+        internal void OnReceivedPacket(byte channelId, INetDataReader reader)
         {
-            var channelId = reader.ReadByte();
             if (_channels.TryGetValue(channelId, out var channel))
             {
                 channel.ProcessIncomingPacket(reader);

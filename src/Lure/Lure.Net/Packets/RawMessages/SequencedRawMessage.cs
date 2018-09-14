@@ -4,7 +4,7 @@ using System;
 
 namespace Lure.Net.Packets
 {
-    internal class SequencedRawMessage : RawMessage, IComparable<SequencedRawMessage>
+    public class SequencedRawMessage : RawMessage, IComparable<SequencedRawMessage>
     {
         public SeqNo Seq { get; set; }
 

@@ -4,7 +4,7 @@ using System;
 
 namespace Lure.Net.Packets
 {
-    internal class ReliablePacket : NetPacket<SequencedRawMessage>
+    public class ReliablePacket : NetPacket<SequencedRawMessage>
     {
         public ReliablePacket(Func<SequencedRawMessage> rawMessageActivator) : base(rawMessageActivator)
         {

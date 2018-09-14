@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace Lure.Net.Packets
 {
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal class RawMessage
+    public class RawMessage
     {
         public byte[] Data { get; set; }
 

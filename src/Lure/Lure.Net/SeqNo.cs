@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace Lure.Net
 {
     [DebuggerDisplay("{Value,nq}")]
-    internal struct SeqNo : IEquatable<SeqNo>, IComparable<SeqNo>
+    public struct SeqNo : IEquatable<SeqNo>, IComparable<SeqNo>
     {
         public const int Range = ushort.MaxValue + 1;
 

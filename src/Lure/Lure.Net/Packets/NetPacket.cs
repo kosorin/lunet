@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Lure.Net.Packets
 {
-    internal abstract class NetPacket<TRawMessage> : INetPacket
+    public abstract class NetPacket<TRawMessage> : INetPacket
         where TRawMessage : RawMessage
     {
         private static int SerializationCheck => 0x55555555;

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    internal class UnreliableSequencedChannel : NetChannel<UnreliableSequencedPacket, SequencedRawMessage>
+    public class UnreliableSequencedChannel : NetChannel<UnreliableSequencedPacket, SequencedRawMessage>
     {
         private readonly List<SequencedRawMessage> _outgoingRawMessageQueue = new List<SequencedRawMessage>();
         private readonly List<SequencedRawMessage> _incomingRawMessageQueue = new List<SequencedRawMessage>();

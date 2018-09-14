@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    internal class ReliableOrderedChannel : NetChannel<ReliablePacket, SequencedRawMessage>
+    public class ReliableOrderedChannel : NetChannel<ReliablePacket, SequencedRawMessage>
     {
         private const int ResendTimeout = 100;
 

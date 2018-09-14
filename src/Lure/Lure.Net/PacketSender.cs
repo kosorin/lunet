@@ -8,7 +8,7 @@ using System.Net.Sockets;
 
 namespace Lure.Net
 {
-    internal class PacketSender : IPacketSender, IDisposable
+    internal class PacketSender : IDisposable
     {
         private readonly NetPeer _peer;
         private readonly IObjectPool<SocketAsyncEventArgs> _tokenPool;

@@ -1,4 +1,5 @@
 ﻿using Lure.Net.Channels;
+using Lure.Net.Data;
 using Lure.Net.Extensions;
 using Lure.Net.Packets;
 using Serilog;
@@ -53,10 +54,6 @@ namespace Lure.Net
         public IEnumerable<NetConnection> Connections => _connections.Values;
 
         internal Socket Socket => _socket;
-
-        internal PacketReceiver PacketReceiver => _packetReceiver;
-
-        internal PacketSender PacketSender => _packetSender;
 
 
         public void Start()
@@ -127,7 +124,31 @@ namespace Lure.Net
         protected abstract void OnCleanup();
 
 
-        protected void InjectConnection(NetConnection connection)
+        internal void OnReceivedPacket(IPEndPoint remoteEndPoint, byte channelId, INetDataReader reader)
+        {
+            NetConnection connection;
+            if (Config.AcceptIncomingConnections)
+            {
+                connection = _connections.GetOrAdd(remoteEndPoint, x => new NetConnection(x, this));
+            }
+            else
+            {
+                _connections.TryGetValue(remoteEndPoint, out connection);
+            }
+
+            if (connection != null)
+            {
+                connection.OnReceivedPacket(channelId, reader);
+            }
+        }
+
+        internal void SendPacket(IPEndPoint remoteEndPoint, byte channelId, INetPacket packet)
+        {
+            _packetSender.Send(remoteEndPoint, channelId, packet);
+        }
+
+
+        internal void InjectConnection(NetConnection connection)
         {
             if (!_connections.TryAdd(connection.RemoteEndPoint, connection))
             {
@@ -140,10 +161,8 @@ namespace Lure.Net
         {
             BindSocket();
 
-            _packetSender = new PacketSender(this);
-
             _packetReceiver = new PacketReceiver(this);
-            _packetReceiver.Received += OnPacketReceived;
+            _packetSender = new PacketSender(this);
 
             _connections = new ConcurrentDictionary<IPEndPoint, NetConnection>();
 
@@ -164,17 +183,16 @@ namespace Lure.Net
                 _connections = null;
             }
 
-            if (_packetReceiver != null)
-            {
-                _packetReceiver.Received -= OnPacketReceived;
-                _packetReceiver.Dispose();
-                _packetReceiver = null;
-            }
-
             if (_packetSender != null)
             {
                 _packetSender.Dispose();
                 _packetSender = null;
+            }
+
+            if (_packetReceiver != null)
+            {
+                _packetReceiver.Dispose();
+                _packetReceiver = null;
             }
 
             if (_socket != null)
@@ -252,25 +270,6 @@ namespace Lure.Net
             foreach (var connection in _connections.Values)
             {
                 connection.Update();
-            }
-        }
-
-
-        private void OnPacketReceived(IPacketReceiver sender, ReceivedPacketEventArgs args)
-        {
-            NetConnection connection;
-            if (Config.AcceptIncomingConnections)
-            {
-                connection = _connections.GetOrAdd(args.RemoteEndPoint, x => new NetConnection(x, this));
-            }
-            else
-            {
-                _connections.TryGetValue(args.RemoteEndPoint, out connection);
-            }
-
-            if (connection != null)
-            {
-                connection.ProcessIncomingPacket(args.Reader);
             }
         }
 
