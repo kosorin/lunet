@@ -19,6 +19,10 @@ namespace Lure.Net
             _tokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateSendToken);
         }
 
+        public ulong TransferredBytes { get; private set; }
+
+        public int TransferredPackets { get; private set; }
+
         public void Send(IPEndPoint remoteEndPoint, byte channelId, INetPacket packet)
         {
             if (!_peer.IsRunning)
@@ -70,6 +74,11 @@ namespace Lure.Net
 
         private void ProcessSend(SocketAsyncEventArgs token)
         {
+            if (token.IsOk())
+            {
+                TransferredBytes += (ulong)token.BytesTransferred;
+                TransferredPackets++;
+            }
             _tokenPool.Return(token);
         }
 
