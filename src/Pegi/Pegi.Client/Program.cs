@@ -3,7 +3,6 @@ using Lure.Net.Channels;
 using Lure.Net.Messages;
 using Serilog;
 using System;
-using System.Net.Sockets;
 using System.Threading;
 
 namespace Pegi.Client
@@ -19,7 +18,7 @@ namespace Pegi.Client
             var config = new NetClientConfiguration
             {
                 ChannelFactory = channelFactory,
-                Hostname = "localhost",
+                //Hostname = "bur.kosorin.net",
                 Port = 45685,
                 LocalPort = 45688,
             };
@@ -53,7 +52,9 @@ namespace Pegi.Client
 
                     var message = NetMessageManager.Create<DebugMessage>();
                     message.Integer = i;
-                    message.Float = i * 3;
+                    message.Float = i;
+                    client.ServerConnection.SendMessage(message);
+                    message.Float = i * 2;
                     client.ServerConnection.SendMessage(message);
 
                     Thread.Sleep(1000 / 50);

@@ -4,7 +4,7 @@ namespace Lure.Net
 {
     public class NetClientConfiguration : NetPeerConfiguration
     {
-        private string _hostname;
+        private string _hostname = "localhost";
         private int _port;
 
 

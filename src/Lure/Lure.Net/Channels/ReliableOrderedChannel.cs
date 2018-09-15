@@ -8,6 +8,7 @@ namespace Lure.Net.Channels
 {
     public class ReliableOrderedChannel : NetChannel<ReliablePacket, SequencedRawMessage>
     {
+        // TODO: Refactor ResendTimeout
         private const int ResendTimeout = 100;
 
         private readonly ReliableRawMessageTracker _outgoingRawMessageTracker = new ReliableRawMessageTracker();

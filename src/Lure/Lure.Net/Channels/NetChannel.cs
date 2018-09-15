@@ -25,7 +25,6 @@ namespace Lure.Net.Channels
 
         public void ProcessIncomingPacket(INetDataReader reader)
         {
-            var now = Timestamp.Current;
             var packet = _packetActivator();
 
             try
@@ -53,6 +52,7 @@ namespace Lure.Net.Channels
 
             OnIncomingPacket(packet);
 
+            var now = Timestamp.Current;
             foreach (var rawMessage in packet.RawMessages)
             {
                 rawMessage.Timestamp = now;

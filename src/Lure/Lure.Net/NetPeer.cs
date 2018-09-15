@@ -222,6 +222,8 @@ namespace Lure.Net
                 var address = _config.AddressFamily.GetAnyAddress();
                 var localEndPoint = new IPEndPoint(address, _config.LocalPort ?? IPEndPoint.MinPort);
                 _socket.Bind(localEndPoint);
+
+                Log.Debug("Bind socket {LocalEndPoint}", _socket.LocalEndPoint);
             }
             catch (SocketException e)
             {

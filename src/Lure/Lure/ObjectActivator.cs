@@ -9,10 +9,10 @@ namespace Lure
     {
         public static Func<TObject> Create<TObject>()
         {
-            return Create<TObject>(typeof(TObject));
+            return CreateAs<TObject>(typeof(TObject));
         }
 
-        public static Func<TObject> Create<TObject>(Type objectType)
+        public static Func<TObject> CreateAs<TObject>(Type objectType)
         {
             var ctor = objectType.GetConstructors().Single(x => x.GetParameters().Length == 0);
             return CreateCore<TObject>(ctor);

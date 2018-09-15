@@ -27,7 +27,7 @@ namespace Lure.Net.Messages
             foreach (var (messageTypeId, type) in messageTypes)
             {
                 TypeActivators.Add(type, messageTypeId);
-                IdActivators.Add(messageTypeId, ObjectActivatorFactory.Create<NetMessage>(type));
+                IdActivators.Add(messageTypeId, ObjectActivatorFactory.CreateAs<NetMessage>(type));
             }
         }
 
@@ -39,7 +39,7 @@ namespace Lure.Net.Messages
             }
             else
             {
-                return null;
+                throw new NetException($"Unknown message type: {typeof(TMessage)}.");
             }
         }
 
@@ -53,7 +53,7 @@ namespace Lure.Net.Messages
             }
             else
             {
-                return null;
+                throw new NetException($"Unknown message type id: {typeId}.");
             }
         }
     }
