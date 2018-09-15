@@ -14,59 +14,6 @@ namespace Lure.Net.Tests
             _output = output;
         }
 
-        [Fact]
-        public void CompareTo_Performance()
-        {
-            for (int n = 0; n < 3; n++)
-            {
-                int less = 0;
-                int equal = 0;
-                int greater = 0;
-                var sw = Stopwatch.StartNew();
-                var a = SeqNo.Zero;
-                for (int i = 0; i < SeqNo.Range; i++)
-                {
-                    var b = SeqNo.Zero;
-                    for (int j = 0; j < SeqNo.Range; j += 32)
-                    {
-                        //if (a.GetDifference(b) < 0)
-                        //{
-                        //    less++;
-                        //}
-                        //if (a.GetDifference(b) == 0)
-                        //{
-                        //    equal++;
-                        //}
-                        //if (a.GetDifference(b) > 0)
-                        //{
-                        //    greater++;
-                        //}
-
-                        if (a < b)
-                        {
-                            less++;
-                        }
-                        if (a == b)
-                        {
-                            equal++;
-                        }
-                        if (a > b)
-                        {
-                            greater++;
-                        }
-
-                        b++;
-                    }
-                    a++;
-                }
-                sw.Stop();
-                _output.WriteLine($"less:    {less} in {sw.ElapsedMilliseconds} ms");
-                _output.WriteLine($"equal:   {equal} in {sw.ElapsedMilliseconds} ms");
-                _output.WriteLine($"greater: {greater} in {sw.ElapsedMilliseconds} ms");
-                _output.WriteLine("");
-            }
-        }
-
         [Theory]
         [InlineData(0, 0)]
         [InlineData(100, 100)]
