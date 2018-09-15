@@ -89,8 +89,11 @@ namespace Lure.Net.Channels
             {
                 _requireAcknowledgement = false;
 
-                var ackPacket = CreateOutgoingPacket();
-                packets.Add(ackPacket);
+                if (packets.Count == 0)
+                {
+                    var ackPacket = CreateOutgoingPacket();
+                    packets.Add(ackPacket);
+                }
             }
 
             return packets;

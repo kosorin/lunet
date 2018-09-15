@@ -1,6 +1,7 @@
 ﻿using Lure.Net.Channels;
 using Lure.Net.Data;
 using Lure.Net.Extensions;
+using Lure.Net.Messages;
 using Lure.Net.Packets;
 using Serilog;
 using System;
@@ -36,8 +37,6 @@ namespace Lure.Net
             _config = config;
 
             _state = NetPeerState.Unstarted;
-
-            ChannelFactory = new NetChannelFactory();
         }
 
 
@@ -49,11 +48,14 @@ namespace Lure.Net
 
         public IPEndPoint LocalEndPoint => (IPEndPoint)_socket?.LocalEndPoint;
 
-        public NetChannelFactory ChannelFactory { get; }
-
         public IEnumerable<NetConnection> Connections => _connections.Values;
 
         internal Socket Socket => _socket;
+
+
+        public event TypedEventHandler<NetPeer, NetConnection> Connected;
+
+        public event TypedEventHandler<NetConnection, NetMessage> MessageReceived;
 
 
         public void Start()
@@ -72,8 +74,6 @@ namespace Lure.Net
 
             try
             {
-                ChannelFactory.Lock();
-
                 Setup();
 
                 _state = NetPeerState.Running;
@@ -126,14 +126,20 @@ namespace Lure.Net
 
         internal void OnReceivedPacket(IPEndPoint remoteEndPoint, byte channelId, INetDataReader reader)
         {
-            NetConnection connection;
-            if (Config.AcceptIncomingConnections)
+            _connections.TryGetValue(remoteEndPoint, out var connection);
+            if (connection == null)
             {
-                connection = _connections.GetOrAdd(remoteEndPoint, x => new NetConnection(x, this));
-            }
-            else
-            {
-                _connections.TryGetValue(remoteEndPoint, out connection);
+                if (!Config.AcceptIncomingConnections)
+                {
+                    return;
+                }
+
+                var newConnection = new NetConnection(remoteEndPoint, this);
+                if (_connections.TryAdd(remoteEndPoint, newConnection))
+                {
+                    Connected?.Invoke(this, newConnection);
+                    connection = newConnection;
+                }
             }
 
             if (connection != null)
@@ -146,7 +152,6 @@ namespace Lure.Net
         {
             _packetSender.Send(remoteEndPoint, channelId, packet);
         }
-
 
         internal void InjectConnection(NetConnection connection)
         {
@@ -270,6 +275,10 @@ namespace Lure.Net
             foreach (var connection in _connections.Values)
             {
                 connection.Update();
+                while (connection.ReceivedMessages.TryDequeue(out var message))
+                {
+                    MessageReceived?.Invoke(connection, message);
+                }
             }
         }
 

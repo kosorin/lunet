@@ -10,8 +10,6 @@ namespace Lure.Net.Packets
 
         public override int Length => sizeof(ushort) + base.Length;
 
-        protected override string DebuggerDisplay => $"({Seq}) {base.DebuggerDisplay}";
-
         public override void Deserialize(INetDataReader reader)
         {
             Seq = reader.ReadSeqNo();

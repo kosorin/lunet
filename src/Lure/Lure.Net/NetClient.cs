@@ -27,7 +27,7 @@ namespace Lure.Net
 
         public new NetClientConfiguration Config => _config;
 
-        public NetConnection Connection => _connection;
+        public NetConnection ServerConnection => _connection;
 
 
         protected override void OnSetup()

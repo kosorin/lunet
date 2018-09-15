@@ -1,7 +1,9 @@
 ﻿using Lure.Net;
+using Lure.Net.Channels;
 using Lure.Net.Messages;
 using Serilog;
 using System;
+using System.Net.Sockets;
 using System.Threading;
 
 namespace Pegi.Client
@@ -12,7 +14,16 @@ namespace Pegi.Client
         {
             PegiLogging.Configure("Client");
 
-            using (var client = new NetClient("localhost", 45685))
+            var channelFactory = new NetChannelFactory();
+            channelFactory.Add<ReliableOrderedChannel>();
+            var config = new NetClientConfiguration
+            {
+                ChannelFactory = channelFactory,
+                Hostname = "localhost",
+                Port = 45685,
+                LocalPort = 45688,
+            };
+            using (var client = new NetClient(config))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
@@ -22,6 +33,13 @@ namespace Pegi.Client
                     resetEvent.Set();
                 };
 
+                client.MessageReceived += (connection, message) =>
+                {
+                    if (message != null && message is DebugMessage testMessage)
+                    {
+                        Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
+                    }
+                };
                 client.Start();
 
                 Thread.Sleep(500);
@@ -36,7 +54,7 @@ namespace Pegi.Client
                     var message = NetMessageManager.Create<DebugMessage>();
                     message.Integer = i;
                     message.Float = i * 3;
-                    client.Connection.SendMessage(1, message);
+                    client.ServerConnection.SendMessage(message);
 
                     Thread.Sleep(1000 / 50);
                 }

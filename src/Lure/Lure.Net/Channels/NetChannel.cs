@@ -25,6 +25,7 @@ namespace Lure.Net.Channels
 
         public void ProcessIncomingPacket(INetDataReader reader)
         {
+            var now = Timestamp.Current;
             var packet = _packetActivator();
 
             try
@@ -52,7 +53,6 @@ namespace Lure.Net.Channels
 
             OnIncomingPacket(packet);
 
-            var now = Timestamp.Current;
             foreach (var rawMessage in packet.RawMessages)
             {
                 rawMessage.Timestamp = now;
@@ -103,7 +103,7 @@ namespace Lure.Net.Channels
             var packets = new List<TPacket>();
 
             var packet = CreateOutgoingPacket();
-            var packetLength = 0;
+            var packetLength = 0; // TODO: Include packet length (without messages)
             foreach (var rawMessage in rawMessages)
             {
                 if (packetLength + rawMessage.Length > _connection.MTU)

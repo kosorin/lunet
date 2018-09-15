@@ -21,7 +21,7 @@ namespace Lure.Net
         }
 
 
-        public override void Validate()
+        protected override void OnLock()
         {
             if (string.IsNullOrWhiteSpace(Hostname))
             {
@@ -33,7 +33,7 @@ namespace Lure.Net
                 throw new ConfigurationException($"Port {Port} is out of range.");
             }
 
-            base.Validate();
+            base.OnLock();
         }
     }
 }

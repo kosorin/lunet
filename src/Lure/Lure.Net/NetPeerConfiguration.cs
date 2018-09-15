@@ -1,5 +1,4 @@
 ﻿using Lure.Net.Channels;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 
@@ -17,6 +16,7 @@ namespace Lure.Net
         private int _messageBufferSize = 32; // 32 B
         private int _closeTimeout = 2; // 2 seconds
         private int _maxClients = 32;
+        private INetChannelFactory _channelFactory = new NetChannelFactory(true);
 
 
         public bool AcceptIncomingConnections
@@ -79,8 +79,14 @@ namespace Lure.Net
             set => Set(ref _maxClients, value);
         }
 
+        public INetChannelFactory ChannelFactory
+        {
+            get => _channelFactory;
+            set => Set(ref _channelFactory, value);
+        }
 
-        public override void Validate()
+
+        protected override void OnLock()
         {
             if (LocalPort.HasValue && (LocalPort < IPEndPoint.MinPort || LocalPort > IPEndPoint.MaxPort))
             {

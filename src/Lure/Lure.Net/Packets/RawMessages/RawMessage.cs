@@ -4,7 +4,6 @@ using System.Diagnostics;
 
 namespace Lure.Net.Packets
 {
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class RawMessage
     {
         public byte[] Data { get; set; }
@@ -12,8 +11,6 @@ namespace Lure.Net.Packets
         public long? Timestamp { get; set; }
 
         public virtual int Length => sizeof(ushort) + Data.Length;
-
-        protected virtual string DebuggerDisplay => $"Length = {Length}, Timestamp = {Timestamp ?? -1}";
 
         public virtual void Deserialize(INetDataReader reader)
         {

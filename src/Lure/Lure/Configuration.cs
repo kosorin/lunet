@@ -24,7 +24,7 @@
 
             try
             {
-                Validate();
+                OnLock();
                 _isLocked = true;
             }
             catch (ConfigurationException e)
@@ -33,11 +33,7 @@
             }
         }
 
-        /// <summary>
-        /// Validates  configuration.
-        /// </summary>
-        /// <exception cref="ConfigurationException" />
-        public abstract void Validate();
+        protected abstract void OnLock();
 
         /// <summary>
         /// Sets field value.

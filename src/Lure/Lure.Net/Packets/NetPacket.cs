@@ -17,7 +17,7 @@ namespace Lure.Net.Packets
             _rawMessageActivator = rawMessageActivator;
         }
 
-        public List<TRawMessage> RawMessages { get; set; } = new List<TRawMessage>();
+        public List<TRawMessage> RawMessages { get; } = new List<TRawMessage>();
 
         public void DeserializeHeader(INetDataReader reader)
         {

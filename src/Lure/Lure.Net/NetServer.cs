@@ -6,10 +6,10 @@ namespace Lure.Net
     {
         private readonly NetServerConfiguration _config;
 
-        public NetServer(int port, AddressFamily addressFamily = AddressFamily.InterNetwork)
+        public NetServer(int localPort, AddressFamily addressFamily = AddressFamily.InterNetwork)
             : this(new NetServerConfiguration
             {
-                LocalPort = port,
+                LocalPort = localPort,
                 AddressFamily = addressFamily,
             })
         {

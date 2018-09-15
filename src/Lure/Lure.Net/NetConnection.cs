@@ -3,9 +3,10 @@ using Lure.Extensions;
 using Lure.Net.Channels;
 using Lure.Net.Data;
 using Lure.Net.Messages;
-using Serilog;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 
 namespace Lure.Net
@@ -15,25 +16,32 @@ namespace Lure.Net
     /// </summary>
     public class NetConnection : IDisposable
     {
-        internal static byte DefaultChannelId => 1;
+        internal static byte SystemChannelId => NC.Byte;
 
         private readonly NetPeer _peer;
-
         private readonly IObjectPool<NetDataWriter> _messageWriterPool;
+        private readonly byte _defaultChannelId;
         private readonly IDictionary<byte, INetChannel> _channels;
 
         internal NetConnection(IPEndPoint remoteEndPoint, NetPeer peer)
         {
             _peer = peer;
+            _messageWriterPool = new ObjectPool<NetDataWriter>(() => new NetDataWriter(_peer.Config.MessageBufferSize));
 
-            var dataWriterActivator = ObjectActivatorFactory.CreateWithValues<int, NetDataWriter>(_peer.Config.MessageBufferSize);
-            _messageWriterPool = new ObjectPool<NetDataWriter>(dataWriterActivator);
-            _channels = _peer.ChannelFactory.Create(this);
+            _channels = _peer.Config.ChannelFactory.Create(this);
+            if (_channels.ContainsKey(SystemChannelId))
+            {
+                throw new NetException($"Reserved channel {SystemChannelId}.");
+            }
+            _defaultChannelId = _channels.Keys.Min();
 
             RemoteEndPoint = remoteEndPoint;
+            ReceivedMessages = new ConcurrentQueue<NetMessage>();
         }
 
         public IPEndPoint RemoteEndPoint { get; }
+
+        internal ConcurrentQueue<NetMessage> ReceivedMessages { get; }
 
         internal int MTU => 1000;
 
@@ -50,10 +58,7 @@ namespace Lure.Net
                 foreach (var data in channel.GetReceivedMessages())
                 {
                     var message = DeserializeMessage(data);
-                    if (message != null && message is DebugMessage testMessage && testMessage.Integer % 10 == 0)
-                    {
-                        Log.Information("Message: {Message}", message);
-                    }
+                    ReceivedMessages.Enqueue(message);
                 }
             }
         }
@@ -69,7 +74,7 @@ namespace Lure.Net
 
         public void SendMessage(NetMessage message)
         {
-            SendMessage(DefaultChannelId, message);
+            SendMessage(_defaultChannelId, message);
         }
 
         public void SendMessage(byte channelId, NetMessage message)

@@ -17,14 +17,14 @@ namespace Lure.Net
         }
 
 
-        public override void Validate()
+        protected override void OnLock()
         {
             if (!base.LocalPort.HasValue)
             {
                 throw new ConfigurationException("Local port is not set.");
             }
 
-            base.Validate();
+            base.OnLock();
         }
     }
 }
