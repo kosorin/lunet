@@ -1,5 +1,4 @@
-﻿using Lure.Net.Channels;
-using Lure.Net.Data;
+﻿using Lure.Net.Data;
 using Lure.Net.Extensions;
 using Lure.Net.Messages;
 using Lure.Net.Packets;
@@ -155,9 +154,21 @@ namespace Lure.Net
 
         internal void InjectConnection(NetConnection connection)
         {
-            if (!_connections.TryAdd(connection.RemoteEndPoint, connection))
+            if (_connections.TryAdd(connection.RemoteEndPoint, connection))
+            {
+                Log.Debug("Inject connection {ConnectionRemoteEndPoint}", connection.RemoteEndPoint);
+            }
+            else
             {
                 throw new NetException($"Could not inject connection. Connection with remote end point {connection.RemoteEndPoint} already exists.");
+            }
+        }
+
+        internal void RemoveConnection(NetConnection connection)
+        {
+            if (_connections.TryRemove(connection.RemoteEndPoint, out var removedConnection))
+            {
+                Log.Debug("Remove connection {ConnectionRemoteEndPoint}", connection.RemoteEndPoint);
             }
         }
 

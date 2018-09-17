@@ -16,12 +16,14 @@ namespace Lure.Net
     /// </summary>
     public class NetConnection : IDisposable
     {
-        internal static byte SystemChannelId => NC.Byte;
+        internal static byte SystemChannelId => 255;
 
         private readonly NetPeer _peer;
         private readonly IObjectPool<NetDataWriter> _messageWriterPool;
         private readonly byte _defaultChannelId;
         private readonly IDictionary<byte, INetChannel> _channels;
+
+        private long _lastReceivedMessageTimestamp = Timestamp.Current;
 
         internal NetConnection(IPEndPoint remoteEndPoint, NetPeer peer)
         {
@@ -41,6 +43,7 @@ namespace Lure.Net
 
         public IPEndPoint RemoteEndPoint { get; }
 
+
         internal ConcurrentQueue<NetMessage> ReceivedMessages { get; }
 
         internal int MTU => 1000;
@@ -48,6 +51,7 @@ namespace Lure.Net
 
         internal void Update()
         {
+            var now = Timestamp.Current;
             foreach (var (channelId, channel) in _channels)
             {
                 foreach (var packet in channel.CollectOutgoingPackets())
@@ -55,11 +59,21 @@ namespace Lure.Net
                     _peer.SendPacket(RemoteEndPoint, channelId, packet);
                 }
 
-                foreach (var data in channel.GetReceivedMessages())
+                var receivedMessages = channel.GetReceivedMessages();
+                if (receivedMessages.Count > 0)
                 {
-                    var message = DeserializeMessage(data);
-                    ReceivedMessages.Enqueue(message);
+                    foreach (var data in receivedMessages)
+                    {
+                        var message = DeserializeMessage(data);
+                        ReceivedMessages.Enqueue(message);
+                    }
+                    _lastReceivedMessageTimestamp = now;
                 }
+            }
+
+            if (now - _lastReceivedMessageTimestamp > _peer.Config.ConnectionTimeout * 1000)
+            {
+                _peer.RemoveConnection(this);
             }
         }
 

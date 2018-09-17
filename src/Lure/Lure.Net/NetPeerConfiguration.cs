@@ -14,8 +14,8 @@ namespace Lure.Net
         private int _receiveBufferSize = 10 * 1024 * 1024; // 10 MB
         private int _packetBufferSize = 2 * 1024; // 2 kB
         private int _messageBufferSize = 32; // 32 B
-        private int _closeTimeout = 2; // 2 seconds
-        private int _maxClients = 32;
+        private int _connectionTimeout = 8; // 8 seconds
+        private int _maximumClients = 32;
         private INetChannelFactory _channelFactory = new NetChannelFactory(true);
 
 
@@ -67,16 +67,16 @@ namespace Lure.Net
             set => Set(ref _messageBufferSize, value);
         }
 
-        public int CloseTimeout
+        public int ConnectionTimeout
         {
-            get => _closeTimeout;
-            set => Set(ref _closeTimeout, value);
+            get => _connectionTimeout;
+            set => Set(ref _connectionTimeout, value);
         }
 
-        public int MaxClients
+        public int MaximumClients
         {
-            get => _maxClients;
-            set => Set(ref _maxClients, value);
+            get => _maximumClients;
+            set => Set(ref _maximumClients, value);
         }
 
         public INetChannelFactory ChannelFactory
