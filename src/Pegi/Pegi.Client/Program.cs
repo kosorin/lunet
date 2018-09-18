@@ -43,7 +43,7 @@ namespace Pegi.Client
 
                 Thread.Sleep(500);
 
-                for (int i = 0; ; i++)
+                for (int i = 0; i < 1000; i++)
                 {
                     if (resetEvent.IsSet)
                     {
@@ -53,8 +53,6 @@ namespace Pegi.Client
                     var message = NetMessageManager.Create<DebugMessage>();
                     message.Integer = i;
                     message.Float = i;
-                    client.ServerConnection.SendMessage(message);
-                    message.Float = i * 2;
                     client.ServerConnection.SendMessage(message);
 
                     Thread.Sleep(1000 / 50);

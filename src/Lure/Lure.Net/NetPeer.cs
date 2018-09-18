@@ -39,6 +39,8 @@ namespace Lure.Net
         }
 
 
+        public NetPeerStatistics Statistics { get; } = new NetPeerStatistics();
+
         public NetPeerConfiguration Config => _config;
 
         public NetPeerState State => _state;
@@ -109,6 +111,11 @@ namespace Lure.Net
 
                 _state = NetPeerState.Stopped;
                 Log.Debug("Peer stopped");
+
+                Log.Information("Received bytes: {ReceivedBytes}", Statistics.ReceivedBytes);
+                Log.Information("Received packets: {ReceivedPackets}", Statistics.ReceivedPackets);
+                Log.Information("Sent bytes: {SentBytes}", Statistics.SentBytes);
+                Log.Information("Sent packets: {SentPackets}", Statistics.SentPackets);
             }
             catch
             {

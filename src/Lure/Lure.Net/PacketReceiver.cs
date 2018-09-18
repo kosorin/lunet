@@ -34,10 +34,6 @@ namespace Lure.Net
             }
         }
 
-        public ulong TransferredBytes { get; private set; }
-
-        public int TransferredPackets { get; private set; }
-
 
         private SocketAsyncEventArgs CreateReceiveToken()
         {
@@ -61,8 +57,8 @@ namespace Lure.Net
 
             if (token.IsOk())
             {
-                TransferredBytes += (ulong)token.BytesTransferred;
-                TransferredPackets++;
+                _peer.Statistics.ReceivedBytes += (ulong)token.BytesTransferred;
+                _peer.Statistics.ReceivedPackets++;
 
                 var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
                 var reader = token.GetReader();
