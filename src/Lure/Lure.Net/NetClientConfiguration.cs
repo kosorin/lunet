@@ -8,6 +8,12 @@ namespace Lure.Net
         private int _port;
 
 
+        public NetClientConfiguration()
+        {
+            MaximumConnections = 1;
+        }
+
+
         public string Hostname
         {
             get => _hostname;

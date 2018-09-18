@@ -6,24 +6,17 @@ namespace Lure.Net
 {
     public abstract class NetPeerConfiguration : Configuration
     {
-        private bool _acceptIncomingConnections;
-        private int? _localPort;
+        private int? _localPort = null;
         private AddressFamily _addressFamily = AddressFamily.InterNetwork;
-        private bool _dualMode;
+        private bool _dualMode = false;
         private int _sendBufferSize = 10 * 1024 * 1024; // 10 MB
         private int _receiveBufferSize = 10 * 1024 * 1024; // 10 MB
         private int _packetBufferSize = 2 * 1024; // 2 kB
         private int _messageBufferSize = 32; // 32 B
         private int _connectionTimeout = 8; // 8 seconds
-        private int _maximumClients = 32;
+        private int _maximumConnections = 32;
         private INetChannelFactory _channelFactory = new NetChannelFactory(true);
 
-
-        public bool AcceptIncomingConnections
-        {
-            get => _acceptIncomingConnections;
-            set => Set(ref _acceptIncomingConnections, value);
-        }
 
         public int? LocalPort
         {
@@ -73,10 +66,10 @@ namespace Lure.Net
             set => Set(ref _connectionTimeout, value);
         }
 
-        public int MaximumClients
+        public int MaximumConnections
         {
-            get => _maximumClients;
-            set => Set(ref _maximumClients, value);
+            get => _maximumConnections;
+            set => Set(ref _maximumConnections, value);
         }
 
         public INetChannelFactory ChannelFactory
@@ -101,6 +94,16 @@ namespace Lure.Net
             if (DualMode && AddressFamily != AddressFamily.InterNetworkV6)
             {
                 throw new ConfigurationException("Dual mode is available only for IPv6 addresses.");
+            }
+
+            if (AddressFamily == AddressFamily.InterNetwork && !Socket.OSSupportsIPv4)
+            {
+                throw new ConfigurationException("IPv4 not supported.");
+            }
+
+            if (AddressFamily == AddressFamily.InterNetworkV6 && !Socket.OSSupportsIPv6)
+            {
+                throw new ConfigurationException("IPv6 not supported.");
             }
         }
     }

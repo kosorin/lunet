@@ -135,7 +135,7 @@ namespace Lure.Net
             _connections.TryGetValue(remoteEndPoint, out var connection);
             if (connection == null)
             {
-                if (!Config.AcceptIncomingConnections)
+                if (_connections.Count >= Config.MaximumConnections)
                 {
                     return;
                 }

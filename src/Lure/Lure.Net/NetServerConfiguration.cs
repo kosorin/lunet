@@ -4,12 +4,6 @@ namespace Lure.Net
 {
     public class NetServerConfiguration : NetPeerConfiguration
     {
-        public NetServerConfiguration()
-        {
-            AcceptIncomingConnections = true;
-        }
-
-
         public new int LocalPort
         {
             get => base.LocalPort ?? IPEndPoint.MinPort;
