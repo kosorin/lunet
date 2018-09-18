@@ -32,17 +32,10 @@ namespace Lure.Net.Channels
         public override IList<byte[]> GetReceivedMessages()
         {
             var receivedMessages = new List<byte[]>();
-            while (true)
+            while (_incomingRawMessageQueue.Remove(_incomingReadRawMessageSeq, out var rawMessage))
             {
-                if (_incomingRawMessageQueue.Remove(_incomingReadRawMessageSeq, out var rawMessage))
-                {
-                    receivedMessages.Add(rawMessage.Data);
-                    _incomingReadRawMessageSeq++;
-                }
-                else
-                {
-                    break;
-                }
+                receivedMessages.Add(rawMessage.Data);
+                _incomingReadRawMessageSeq++;
             }
             return receivedMessages;
         }
@@ -60,19 +53,31 @@ namespace Lure.Net.Channels
 
         protected override bool AcceptIncomingRawMessage(SequencedRawMessage rawMessage)
         {
-            if (rawMessage.Seq >= _incomingRawMessageSeq)
+            if (rawMessage.Seq == _incomingRawMessageSeq)
             {
-                if (rawMessage.Seq == _incomingRawMessageSeq)
-                {
-                    _incomingRawMessageSeq++;
-                }
+                _incomingRawMessageSeq++;
                 return true;
+            }
+            else if (rawMessage.Seq > _incomingRawMessageSeq)
+            {
+                if (_incomingRawMessageQueue.ContainsKey(rawMessage.Seq))
+                {
+                    // Ignore already received messages
+                    return false;
+                }
+                else
+                {
+                    // New early message
+                    return true;
+                }
             }
             return false;
         }
 
         protected override void OnIncomingPacket(ReliablePacket packet)
         {
+            // Packets without messages are ack packets
+            // so we send ack only for received packets with messages
             _requireAcknowledgement = packet.RawMessages.Count > 0;
         }
 
@@ -90,6 +95,7 @@ namespace Lure.Net.Channels
             {
                 _requireAcknowledgement = false;
 
+                // Send at least one packet with acks
                 if (packets.Count == 0)
                 {
                     var ackPacket = CreateOutgoingPacket();
@@ -130,7 +136,7 @@ namespace Lure.Net.Channels
 
         protected override void OnOutgoingPacket(ReliablePacket packet)
         {
-            _outgoingRawMessageTracker.Track(packet.Seq, packet.RawMessages);
+            _outgoingRawMessageTracker.Track(packet.Seq, packet.RawMessages.Select(x => x.Seq));
         }
 
         protected override void OnOutgoingRawMessage(SequencedRawMessage rawMessage)

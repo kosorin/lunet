@@ -22,15 +22,15 @@ namespace Lure.Net.Channels
         /// <summary>
         /// Tracks sequenced raw messages.
         /// </summary>
-        public void Track(SeqNo packetSeq, IEnumerable<SequencedRawMessage> rawMessages)
+        public void Track(SeqNo packetSeq, IEnumerable<SeqNo> rawMessageSeqs)
         {
             var index = GetIndex(packetSeq);
 
             _packetSeqBuffer[index] = packetSeq;
 
-            var rawMessageSeqs = _rawMessageSeqBuffer[index];
-            rawMessageSeqs.Clear();
-            rawMessageSeqs.AddRange(rawMessages.Select(x => x.Seq));
+            var rawMessageSeqBuffer = _rawMessageSeqBuffer[index];
+            rawMessageSeqBuffer.Clear();
+            rawMessageSeqBuffer.AddRange(rawMessageSeqBuffer);
         }
 
         /// <summary>
