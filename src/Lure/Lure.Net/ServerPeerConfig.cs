@@ -2,7 +2,7 @@
 
 namespace Lure.Net
 {
-    public class NetServerConfiguration : NetPeerConfiguration
+    public class ServerPeerConfig : PeerConfig
     {
         public new int LocalPort
         {

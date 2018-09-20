@@ -9,7 +9,7 @@ namespace Lure.Net.Channels
         private readonly List<RawMessage> _outgoingRawMessageQueue = new List<RawMessage>();
         private readonly List<RawMessage> _incomingRawMessageQueue = new List<RawMessage>();
 
-        public UnreliableChannel(NetConnection connection) : base(connection)
+        public UnreliableChannel(Connection connection) : base(connection)
         {
         }
 

@@ -12,7 +12,7 @@ namespace Lure.Net.Channels
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketSeq = SeqNo.Zero - 1;
 
-        public UnreliableSequencedChannel(NetConnection connection) : base(connection)
+        public UnreliableSequencedChannel(Connection connection) : base(connection)
         {
         }
 

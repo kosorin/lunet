@@ -4,13 +4,13 @@ using System.Net.Sockets;
 
 namespace Lure.Net
 {
-    public abstract class NetPeerConfiguration : Configuration
+    public abstract class PeerConfig : Configuration, ISocketConfig
     {
         private int? _localPort = null;
         private AddressFamily _addressFamily = AddressFamily.InterNetwork;
         private bool _dualMode = false;
-        private int _sendBufferSize = 10 * 1024 * 1024; // 10 MB
         private int _receiveBufferSize = 10 * 1024 * 1024; // 10 MB
+        private int _sendBufferSize = 10 * 1024 * 1024; // 10 MB
         private int _packetBufferSize = 2 * 1024; // 2 kB
         private int _messageBufferSize = 32; // 32 B
         private int _connectionTimeout = 8; // 8 seconds
@@ -36,16 +36,16 @@ namespace Lure.Net
             set => Set(ref _dualMode, value);
         }
 
-        public int SendBufferSize
-        {
-            get => _sendBufferSize;
-            set => Set(ref _sendBufferSize, value);
-        }
-
         public int ReceiveBufferSize
         {
             get => _receiveBufferSize;
             set => Set(ref _receiveBufferSize, value);
+        }
+
+        public int SendBufferSize
+        {
+            get => _sendBufferSize;
+            set => Set(ref _sendBufferSize, value);
         }
 
         public int PacketBufferSize

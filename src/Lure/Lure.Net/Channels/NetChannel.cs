@@ -10,12 +10,12 @@ namespace Lure.Net.Channels
         where TPacket : NetPacket<TRawMessage>
         where TRawMessage : RawMessage
     {
-        protected readonly NetConnection _connection;
+        protected readonly Connection _connection;
 
         private readonly Func<TPacket> _packetActivator;
         private readonly Func<TRawMessage> _rawMessageActivator;
 
-        protected NetChannel(NetConnection connection)
+        protected NetChannel(Connection connection)
         {
             _connection = connection;
 

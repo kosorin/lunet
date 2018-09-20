@@ -1,6 +1,6 @@
 ﻿namespace Lure.Net
 {
-    public class NetPeerStatistics
+    public class PeerStatistics
     {
         public ulong ReceivedBytes { get; internal set; }
 

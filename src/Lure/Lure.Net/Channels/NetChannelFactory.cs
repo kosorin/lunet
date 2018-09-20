@@ -6,11 +6,11 @@ namespace Lure.Net.Channels
 {
     public class NetChannelFactory : INetChannelFactory
     {
-        private readonly IDictionary<byte, Func<NetConnection, INetChannel>> _activators;
+        private readonly IDictionary<byte, Func<Connection, INetChannel>> _activators;
 
         public NetChannelFactory()
         {
-            _activators = new Dictionary<byte, Func<NetConnection, INetChannel>>();
+            _activators = new Dictionary<byte, Func<Connection, INetChannel>>();
         }
 
         internal NetChannelFactory(bool isDefault) : this()
@@ -24,12 +24,12 @@ namespace Lure.Net.Channels
         public byte Add<TChannel>() where TChannel : INetChannel
         {
             var id = GetNextId();
-            var activator = ObjectActivatorFactory.CreateParameterizedAs<NetConnection, TChannel, INetChannel>();
+            var activator = ObjectActivatorFactory.CreateParameterizedAs<Connection, TChannel, INetChannel>();
             _activators.Add(id, activator);
             return id;
         }
 
-        public byte Add(Func<NetConnection, INetChannel> activator)
+        public byte Add(Func<Connection, INetChannel> activator)
         {
             var id = GetNextId();
             _activators.Add(id, activator);
@@ -41,7 +41,7 @@ namespace Lure.Net.Channels
             _activators.Clear();
         }
 
-        public IDictionary<byte, INetChannel> Create(NetConnection connection)
+        public IDictionary<byte, INetChannel> Create(Connection connection)
         {
             return _activators.ToDictionary(x => x.Key, x => x.Value(connection));
         }

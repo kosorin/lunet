@@ -15,14 +15,14 @@ namespace Pegi.Client
 
             var channelFactory = new NetChannelFactory();
             channelFactory.Add<ReliableOrderedChannel>();
-            var config = new NetClientConfiguration
+            var config = new ClientPeerConfig
             {
                 ChannelFactory = channelFactory,
                 //Hostname = "bur.kosorin.net",
                 Port = 45685,
                 LocalPort = 45688,
             };
-            using (var client = new NetClient(config))
+            using (var client = new ClientPeer(config))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
@@ -31,8 +31,9 @@ namespace Pegi.Client
                     Log.Information("Ctrl+C");
                     resetEvent.Set();
                 };
+                Thread.Sleep(500);
 
-                client.MessageReceived += (connection, message) =>
+                client.Connection.MessageReceived += (connection, message) =>
                 {
                     if (message != null && message is DebugMessage testMessage)
                     {
@@ -41,19 +42,16 @@ namespace Pegi.Client
                 };
                 client.Start();
 
-                Thread.Sleep(500);
-
-                for (int i = 0; i < 1000; i++)
+                var i = 0;
+                while (!resetEvent.IsSet)
                 {
-                    if (resetEvent.IsSet)
-                    {
-                        break;
-                    }
+                    client.Update();
 
+                    i++;
                     var message = NetMessageManager.Create<DebugMessage>();
                     message.Integer = i;
                     message.Float = i;
-                    client.ServerConnection.SendMessage(message);
+                    client.Connection.SendMessage(message);
 
                     Thread.Sleep(1000 / 50);
                 }

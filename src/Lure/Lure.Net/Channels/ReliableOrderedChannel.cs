@@ -25,7 +25,7 @@ namespace Lure.Net.Channels
 
         private bool _requireAcknowledgement;
 
-        public ReliableOrderedChannel(NetConnection connection) : base(connection)
+        public ReliableOrderedChannel(Connection connection) : base(connection)
         {
         }
 

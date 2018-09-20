@@ -4,6 +4,6 @@ namespace Lure.Net.Channels
 {
     public interface INetChannelFactory
     {
-        IDictionary<byte, INetChannel> Create(NetConnection connection);
+        IDictionary<byte, INetChannel> Create(Connection connection);
     }
 }

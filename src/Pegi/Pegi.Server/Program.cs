@@ -16,12 +16,12 @@ namespace Pegi.Server
 
             var channelFactory = new NetChannelFactory();
             channelFactory.Add<ReliableOrderedChannel>();
-            var config = new NetServerConfiguration
+            var config = new ServerPeerConfig
             {
                 ChannelFactory = channelFactory,
                 LocalPort = 45685,
             };
-            using (var server = new NetServer(config))
+            using (var server = new ServerPeer(config))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
@@ -31,21 +31,28 @@ namespace Pegi.Server
                     resetEvent.Set();
                 };
 
-                server.MessageReceived += (connection, message) =>
+                server.NewConnection += (_, connection) =>
                 {
-                    if (message != null && message is DebugMessage testMessage)
+                    connection.MessageReceived += (__, message) =>
                     {
-                        Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
-                        connection.SendMessage(new DebugMessage()
+                        if (message != null && message is DebugMessage testMessage)
                         {
-                            Integer = testMessage.Integer * 2,
-                            Float = testMessage.Float * 2
-                        });
-                    }
+                            Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
+                            connection.SendMessage(new DebugMessage()
+                            {
+                                Integer = testMessage.Integer * 2,
+                                Float = testMessage.Float * 2
+                            });
+                        }
+                    };
                 };
                 server.Start();
 
-                resetEvent.Wait();
+                while (!resetEvent.IsSet)
+                {
+                    server.Update();
+                    Thread.Sleep(1000 / 50);
+                }
 
                 server.Stop();
             }
