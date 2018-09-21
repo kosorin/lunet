@@ -3,6 +3,7 @@ using Lure.Extensions;
 using Lure.Net.Channels;
 using Lure.Net.Data;
 using Lure.Net.Messages;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +25,7 @@ namespace Lure.Net
 
         private volatile ConnectionState _state;
 
-        private long _lastReceivedMessageTimestamp = Timestamp.Current;
+        private long _lastReceivedMessageTimestamp;
 
         internal Connection(IPEndPoint remoteEndPoint, Peer peer)
         {
@@ -55,6 +56,31 @@ namespace Lure.Net
 
         internal int MTU => 1000;
 
+        internal int RTT => 500;
+
+
+        public void Connect()
+        {
+            if (_state == ConnectionState.NotConnected)
+            {
+                if (!_peer.IsRunning)
+                {
+                    throw new NetException("Peer is not ruuning.");
+                }
+                _state = ConnectionState.Connected;
+                _lastReceivedMessageTimestamp = Timestamp.Current;
+                Log.Debug("Connect {RemoteEndPoint}", RemoteEndPoint);
+            }
+        }
+
+        public void Disconnect()
+        {
+            if (_state == ConnectionState.Connected)
+            {
+                _state = ConnectionState.Disconnecting;
+                _peer.OnDisconnect(this);
+            }
+        }
 
         public void SendMessage(NetMessage message)
         {
@@ -78,52 +104,57 @@ namespace Lure.Net
             }
         }
 
-        public void Disconnect()
-        {
-            _state = ConnectionState.Disconnecting;
-            _peer.OnDisconnect(this);
-        }
-
 
         internal void Update()
         {
-            var now = Timestamp.Current;
-            foreach (var (channelId, channel) in _channels)
+            if (_state == ConnectionState.Connected)
             {
-                foreach (var packet in channel.CollectOutgoingPackets())
+                var now = Timestamp.Current;
+                foreach (var (channelId, channel) in _channels)
                 {
-                    _peer.SendPacket(RemoteEndPoint, channelId, packet);
-                }
-
-                var receivedMessages = channel.GetReceivedMessages();
-                if (receivedMessages.Count > 0)
-                {
-                    foreach (var data in receivedMessages)
+                    foreach (var packet in channel.CollectOutgoingPackets())
                     {
-                        var message = DeserializeMessage(data);
-                        MessageReceived?.Invoke(this, message);
+                        _peer.SendPacket(RemoteEndPoint, channelId, packet);
                     }
-                    _lastReceivedMessageTimestamp = now;
-                }
-            }
 
-            if (now - _lastReceivedMessageTimestamp > _peer.Config.ConnectionTimeout * 1000)
-            {
-                Disconnect();
+                    var receivedMessages = channel.GetReceivedMessages();
+                    if (receivedMessages.Count > 0)
+                    {
+                        foreach (var data in receivedMessages)
+                        {
+                            var message = DeserializeMessage(data);
+                            MessageReceived?.Invoke(this, message);
+                        }
+                        _lastReceivedMessageTimestamp = now;
+                    }
+                }
+
+                if (now - _lastReceivedMessageTimestamp > _peer.Config.ConnectionTimeout)
+                {
+                    Disconnect();
+                }
             }
         }
 
         internal void OnDisconnect()
         {
-            _state = ConnectionState.NotConnected;
-            Disconnected?.Invoke(this);
+            if (_state == ConnectionState.Connected || _state == ConnectionState.Disconnecting)
+            {
+                _state = ConnectionState.NotConnected;
+                Log.Debug("Disconnect {RemoteEndPoint}", RemoteEndPoint);
+
+                Disconnected?.Invoke(this);
+            }
         }
 
         internal void OnReceivedPacket(byte channelId, INetDataReader reader)
         {
-            if (_channels.TryGetValue(channelId, out var channel))
+            if (_state == ConnectionState.Connected)
             {
-                channel.ProcessIncomingPacket(reader);
+                if (_channels.TryGetValue(channelId, out var channel))
+                {
+                    channel.ProcessIncomingPacket(reader);
+                }
             }
         }
 
@@ -176,6 +207,8 @@ namespace Lure.Net
             {
                 if (disposing)
                 {
+                    Disconnect();
+
                     _messageWriterPool.Dispose();
                 }
                 _disposed = true;

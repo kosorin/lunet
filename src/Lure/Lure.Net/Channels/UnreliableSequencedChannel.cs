@@ -4,10 +4,10 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    public class UnreliableSequencedChannel : NetChannel<UnreliableSequencedPacket, SequencedRawMessage>
+    public class UnreliableSequencedChannel : NetChannel<UnreliableSequencedPacket, RawMessage>
     {
-        private readonly List<SequencedRawMessage> _outgoingRawMessageQueue = new List<SequencedRawMessage>();
-        private readonly List<SequencedRawMessage> _incomingRawMessageQueue = new List<SequencedRawMessage>();
+        private readonly List<RawMessage> _outgoingRawMessageQueue = new List<RawMessage>();
+        private readonly List<RawMessage> _incomingRawMessageQueue = new List<RawMessage>();
 
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketSeq = SeqNo.Zero - 1;
@@ -28,16 +28,18 @@ namespace Lure.Net.Channels
         {
             if (_incomingPacketSeq < packet.Seq)
             {
+                // New packet
                 _incomingPacketSeq = packet.Seq;
                 return true;
             }
             else
             {
+                // Late packet
                 return false;
             }
         }
 
-        protected override bool AcceptIncomingRawMessage(SequencedRawMessage rawMessage)
+        protected override bool AcceptIncomingRawMessage(RawMessage rawMessage)
         {
             return true;
         }
@@ -46,13 +48,13 @@ namespace Lure.Net.Channels
         {
         }
 
-        protected override void OnIncomingRawMessage(SequencedRawMessage rawMessage)
+        protected override void OnIncomingRawMessage(RawMessage rawMessage)
         {
             _incomingRawMessageQueue.Add(rawMessage);
         }
 
 
-        protected override List<SequencedRawMessage> GetOutgoingRawMessages()
+        protected override List<RawMessage> GetOutgoingRawMessages()
         {
             lock (_outgoingRawMessageQueue)
             {
@@ -64,7 +66,7 @@ namespace Lure.Net.Channels
                 }
                 else
                 {
-                    return new List<SequencedRawMessage>();
+                    return new List<RawMessage>();
                 }
             }
         }
@@ -74,7 +76,7 @@ namespace Lure.Net.Channels
             packet.Seq = _outgoingPacketSeq++;
         }
 
-        protected override void PrepareOutgoingRawMessage(SequencedRawMessage rawMessage)
+        protected override void PrepareOutgoingRawMessage(RawMessage rawMessage)
         {
         }
 
@@ -82,7 +84,7 @@ namespace Lure.Net.Channels
         {
         }
 
-        protected override void OnOutgoingRawMessage(SequencedRawMessage rawMessage)
+        protected override void OnOutgoingRawMessage(RawMessage rawMessage)
         {
             lock (_outgoingRawMessageQueue)
             {

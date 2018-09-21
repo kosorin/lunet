@@ -23,6 +23,8 @@ namespace Lure.Net
 
             _socket = new SocketWrapper(_config);
             _socket.PacketReceived += OnPacketReceived;
+
+            _state = PeerState.NotStarted;
         }
 
 
@@ -39,7 +41,7 @@ namespace Lure.Net
             {
                 return;
             }
-            else if (_state != PeerState.Unstarted)
+            else if (_state != PeerState.NotStarted)
             {
                 throw new NetException("Peer is in wrong state.");
             }
@@ -141,6 +143,8 @@ namespace Lure.Net
             {
                 if (disposing)
                 {
+                    Stop();
+
                     _socket.PacketReceived -= OnPacketReceived;
                     _socket.Dispose();
                 }
@@ -152,7 +156,7 @@ namespace Lure.Net
         private enum PeerState
         {
             Error,
-            Unstarted,
+            NotStarted,
             Starting,
             Running,
             Stopping,

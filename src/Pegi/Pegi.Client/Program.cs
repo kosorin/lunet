@@ -31,16 +31,19 @@ namespace Pegi.Client
                     Log.Information("Ctrl+C");
                     resetEvent.Set();
                 };
-                Thread.Sleep(500);
+                Thread.Sleep(1000);
 
-                client.Connection.MessageReceived += (connection, message) =>
+                client.Start();
+
+                var connection = client.Connection;
+                connection.MessageReceived += (_, message) =>
                 {
                     if (message != null && message is DebugMessage testMessage)
                     {
                         Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
                     }
                 };
-                client.Start();
+                connection.Connect();
 
                 var i = 0;
                 while (!resetEvent.IsSet)
@@ -51,7 +54,7 @@ namespace Pegi.Client
                     var message = NetMessageManager.Create<DebugMessage>();
                     message.Integer = i;
                     message.Float = i;
-                    client.Connection.SendMessage(message);
+                    connection.SendMessage(message);
 
                     Thread.Sleep(1000 / 50);
                 }

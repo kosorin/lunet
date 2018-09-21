@@ -35,6 +35,17 @@ namespace Lure.Net
         public new ServerPeerConfig Config => _config;
 
 
+        protected override void OnStop()
+        {
+            foreach (var connection in _connections.Values)
+            {
+                connection.Disconnect();
+                connection.Dispose();
+            }
+            _connections.Clear();
+            base.OnStop();
+        }
+
         protected override void OnUpdate()
         {
             foreach (var connection in _connections.Values)
@@ -49,7 +60,7 @@ namespace Lure.Net
             if (_connections.TryRemove(connection.RemoteEndPoint, out connection))
             {
                 connection.OnDisconnect();
-                Log.Debug("Disconnect {ConnectionRemoteEndPoint}", connection.RemoteEndPoint);
+                connection.Dispose();
             }
         }
 
@@ -66,7 +77,7 @@ namespace Lure.Net
                 connection = new Connection(remoteEndPoint, this);
                 if (_connections.TryAdd(remoteEndPoint, connection))
                 {
-                    Log.Debug("Connect {ConnectionRemoteEndPoint}", connection.RemoteEndPoint);
+                    connection.Connect();
                     NewConnection?.Invoke(this, connection);
                 }
                 else
@@ -80,25 +91,6 @@ namespace Lure.Net
             {
                 connection.OnReceivedPacket(channelId, reader);
             }
-        }
-
-
-        private bool _disposed;
-
-        protected override void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    foreach (var connection in _connections.Values)
-                    {
-                        connection.Dispose();
-                    }
-                }
-                _disposed = true;
-            }
-            base.Dispose(disposing);
         }
     }
 }

@@ -8,8 +8,7 @@ namespace Lure.Net.Channels
 {
     public class ReliableOrderedChannel : NetChannel<ReliablePacket, SequencedRawMessage>
     {
-        // TODO: Refactor ResendTimeout
-        private const int ResendTimeout = 100;
+        private const float RTT = 0.2f;
 
         private readonly ReliableRawMessageTracker _outgoingRawMessageTracker = new ReliableRawMessageTracker();
         private readonly Dictionary<SeqNo, SequencedRawMessage> _outgoingRawMessageQueue = new Dictionary<SeqNo, SequencedRawMessage>();
@@ -55,6 +54,7 @@ namespace Lure.Net.Channels
         {
             if (rawMessage.Seq == _incomingRawMessageSeq)
             {
+                // New message
                 _incomingRawMessageSeq++;
                 return true;
             }
@@ -62,16 +62,20 @@ namespace Lure.Net.Channels
             {
                 if (_incomingRawMessageQueue.ContainsKey(rawMessage.Seq))
                 {
-                    // Ignore already received messages
+                    // Already received messages
                     return false;
                 }
                 else
                 {
-                    // New early message
+                    // Early message
                     return true;
                 }
             }
-            return false;
+            else
+            {
+                // Late or already received messages
+                return false;
+            }
         }
 
         protected override void OnIncomingPacket(ReliablePacket packet)
@@ -115,8 +119,9 @@ namespace Lure.Net.Channels
                 {
                     return new List<SequencedRawMessage>();
                 }
+                var retransmissionTimeout = now - (long)(_connection.RTT * RTT);
                 return _outgoingRawMessageQueue.Values
-                    .Where(x => x.Timestamp == null || now - x.Timestamp > ResendTimeout)
+                    .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value < retransmissionTimeout)
                     .OrderBy(x => x.Timestamp ?? long.MaxValue)
                     .ToList();
             }
@@ -156,7 +161,7 @@ namespace Lure.Net.Channels
             var diff = seq.CompareTo(_incomingPacketAck);
             if (diff == 0)
             {
-                // Drop already received packet
+                // Already received packet
                 return false;
             }
             else if (diff > 0)
@@ -170,6 +175,7 @@ namespace Lure.Net.Channels
                 }
                 else
                 {
+                    // New packet
                     _incomingPacketAckBuffer.LeftShift(diff);
                     _incomingPacketAckBuffer.Set(diff - 1);
                 }
@@ -180,7 +186,7 @@ namespace Lure.Net.Channels
                 diff *= -1;
                 if (diff > _incomingPacketAckBuffer.Capacity)
                 {
-                    // Drop late packet
+                    // Late packet
                     return false;
                 }
                 else
@@ -188,11 +194,12 @@ namespace Lure.Net.Channels
                     var ackIndex = diff - 1;
                     if (_incomingPacketAckBuffer[ackIndex])
                     {
-                        // Drop already received packet
+                        // Already received packet
                         return false;
                     }
                     else
                     {
+                        // New packet
                         _incomingPacketAckBuffer.Set(diff - 1);
                         return true;
                     }

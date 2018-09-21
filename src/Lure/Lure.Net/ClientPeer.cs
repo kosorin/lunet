@@ -1,4 +1,5 @@
 ﻿using Lure.Net.Data;
+using Serilog;
 using System.Net;
 using System.Net.Sockets;
 
@@ -39,6 +40,12 @@ namespace Lure.Net
         public Connection Connection => _connection;
 
 
+        protected override void OnStop()
+        {
+            _connection.Disconnect();
+            base.OnStop();
+        }
+
         protected override void OnUpdate()
         {
             _connection.Update();
@@ -47,31 +54,15 @@ namespace Lure.Net
 
         internal override void OnDisconnect(Connection connection)
         {
-            throw new System.NotImplementedException();
+                connection.OnDisconnect();
         }
 
         internal override void OnPacketReceived(IPEndPoint remoteEndPoint, byte channelId, INetDataReader reader)
         {
-            if (_connection.RemoteEndPoint == remoteEndPoint)
+            if (_connection.RemoteEndPoint.Equals(remoteEndPoint))
             {
                 _connection.OnReceivedPacket(channelId, reader);
             }
-        }
-
-
-        private bool _disposed;
-
-        protected override void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _connection.Dispose();
-                }
-                _disposed = true;
-            }
-            base.Dispose(disposing);
         }
     }
 }

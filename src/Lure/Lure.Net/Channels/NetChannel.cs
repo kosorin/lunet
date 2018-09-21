@@ -100,6 +100,10 @@ namespace Lure.Net.Channels
 
         protected virtual IList<TPacket> PackOutgoingRawMessages(List<TRawMessage> rawMessages)
         {
+            // TODO: Řadit zprávy, aby se vhodně naplnil celý paket.
+            // Např. k velké zprávě doplnit několik malých zpráv.
+            // Pouze pro číslované zprávy.
+
             var packets = new List<TPacket>();
 
             var packet = CreateOutgoingPacket();

@@ -38,11 +38,9 @@ namespace Pegi.Server
                         if (message != null && message is DebugMessage testMessage)
                         {
                             Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
-                            connection.SendMessage(new DebugMessage()
-                            {
-                                Integer = testMessage.Integer * 2,
-                                Float = testMessage.Float * 2
-                            });
+                            testMessage.Integer *= 2;
+                            testMessage.Float *= 2;
+                            connection.SendMessage(testMessage);
                         }
                     };
                 };

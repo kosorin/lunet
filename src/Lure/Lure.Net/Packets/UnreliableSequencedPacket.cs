@@ -4,9 +4,9 @@ using System;
 
 namespace Lure.Net.Packets
 {
-    public class UnreliableSequencedPacket : NetPacket<SequencedRawMessage>
+    public class UnreliableSequencedPacket : NetPacket<RawMessage>
     {
-        public UnreliableSequencedPacket(Func<SequencedRawMessage> rawMessageActivator) : base(rawMessageActivator)
+        public UnreliableSequencedPacket(Func<RawMessage> rawMessageActivator) : base(rawMessageActivator)
         {
         }
 
