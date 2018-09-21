@@ -1,5 +1,4 @@
 ﻿using Lure.Net.Data;
-using Serilog;
 using System.Net;
 using System.Net.Sockets;
 
@@ -52,9 +51,14 @@ namespace Lure.Net
         }
 
 
+        internal override void OnConnect(Connection connection)
+        {
+            connection.OnConnect();
+        }
+
         internal override void OnDisconnect(Connection connection)
         {
-                connection.OnDisconnect();
+            connection.OnDisconnect();
         }
 
         internal override void OnPacketReceived(IPEndPoint remoteEndPoint, byte channelId, INetDataReader reader)

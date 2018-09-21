@@ -1,4 +1,5 @@
-﻿using Lure.Net;
+﻿using Lure;
+using Lure.Net;
 using Lure.Net.Channels;
 using Lure.Net.Messages;
 using Serilog;
@@ -45,16 +46,23 @@ namespace Pegi.Client
                 };
                 connection.Connect();
 
+                var time = Timestamp.Current;
                 var i = 0;
                 while (!resetEvent.IsSet)
                 {
                     client.Update();
 
-                    i++;
-                    var message = NetMessageManager.Create<DebugMessage>();
-                    message.Integer = i;
-                    message.Float = i;
-                    connection.SendMessage(message);
+                    var now = Timestamp.Current;
+                    if (now - time > 500)
+                    {
+                        time += 500;
+
+                        i++;
+                        var message = NetMessageManager.Create<DebugMessage>();
+                        message.Integer = i;
+                        message.Float = i;
+                        connection.SendMessage(message);
+                    }
 
                     Thread.Sleep(1000 / 50);
                 }

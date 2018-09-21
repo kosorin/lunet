@@ -1,5 +1,4 @@
 ﻿using Lure.Net.Data;
-using Serilog;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -55,6 +54,12 @@ namespace Lure.Net
         }
 
 
+        internal override void OnConnect(Connection connection)
+        {
+            connection.OnConnect();
+            NewConnection?.Invoke(this, connection);
+        }
+
         internal override void OnDisconnect(Connection connection)
         {
             if (_connections.TryRemove(connection.RemoteEndPoint, out connection))
@@ -77,8 +82,7 @@ namespace Lure.Net
                 connection = new Connection(remoteEndPoint, this);
                 if (_connections.TryAdd(remoteEndPoint, connection))
                 {
-                    connection.Connect();
-                    NewConnection?.Invoke(this, connection);
+                    OnConnect(connection);
                 }
                 else
                 {

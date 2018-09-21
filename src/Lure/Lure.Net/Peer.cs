@@ -120,6 +120,8 @@ namespace Lure.Net
         protected abstract void OnUpdate();
 
 
+        internal abstract void OnConnect(Connection connection);
+
         internal abstract void OnDisconnect(Connection connection);
 
         internal abstract void OnPacketReceived(IPEndPoint remoteEndPoint, byte channelId, INetDataReader reader);

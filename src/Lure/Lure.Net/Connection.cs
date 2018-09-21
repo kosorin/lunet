@@ -67,9 +67,9 @@ namespace Lure.Net
                 {
                     throw new NetException("Peer is not ruuning.");
                 }
-                _state = ConnectionState.Connected;
-                _lastReceivedMessageTimestamp = Timestamp.Current;
-                Log.Debug("Connect {RemoteEndPoint}", RemoteEndPoint);
+                Log.Debug("Connecting {RemoteEndPoint}", RemoteEndPoint);
+                _state = ConnectionState.Connecting;
+                _peer.OnConnect(this);
             }
         }
 
@@ -77,6 +77,7 @@ namespace Lure.Net
         {
             if (_state == ConnectionState.Connected)
             {
+                Log.Debug("Disconnecting {RemoteEndPoint}", RemoteEndPoint);
                 _state = ConnectionState.Disconnecting;
                 _peer.OnDisconnect(this);
             }
@@ -136,12 +137,22 @@ namespace Lure.Net
             }
         }
 
+        internal void OnConnect()
+        {
+            if (_state == ConnectionState.NotConnected || _state == ConnectionState.Connecting)
+            {
+                _state = ConnectionState.Connected;
+                _lastReceivedMessageTimestamp = Timestamp.Current;
+                Log.Debug("Connected {RemoteEndPoint}", RemoteEndPoint);
+            }
+        }
+
         internal void OnDisconnect()
         {
             if (_state == ConnectionState.Connected || _state == ConnectionState.Disconnecting)
             {
                 _state = ConnectionState.NotConnected;
-                Log.Debug("Disconnect {RemoteEndPoint}", RemoteEndPoint);
+                Log.Debug("Disconnected {RemoteEndPoint}", RemoteEndPoint);
 
                 Disconnected?.Invoke(this);
             }
