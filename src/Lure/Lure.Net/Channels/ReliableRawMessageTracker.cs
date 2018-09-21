@@ -30,7 +30,7 @@ namespace Lure.Net.Channels
 
             var rawMessageSeqBuffer = _rawMessageSeqBuffer[index];
             rawMessageSeqBuffer.Clear();
-            rawMessageSeqBuffer.AddRange(rawMessageSeqBuffer);
+            rawMessageSeqBuffer.AddRange(rawMessageSeqs);
         }
 
         /// <summary>
