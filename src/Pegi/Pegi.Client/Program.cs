@@ -46,7 +46,7 @@ namespace Pegi.Client
                 };
                 connection.Connect();
 
-                var sendTime = 200;
+                var sendTime = 30;
                 var time = Timestamp.Current;
                 var i = 0;
                 while (!resetEvent.IsSet)

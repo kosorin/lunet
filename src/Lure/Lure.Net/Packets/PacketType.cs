@@ -2,9 +2,9 @@
 {
     internal enum PacketType : byte
     {
-        // Maximum 3 bits
-
         System = 0,
-        User = 7,
+        Fragment = 1,
+        Reserved = 2,
+        User = 3,
     }
 }

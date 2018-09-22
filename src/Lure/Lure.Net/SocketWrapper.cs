@@ -120,7 +120,6 @@ namespace Lure.Net
 
             if (token.IsOk())
             {
-                Log.Debug("RECV {Bytes}", token.BytesTransferred);
                 Statistics.ReceivedBytes += (ulong)token.BytesTransferred;
                 Statistics.ReceivedPackets++;
 
@@ -202,7 +201,6 @@ namespace Lure.Net
 
             if (token.IsOk())
             {
-                Log.Debug("SEND {Bytes}", token.BytesTransferred);
                 Statistics.SentBytes += (ulong)token.BytesTransferred;
                 Statistics.SentPackets++;
             }

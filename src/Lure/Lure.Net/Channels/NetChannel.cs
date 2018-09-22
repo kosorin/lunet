@@ -98,7 +98,7 @@ namespace Lure.Net.Channels
         protected abstract void OnIncomingRawMessage(TRawMessage rawMessage);
 
 
-        protected virtual IList<TPacket> PackOutgoingRawMessages(List<TRawMessage> rawMessages)
+        protected virtual List<TPacket> PackOutgoingRawMessages(List<TRawMessage> rawMessages)
         {
             // TODO: Řadit zprávy, aby se vhodně naplnil celý paket.
             // Např. k velké zprávě doplnit několik malých zpráv.
@@ -106,24 +106,26 @@ namespace Lure.Net.Channels
 
             var packets = new List<TPacket>();
 
-            var packet = CreateOutgoingPacket();
-            var packetLength = 0; // TODO: Include packet length (without messages)
-            foreach (var rawMessage in rawMessages)
+            if (rawMessages.Count > 0)
             {
-                if (packetLength + rawMessage.Length > _connection.MTU)
+                var packet = CreateOutgoingPacket();
+                var packetLength = 0; // TODO: Include packet length (without messages)
+                foreach (var rawMessage in rawMessages)
+                {
+                    if (packetLength + rawMessage.Length > _connection.MTU)
+                    {
+                        packets.Add(packet);
+
+                        packet = CreateOutgoingPacket();
+                        packetLength = 0;
+                    }
+                    packet.RawMessages.Add(rawMessage);
+                    packetLength += rawMessage.Length;
+                }
+                if (packetLength > 0)
                 {
                     packets.Add(packet);
-
-                    packet = CreateOutgoingPacket();
-                    packetLength = 0;
                 }
-                packet.RawMessages.Add(rawMessage);
-                packetLength += rawMessage.Length;
-            }
-
-            if (packetLength > 0)
-            {
-                packets.Add(packet);
             }
 
             return packets;
