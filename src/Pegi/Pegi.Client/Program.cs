@@ -46,6 +46,7 @@ namespace Pegi.Client
                 };
                 connection.Connect();
 
+                var sendTime = 200;
                 var time = Timestamp.Current;
                 var i = 0;
                 while (!resetEvent.IsSet)
@@ -53,9 +54,9 @@ namespace Pegi.Client
                     client.Update();
 
                     var now = Timestamp.Current;
-                    if (now - time > 500)
+                    if (now - time > sendTime)
                     {
-                        time += 500;
+                        time += sendTime;
 
                         i++;
                         var message = NetMessageManager.Create<DebugMessage>();

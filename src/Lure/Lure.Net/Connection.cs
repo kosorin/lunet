@@ -113,11 +113,6 @@ namespace Lure.Net
                 var now = Timestamp.Current;
                 foreach (var (channelId, channel) in _channels)
                 {
-                    foreach (var packet in channel.CollectOutgoingPackets())
-                    {
-                        _peer.SendPacket(RemoteEndPoint, channelId, packet);
-                    }
-
                     var receivedMessages = channel.GetReceivedMessages();
                     if (receivedMessages.Count > 0)
                     {
@@ -127,6 +122,11 @@ namespace Lure.Net
                             MessageReceived?.Invoke(this, message);
                         }
                         _lastReceivedMessageTimestamp = now;
+                    }
+
+                    foreach (var packet in channel.CollectOutgoingPackets())
+                    {
+                        _peer.SendPacket(RemoteEndPoint, channelId, packet);
                     }
                 }
 

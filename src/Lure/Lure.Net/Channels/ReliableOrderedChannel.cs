@@ -1,6 +1,7 @@
 ﻿using Lure.Extensions.NetCore;
 using Lure.Net.Data;
 using Lure.Net.Packets;
+using Serilog;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -42,6 +43,7 @@ namespace Lure.Net.Channels
 
         protected override bool AcceptIncomingPacket(ReliablePacket packet)
         {
+            Log.Debug("IN PACKET {Seq}", packet.Seq);
             if (AcknowledgeIncomingPacket(packet.Seq))
             {
                 AcknowledgeOutgoingPackets(packet.Ack, packet.AckBuffer);
@@ -52,6 +54,7 @@ namespace Lure.Net.Channels
 
         protected override bool AcceptIncomingRawMessage(SequencedRawMessage rawMessage)
         {
+            Log.Debug("IN MSG {Seq}", rawMessage.Seq);
             if (rawMessage.Seq == _incomingRawMessageSeq)
             {
                 // New message
@@ -141,6 +144,7 @@ namespace Lure.Net.Channels
 
         protected override void OnOutgoingPacket(ReliablePacket packet)
         {
+            Log.Debug("OUT PACKET {Seq}", packet.Seq);
             _outgoingRawMessageTracker.Track(packet.Seq, packet.RawMessages.Select(x => x.Seq));
         }
 
@@ -148,6 +152,7 @@ namespace Lure.Net.Channels
         {
             lock (_outgoingRawMessageQueue)
             {
+                Log.Debug("OUT MSG {Seq}", rawMessage.Seq);
                 if (!_outgoingRawMessageQueue.TryAdd(rawMessage.Seq, rawMessage))
                 {
                     throw new NetException("Raw message buffer overflow.");

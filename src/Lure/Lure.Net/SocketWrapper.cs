@@ -34,6 +34,8 @@ namespace Lure.Net
 
         public bool IsBound => _socket != null;
 
+        public SocketStatistics Statistics { get; } = new SocketStatistics();
+
 
         public void Bind()
         {
@@ -118,8 +120,9 @@ namespace Lure.Net
 
             if (token.IsOk())
             {
-                //_peer.Statistics.ReceivedBytes += (ulong)token.BytesTransferred;
-                //_peer.Statistics.ReceivedPackets++;
+                Log.Debug("RECV {Bytes}", token.BytesTransferred);
+                Statistics.ReceivedBytes += (ulong)token.BytesTransferred;
+                Statistics.ReceivedPackets++;
 
                 var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
                 var reader = token.GetReader();
@@ -199,8 +202,9 @@ namespace Lure.Net
 
             if (token.IsOk())
             {
-                //_peer.Statistics.SentBytes += (ulong)token.BytesTransferred;
-                //_peer.Statistics.SentPackets++;
+                Log.Debug("SEND {Bytes}", token.BytesTransferred);
+                Statistics.SentBytes += (ulong)token.BytesTransferred;
+                Statistics.SentPackets++;
             }
             _sendTokenPool.Return(token);
         }

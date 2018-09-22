@@ -28,8 +28,6 @@ namespace Lure.Net
         }
 
 
-        public PeerStatistics Statistics { get; } = new PeerStatistics();
-
         public PeerConfig Config => _config;
 
         public bool IsRunning => _state == PeerState.Running;
@@ -84,10 +82,11 @@ namespace Lure.Net
                 _state = PeerState.Stopped;
                 Log.Debug("Peer stopped");
 
-                Log.Information("Received bytes: {ReceivedBytes}", Statistics.ReceivedBytes);
-                Log.Information("Received packets: {ReceivedPackets}", Statistics.ReceivedPackets);
-                Log.Information("Sent bytes: {SentBytes}", Statistics.SentBytes);
-                Log.Information("Sent packets: {SentPackets}", Statistics.SentPackets);
+                var statistics = _socket.Statistics;
+                Log.Information("Received bytes: {ReceivedBytes}", statistics.ReceivedBytes);
+                Log.Information("Received packets: {ReceivedPackets}", statistics.ReceivedPackets);
+                Log.Information("Sent bytes: {SentBytes}", statistics.SentBytes);
+                Log.Information("Sent packets: {SentPackets}", statistics.SentPackets);
             }
             catch
             {
