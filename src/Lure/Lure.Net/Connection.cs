@@ -158,7 +158,7 @@ namespace Lure.Net
             }
         }
 
-        internal void OnReceivedPacket(byte channelId, INetDataReader reader)
+        internal void OnReceivedPacket(byte channelId, NetDataReader reader)
         {
             if (_state == ConnectionState.Connected)
             {

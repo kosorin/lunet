@@ -8,6 +8,9 @@ namespace Lure.Net
 {
     public abstract class Peer : IDisposable
     {
+        public static byte Version => 1;
+
+
         private readonly PeerConfig _config;
         private readonly SocketWrapper _socket;
 
@@ -123,7 +126,7 @@ namespace Lure.Net
 
         internal abstract void OnDisconnect(Connection connection);
 
-        internal abstract void OnPacketReceived(IPEndPoint remoteEndPoint, byte channelId, INetDataReader reader);
+        internal abstract void OnPacketReceived(IPEndPoint remoteEndPoint, byte channelId, NetDataReader reader);
 
         internal void SendPacket(IPEndPoint remoteEndPoint, byte channelId, INetPacket packet)
         {

@@ -1,4 +1,5 @@
-﻿using Lure.Collections;
+﻿using Force.Crc32;
+using Lure.Collections;
 using Lure.Net.Data;
 using Lure.Net.Extensions;
 using Lure.Net.Packets;
@@ -9,15 +10,19 @@ using System.Net.Sockets;
 
 namespace Lure.Net
 {
-    internal delegate void PacketReceivedHandler(IPEndPoint remoteEndPoint, byte channelId, INetDataReader reader);
+    internal delegate void PacketReceivedHandler(IPEndPoint remoteEndPoint, byte channelId, NetDataReader reader);
 
     internal sealed class SocketWrapper : IDisposable
     {
+        private const uint Crc32Check = 0x2144DF1C; // dec = 558_161_692
+        private const int Crc32Length = sizeof(uint);
+
         private readonly ISocketConfig _config;
 
         private readonly SocketAsyncEventArgs _receiveToken;
         private readonly IObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
+        private readonly uint _initialCrc32;
         private Socket _socket;
 
         public SocketWrapper(ISocketConfig config)
@@ -26,6 +31,9 @@ namespace Lure.Net
 
             _receiveToken = CreateReceiveToken();
             _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateSendToken);
+
+            var version = new Guid("{1EDEFE8C-9469-4D68-9F3E-40A4A1971B90}");
+            _initialCrc32 = Crc32Algorithm.Compute(version.ToByteArray());
         }
 
 
@@ -123,8 +131,16 @@ namespace Lure.Net
                 Statistics.ReceivedBytes += (ulong)token.BytesTransferred;
                 Statistics.ReceivedPackets++;
 
+                var crc32 = Crc32Algorithm.Append(_initialCrc32, token.Buffer, token.Offset, token.BytesTransferred);
+                if (crc32 != Crc32Check)
+                {
+                    Log.Error("CRC32");
+                    StartReceive();
+                    return;
+                }
+
                 var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
-                var reader = token.GetReader();
+                var reader = new NetDataReader(token.Buffer, token.Offset, token.BytesTransferred - Crc32Length);
                 var channelId = reader.ReadByte();
                 PacketReceived?.Invoke(remoteEndPoint, channelId, reader);
             }
@@ -150,6 +166,10 @@ namespace Lure.Net
                 packet.SerializeHeader(writer);
                 packet.SerializeData(writer);
                 writer.Flush();
+
+                var crc32 = Crc32Algorithm.Append(_initialCrc32, writer.Data, writer.Offset, writer.Length);
+                writer.WriteUInt(crc32);
+                writer.Flush();
             }
             catch
             {
@@ -157,7 +177,7 @@ namespace Lure.Net
                 return;
             }
 
-            token.SetWriter(writer);
+            token.SetBuffer(writer.Data, writer.Offset, writer.Length);
             token.RemoteEndPoint = remoteEndPoint;
 
             StartSend(token);

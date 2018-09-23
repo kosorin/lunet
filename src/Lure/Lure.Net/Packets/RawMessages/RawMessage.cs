@@ -12,12 +12,12 @@ namespace Lure.Net.Packets
 
         public virtual int Length => sizeof(ushort) + Data.Length;
 
-        public virtual void Deserialize(INetDataReader reader)
+        public virtual void Deserialize(NetDataReader reader)
         {
             Data = reader.ReadByteArray();
         }
 
-        public virtual void Serialize(INetDataWriter writer)
+        public virtual void Serialize(NetDataWriter writer)
         {
             writer.WriteByteArray(Data);
         }

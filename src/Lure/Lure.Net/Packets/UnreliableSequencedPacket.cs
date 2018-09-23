@@ -12,13 +12,13 @@ namespace Lure.Net.Packets
 
         public SeqNo Seq { get; set; }
 
-        protected override void DeserializeHeaderCore(INetDataReader reader)
+        protected override void DeserializeHeaderCore(NetDataReader reader)
         {
             Seq = reader.ReadSeqNo();
             base.DeserializeHeaderCore(reader);
         }
 
-        protected override void SerializeHeaderCore(INetDataWriter writer)
+        protected override void SerializeHeaderCore(NetDataWriter writer)
         {
             writer.WriteSeqNo(Seq);
             base.SerializeHeaderCore(writer);

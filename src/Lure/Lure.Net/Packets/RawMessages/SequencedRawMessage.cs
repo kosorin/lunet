@@ -10,13 +10,13 @@ namespace Lure.Net.Packets
 
         public override int Length => sizeof(ushort) + base.Length;
 
-        public override void Deserialize(INetDataReader reader)
+        public override void Deserialize(NetDataReader reader)
         {
             Seq = reader.ReadSeqNo();
             base.Deserialize(reader);
         }
 
-        public override void Serialize(INetDataWriter writer)
+        public override void Serialize(NetDataWriter writer)
         {
             writer.WriteSeqNo(Seq);
             base.Serialize(writer);

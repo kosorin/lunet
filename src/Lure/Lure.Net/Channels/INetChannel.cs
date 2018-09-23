@@ -7,7 +7,7 @@ namespace Lure.Net.Channels
 {
     public interface INetChannel
     {
-        void ProcessIncomingPacket(INetDataReader reader);
+        void ProcessIncomingPacket(NetDataReader reader);
 
         IList<INetPacket> CollectOutgoingPackets();
 

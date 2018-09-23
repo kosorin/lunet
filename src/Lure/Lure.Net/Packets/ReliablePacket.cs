@@ -20,7 +20,7 @@ namespace Lure.Net.Packets
 
         public BitVector AckBuffer { get; set; }
 
-        protected override void DeserializeHeaderCore(INetDataReader reader)
+        protected override void DeserializeHeaderCore(NetDataReader reader)
         {
             Seq = reader.ReadSeqNo();
             Ack = reader.ReadSeqNo();
@@ -28,14 +28,14 @@ namespace Lure.Net.Packets
             base.DeserializeHeaderCore(reader);
         }
 
-        protected override void DeserializeDataCore(INetDataReader reader)
+        protected override void DeserializeDataCore(NetDataReader reader)
         {
             base.DeserializeDataCore(reader);
 
             RawMessages.Sort();
         }
 
-        protected override void SerializeHeaderCore(INetDataWriter writer)
+        protected override void SerializeHeaderCore(NetDataWriter writer)
         {
             writer.WriteSeqNo(Seq);
             writer.WriteSeqNo(Ack);

@@ -46,10 +46,11 @@ namespace Pegi.Client
                 };
                 connection.Connect();
 
+                var updateTime = 30;
                 var sendTime = 30;
                 var time = Timestamp.Current;
                 var i = 0;
-                while (!resetEvent.IsSet)
+                while (!resetEvent.IsSet && (connection.State == ConnectionState.Connecting || connection.State == ConnectionState.Connected))
                 {
                     client.Update();
 
@@ -65,7 +66,7 @@ namespace Pegi.Client
                         connection.SendMessage(message);
                     }
 
-                    Thread.Sleep(1000 / 50);
+                    Thread.Sleep(1000 / updateTime);
                 }
 
                 client.Stop();

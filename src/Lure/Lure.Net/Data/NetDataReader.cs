@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace Lure.Net.Data
 {
-    internal class NetDataReader : INetDataReader
+    public class NetDataReader
     {
         private readonly byte[] _data;
         private readonly int _offset;
@@ -39,9 +39,9 @@ namespace Lure.Net.Data
 
         public int BitPosition => (_position * NC.BitsPerByte) + _bitPosition;
 
-        internal byte[] Data => _data;
+        public byte[] Data => _data;
 
-        internal int Offset => _offset;
+        public int Offset => _offset;
 
 
         public BitVector ReadBits(int bitLength)

@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace Lure.Net.Data
 {
-    internal class NetDataWriter : INetDataWriter
+    public class NetDataWriter
     {
         private const int ResizeData = 8;
 
@@ -60,11 +60,11 @@ namespace Lure.Net.Data
 
         public int BitPosition => (_position * NC.BitsPerByte) + _bitPosition;
 
-        internal bool IsShared => _isShared;
+        public bool IsShared => _isShared;
 
-        internal byte[] Data => _data;
+        public byte[] Data => _data;
 
-        internal int Offset => _offset;
+        public int Offset => _offset;
 
 
         public void WriteBits(BitVector vector)
@@ -250,6 +250,7 @@ namespace Lure.Net.Data
             _length = 0;
             _position = 0;
             _bitPosition = 0;
+            _buffer = 0;
         }
 
         public byte[] GetBytes(bool flush = true)

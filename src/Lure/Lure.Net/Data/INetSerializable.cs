@@ -2,8 +2,8 @@
 {
     public interface INetSerializable
     {
-        void Deserialize(INetDataReader reader);
+        void Deserialize(NetDataReader reader);
 
-        void Serialize(INetDataWriter writer);
+        void Serialize(NetDataWriter writer);
     }
 }

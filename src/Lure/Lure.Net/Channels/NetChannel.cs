@@ -1,5 +1,6 @@
 ﻿using Lure.Net.Data;
 using Lure.Net.Packets;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,9 +22,16 @@ namespace Lure.Net.Channels
 
             _rawMessageActivator = ObjectActivatorFactory.Create<TRawMessage>();
             _packetActivator = ObjectActivatorFactory.CreateWithValues<Func<TRawMessage>, TPacket>(_rawMessageActivator);
+
+            //Logger = Log.ForContext(GetType());
+            Logger = new LoggerConfiguration().CreateLogger();
         }
 
-        public void ProcessIncomingPacket(INetDataReader reader)
+
+        protected ILogger Logger { get; }
+
+
+        public void ProcessIncomingPacket(NetDataReader reader)
         {
             var packet = _packetActivator();
 
@@ -33,6 +41,7 @@ namespace Lure.Net.Channels
             }
             catch (NetSerializationException)
             {
+                Logger.Warning("Bad packet header");
                 return;
             }
 
@@ -46,6 +55,12 @@ namespace Lure.Net.Channels
                 packet.DeserializeData(reader);
             }
             catch (NetSerializationException)
+            {
+                Logger.Warning("Bad packet data");
+                return;
+            }
+
+            if (!AcknowledgeIncomingPacket(packet))
             {
                 return;
             }
@@ -96,6 +111,8 @@ namespace Lure.Net.Channels
         protected abstract void OnIncomingPacket(TPacket packet);
 
         protected abstract void OnIncomingRawMessage(TRawMessage rawMessage);
+
+        protected abstract bool AcknowledgeIncomingPacket(TPacket packet);
 
 
         protected virtual List<TPacket> PackOutgoingRawMessages(List<TRawMessage> rawMessages)

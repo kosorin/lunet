@@ -46,10 +46,11 @@ namespace Pegi.Server
                 };
                 server.Start();
 
+                var updateTime = 30;
                 while (!resetEvent.IsSet)
                 {
                     server.Update();
-                    Thread.Sleep(1000 / 50);
+                    Thread.Sleep(1000 / updateTime);
                 }
 
                 server.Stop();

@@ -5,12 +5,12 @@ namespace Lure.Net.Packets
 {
     public interface INetPacket
     {
-        void DeserializeHeader(INetDataReader reader);
+        void DeserializeHeader(NetDataReader reader);
 
-        void DeserializeData(INetDataReader reader);
+        void DeserializeData(NetDataReader reader);
 
-        void SerializeHeader(INetDataWriter writer);
+        void SerializeHeader(NetDataWriter writer);
 
-        void SerializeData(INetDataWriter writer);
+        void SerializeData(NetDataWriter writer);
     }
 }

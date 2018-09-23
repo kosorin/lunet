@@ -1,5 +1,4 @@
-﻿using Lure.Collections;
-using Lure.Net.Data;
+﻿using Lure.Net.Data;
 using System;
 using System.Collections.Generic;
 
@@ -8,8 +7,6 @@ namespace Lure.Net.Packets
     public abstract class NetPacket<TRawMessage> : INetPacket
         where TRawMessage : RawMessage
     {
-        private static int SerializationCheck => 0x55555555;
-
         private readonly Func<TRawMessage> _rawMessageActivator;
 
         protected NetPacket(Func<TRawMessage> rawMessageActivator)
@@ -19,18 +16,12 @@ namespace Lure.Net.Packets
 
         public List<TRawMessage> RawMessages { get; } = new List<TRawMessage>();
 
-        public void DeserializeHeader(INetDataReader reader)
+        public void DeserializeHeader(NetDataReader reader)
         {
             try
             {
                 DeserializeHeaderCore(reader);
-
                 reader.PadBits();
-                if (reader.ReadInt() != SerializationCheck)
-                {
-                    // TODO: Handle bad packets
-                    throw new NetSerializationException("Wrong packet serialization check.");
-                }
             }
             catch (Exception e)
             {
@@ -38,7 +29,7 @@ namespace Lure.Net.Packets
             }
         }
 
-        public void DeserializeData(INetDataReader reader)
+        public void DeserializeData(NetDataReader reader)
         {
             try
             {
@@ -56,14 +47,12 @@ namespace Lure.Net.Packets
             }
         }
 
-        public void SerializeHeader(INetDataWriter writer)
+        public void SerializeHeader(NetDataWriter writer)
         {
             try
             {
                 SerializeHeaderCore(writer);
-
                 writer.PadBits();
-                writer.WriteInt(SerializationCheck);
             }
             catch (Exception e)
             {
@@ -71,7 +60,7 @@ namespace Lure.Net.Packets
             }
         }
 
-        public void SerializeData(INetDataWriter writer)
+        public void SerializeData(NetDataWriter writer)
         {
             try
             {
@@ -83,11 +72,11 @@ namespace Lure.Net.Packets
             }
         }
 
-        protected virtual void DeserializeHeaderCore(INetDataReader reader)
+        protected virtual void DeserializeHeaderCore(NetDataReader reader)
         {
         }
 
-        protected virtual void DeserializeDataCore(INetDataReader reader)
+        protected virtual void DeserializeDataCore(NetDataReader reader)
         {
             RawMessages.Clear();
             while (reader.Position < reader.Length)
@@ -98,11 +87,11 @@ namespace Lure.Net.Packets
             }
         }
 
-        protected virtual void SerializeHeaderCore(INetDataWriter writer)
+        protected virtual void SerializeHeaderCore(NetDataWriter writer)
         {
         }
 
-        protected virtual void SerializeDataCore(INetDataWriter writer)
+        protected virtual void SerializeDataCore(NetDataWriter writer)
         {
             foreach (var rawMessage in RawMessages)
             {
