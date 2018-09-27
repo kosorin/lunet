@@ -2,11 +2,11 @@
 using Lure.Net.Extensions;
 using System;
 
-namespace Lure.Net.Packets
+namespace Lure.Net.Channels.Message
 {
-    public class UnreliableSequencedPacket : NetPacket<RawMessage>
+    public class UnreliableSequencedPacket : MessagePacket<Message>
     {
-        public UnreliableSequencedPacket(Func<RawMessage> rawMessageActivator) : base(rawMessageActivator)
+        public UnreliableSequencedPacket(Func<Message> messageActivator) : base(messageActivator)
         {
         }
 

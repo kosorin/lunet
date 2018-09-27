@@ -4,19 +4,19 @@ using Lure.Net.Packets;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net.Channels
+namespace Lure.Net.Channels.Message
 {
-    public class ReliableOrderedChannel : NetChannel<ReliablePacket, SequencedRawMessage>
+    public class ReliableOrderedChannel : MessageChannel<ReliablePacket, SequencedMessage>
     {
         private const float RTT = 0.2f;
 
-        private readonly ReliableRawMessageTracker _outgoingRawMessageTracker = new ReliableRawMessageTracker();
-        private readonly Dictionary<SeqNo, SequencedRawMessage> _outgoingRawMessageQueue = new Dictionary<SeqNo, SequencedRawMessage>();
-        private SeqNo _outgoingRawMessageSeq = SeqNo.Zero;
+        private readonly ReliableMessageTracker _outgoingMessageTracker = new ReliableMessageTracker();
+        private readonly Dictionary<SeqNo, SequencedMessage> _outgoingMessageQueue = new Dictionary<SeqNo, SequencedMessage>();
+        private SeqNo _outgoingMessageSeq = SeqNo.Zero;
 
-        private readonly Dictionary<SeqNo, SequencedRawMessage> _incomingRawMessageQueue = new Dictionary<SeqNo, SequencedRawMessage>();
-        private SeqNo _incomingReadRawMessageSeq = SeqNo.Zero;
-        private SeqNo _incomingRawMessageSeq = SeqNo.Zero;
+        private readonly Dictionary<SeqNo, SequencedMessage> _incomingMessageQueue = new Dictionary<SeqNo, SequencedMessage>();
+        private SeqNo _incomingReadMessageSeq = SeqNo.Zero;
+        private SeqNo _incomingMessageSeq = SeqNo.Zero;
 
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketAck = SeqNo.Zero - 1;
@@ -31,10 +31,10 @@ namespace Lure.Net.Channels
         public override IList<byte[]> GetReceivedMessages()
         {
             var receivedMessages = new List<byte[]>();
-            while (_incomingRawMessageQueue.Remove(_incomingReadRawMessageSeq, out var rawMessage))
+            while (_incomingMessageQueue.Remove(_incomingReadMessageSeq, out var message))
             {
-                receivedMessages.Add(rawMessage.Data);
-                _incomingReadRawMessageSeq++;
+                receivedMessages.Add(message.Data);
+                _incomingReadMessageSeq++;
             }
             return receivedMessages;
         }
@@ -80,34 +80,34 @@ namespace Lure.Net.Channels
             }
         }
 
-        protected override bool AcceptIncomingRawMessage(SequencedRawMessage rawMessage)
+        protected override bool AcceptIncomingMessage(SequencedMessage message)
         {
-            if (rawMessage.Seq == _incomingRawMessageSeq)
+            if (message.Seq == _incomingMessageSeq)
             {
                 // New message
-                Logger.Verbose("MESSAGE NEW {Seq}", rawMessage.Seq);
-                _incomingRawMessageSeq++;
+                Logger.Verbose("MESSAGE NEW {Seq}", message.Seq);
+                _incomingMessageSeq++;
                 return true;
             }
-            else if (rawMessage.Seq > _incomingRawMessageSeq)
+            else if (message.Seq > _incomingMessageSeq)
             {
-                if (_incomingRawMessageQueue.ContainsKey(rawMessage.Seq))
+                if (_incomingMessageQueue.ContainsKey(message.Seq))
                 {
                     // Already received messages
-                    Logger.Verbose("MESSAGE ALREADY {Seq}", rawMessage.Seq);
+                    Logger.Verbose("MESSAGE ALREADY {Seq}", message.Seq);
                     return false;
                 }
                 else
                 {
                     // Early message
-                    Logger.Verbose("MESSAGE EARLY {Seq}", rawMessage.Seq);
+                    Logger.Verbose("MESSAGE EARLY {Seq}", message.Seq);
                     return true;
                 }
             }
             else
             {
                 // Late or already received messages
-                Logger.Verbose("MESSAGE LATE/ALREADY {Seq}", rawMessage.Seq);
+                Logger.Verbose("MESSAGE LATE/ALREADY {Seq}", message.Seq);
                 return false;
             }
         }
@@ -116,12 +116,12 @@ namespace Lure.Net.Channels
         {
             // Packets without messages are ack packets
             // so we send ack only for received packets with messages
-            _requireAcknowledgement = packet.RawMessages.Count > 0;
+            _requireAcknowledgement = packet.Messages.Count > 0;
         }
 
-        protected override void OnIncomingRawMessage(SequencedRawMessage rawMessage)
+        protected override void OnIncomingMessage(SequencedMessage message)
         {
-            _incomingRawMessageQueue[rawMessage.Seq] = rawMessage;
+            _incomingMessageQueue[message.Seq] = message;
         }
 
         protected override bool AcknowledgeIncomingPacket(ReliablePacket packet)
@@ -135,9 +135,9 @@ namespace Lure.Net.Channels
         }
 
 
-        protected override List<ReliablePacket> PackOutgoingRawMessages(List<SequencedRawMessage> rawMessages)
+        protected override List<ReliablePacket> PackOutgoingMessages(List<SequencedMessage> messages)
         {
-            var packets = base.PackOutgoingRawMessages(rawMessages);
+            var packets = base.PackOutgoingMessages(messages);
 
             if (_requireAcknowledgement)
             {
@@ -154,17 +154,17 @@ namespace Lure.Net.Channels
             return packets;
         }
 
-        protected override List<SequencedRawMessage> GetOutgoingRawMessages()
+        protected override List<SequencedMessage> GetOutgoingMessages()
         {
             var now = Timestamp.Current;
-            lock (_outgoingRawMessageQueue)
+            lock (_outgoingMessageQueue)
             {
-                if (_outgoingRawMessageQueue.Count == 0)
+                if (_outgoingMessageQueue.Count == 0)
                 {
-                    return new List<SequencedRawMessage>();
+                    return new List<SequencedMessage>();
                 }
                 var retransmissionTimeout = now - (long)(_connection.RTT * RTT);
-                return _outgoingRawMessageQueue.Values
+                return _outgoingMessageQueue.Values
                     .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value < retransmissionTimeout)
                     .OrderBy(x => x.Timestamp ?? long.MaxValue)
                     .ToList();
@@ -178,25 +178,25 @@ namespace Lure.Net.Channels
             packet.AckBuffer = _incomingPacketAckBuffer.Clone(0, ReliablePacket.PacketAckBufferLength);
         }
 
-        protected override void PrepareOutgoingRawMessage(SequencedRawMessage rawMessage)
+        protected override void PrepareOutgoingMessage(SequencedMessage message)
         {
-            rawMessage.Seq = _outgoingRawMessageSeq++;
+            message.Seq = _outgoingMessageSeq++;
         }
 
         protected override void OnOutgoingPacket(ReliablePacket packet)
         {
-            Logger.Verbose("OUT PACKET {Seq} : {MessageSeqs}", packet.Seq, packet.RawMessages.Select(x => x.Seq));
-            _outgoingRawMessageTracker.Track(packet.Seq, packet.RawMessages.Select(x => x.Seq));
+            Logger.Verbose("OUT PACKET {Seq} : {MessageSeqs}", packet.Seq, packet.Messages.Select(x => x.Seq));
+            _outgoingMessageTracker.Track(packet.Seq, packet.Messages.Select(x => x.Seq));
         }
 
-        protected override void OnOutgoingRawMessage(SequencedRawMessage rawMessage)
+        protected override void OnOutgoingMessage(SequencedMessage message)
         {
-            lock (_outgoingRawMessageQueue)
+            lock (_outgoingMessageQueue)
             {
-                Logger.Verbose("OUT MESSAGE {Seq}", rawMessage.Seq);
-                if (!_outgoingRawMessageQueue.TryAdd(rawMessage.Seq, rawMessage))
+                Logger.Verbose("OUT MESSAGE {Seq}", message.Seq);
+                if (!_outgoingMessageQueue.TryAdd(message.Seq, message))
                 {
-                    throw new NetException("Raw message buffer overflow.");
+                    throw new NetException("Message buffer overflow.");
                 }
             }
         }
@@ -261,7 +261,7 @@ namespace Lure.Net.Channels
 
         private void AcknowledgeOutgoingPackets(SeqNo ack, BitVector acks)
         {
-            lock (_outgoingRawMessageQueue)
+            lock (_outgoingMessageQueue)
             {
                 AcknowledgeOutgoingPacket(ack);
                 foreach (var bit in acks.AsBits())
@@ -277,14 +277,14 @@ namespace Lure.Net.Channels
 
         private void AcknowledgeOutgoingPacket(SeqNo ack)
         {
-            var rawMessageSeqs = _outgoingRawMessageTracker.Clear(ack);
-            if (rawMessageSeqs != null)
+            var messageSeqs = _outgoingMessageTracker.Clear(ack);
+            if (messageSeqs != null)
             {
-                lock (_outgoingRawMessageQueue)
+                lock (_outgoingMessageQueue)
                 {
-                    foreach (var rawMessageSeq in rawMessageSeqs)
+                    foreach (var messageSeq in messageSeqs)
                     {
-                        _outgoingRawMessageQueue.Remove(rawMessageSeq);
+                        _outgoingMessageQueue.Remove(messageSeq);
                     }
                 }
             }

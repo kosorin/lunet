@@ -5,23 +5,25 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net.Channels
+namespace Lure.Net.Channels.Message
 {
-    public abstract class NetChannel<TPacket, TRawMessage> : INetChannel
-        where TPacket : NetPacket<TRawMessage>
-        where TRawMessage : RawMessage
+    public abstract class MessageChannel<TPacket, TMessage> : INetChannel
+        where TPacket : MessagePacket<TMessage>
+        where TMessage : Message
     {
         protected readonly Connection _connection;
 
         private readonly Func<TPacket> _packetActivator;
-        private readonly Func<TRawMessage> _rawMessageActivator;
+        private readonly Func<TMessage> _messageActivator;
+        private readonly SimpleMessagePacker<TPacket, TMessage> _messagePacker;
 
-        protected NetChannel(Connection connection)
+        protected MessageChannel(Connection connection)
         {
             _connection = connection;
 
-            _rawMessageActivator = ObjectActivatorFactory.Create<TRawMessage>();
-            _packetActivator = ObjectActivatorFactory.CreateWithValues<Func<TRawMessage>, TPacket>(_rawMessageActivator);
+            _messageActivator = ObjectActivatorFactory.Create<TMessage>();
+            _packetActivator = ObjectActivatorFactory.CreateWithValues<Func<TMessage>, TPacket>(_messageActivator);
+            _messagePacker = new SimpleMessagePacker<TPacket, TMessage>(_packetActivator);
 
             //Logger = Log.ForContext(GetType());
             Logger = new LoggerConfiguration().CreateLogger();
@@ -68,28 +70,28 @@ namespace Lure.Net.Channels
             OnIncomingPacket(packet);
 
             var now = Timestamp.Current;
-            foreach (var rawMessage in packet.RawMessages)
+            foreach (var message in packet.Messages)
             {
-                rawMessage.Timestamp = now;
-                if (AcceptIncomingRawMessage(rawMessage))
+                message.Timestamp = now;
+                if (AcceptIncomingMessage(message))
                 {
-                    OnIncomingRawMessage(rawMessage);
+                    OnIncomingMessage(message);
                 }
             }
         }
 
         public IList<INetPacket> CollectOutgoingPackets()
         {
-            var outgoingRawMessages = GetOutgoingRawMessages();
-            var outgoingPackets = PackOutgoingRawMessages(outgoingRawMessages);
+            var outgoingMessages = GetOutgoingMessages();
+            var outgoingPackets = PackOutgoingMessages(outgoingMessages);
             foreach (var packet in outgoingPackets)
             {
                 OnOutgoingPacket(packet);
 
                 var now = Timestamp.Current;
-                foreach (var rawMessage in packet.RawMessages)
+                foreach (var message in packet.Messages)
                 {
-                    rawMessage.Timestamp = now;
+                    message.Timestamp = now;
                 }
             }
             return outgoingPackets.Cast<INetPacket>().ToList();
@@ -99,23 +101,23 @@ namespace Lure.Net.Channels
 
         public void SendMessage(byte[] data)
         {
-            var rawMessage = CreateOutgoingRawMessage(data);
-            OnOutgoingRawMessage(rawMessage);
+            var message = CreateOutgoingMessage(data);
+            OnOutgoingMessage(message);
         }
 
 
         protected abstract bool AcceptIncomingPacket(TPacket packet);
 
-        protected abstract bool AcceptIncomingRawMessage(TRawMessage rawMessage);
+        protected abstract bool AcceptIncomingMessage(TMessage message);
 
         protected abstract void OnIncomingPacket(TPacket packet);
 
-        protected abstract void OnIncomingRawMessage(TRawMessage rawMessage);
+        protected abstract void OnIncomingMessage(TMessage message);
 
         protected abstract bool AcknowledgeIncomingPacket(TPacket packet);
 
 
-        protected virtual List<TPacket> PackOutgoingRawMessages(List<TRawMessage> rawMessages)
+        protected virtual List<TPacket> PackOutgoingMessages(List<TMessage> messages)
         {
             // TODO: Řadit zprávy, aby se vhodně naplnil celý paket.
             // Např. k velké zprávě doplnit několik malých zpráv.
@@ -123,21 +125,21 @@ namespace Lure.Net.Channels
 
             var packets = new List<TPacket>();
 
-            if (rawMessages.Count > 0)
+            if (messages.Count > 0)
             {
                 var packet = CreateOutgoingPacket();
                 var packetLength = 0; // TODO: Include packet length (without messages)
-                foreach (var rawMessage in rawMessages)
+                foreach (var message in messages)
                 {
-                    if (packetLength + rawMessage.Length > _connection.MTU)
+                    if (packetLength + message.Length > _connection.MTU)
                     {
                         packets.Add(packet);
 
                         packet = CreateOutgoingPacket();
                         packetLength = 0;
                     }
-                    packet.RawMessages.Add(rawMessage);
-                    packetLength += rawMessage.Length;
+                    packet.Messages.Add(message);
+                    packetLength += message.Length;
                 }
                 if (packetLength > 0)
                 {
@@ -157,25 +159,25 @@ namespace Lure.Net.Channels
             return packet;
         }
 
-        protected abstract List<TRawMessage> GetOutgoingRawMessages();
+        protected abstract List<TMessage> GetOutgoingMessages();
 
-        protected TRawMessage CreateOutgoingRawMessage(byte[] data)
+        protected TMessage CreateOutgoingMessage(byte[] data)
         {
-            var rawMessage = _rawMessageActivator();
-            rawMessage.Timestamp = null;
-            rawMessage.Data = data;
+            var message = _messageActivator();
+            message.Timestamp = null;
+            message.Data = data;
 
-            PrepareOutgoingRawMessage(rawMessage);
+            PrepareOutgoingMessage(message);
 
-            return rawMessage;
+            return message;
         }
 
         protected abstract void PrepareOutgoingPacket(TPacket packet);
 
-        protected abstract void PrepareOutgoingRawMessage(TRawMessage rawMessage);
+        protected abstract void PrepareOutgoingMessage(TMessage message);
 
         protected abstract void OnOutgoingPacket(TPacket packet);
 
-        protected abstract void OnOutgoingRawMessage(TRawMessage rawMessage);
+        protected abstract void OnOutgoingMessage(TMessage message);
     }
 }

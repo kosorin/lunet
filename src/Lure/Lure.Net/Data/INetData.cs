@@ -1,6 +1,6 @@
 ﻿namespace Lure.Net.Data
 {
-    public interface INetSerializable
+    public interface INetData
     {
         void Deserialize(NetDataReader reader);
 

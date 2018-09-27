@@ -2,7 +2,7 @@
 
 namespace Lure.Net.Extensions
 {
-    internal static class SerializationExtensions
+    public static class SerializationExtensions
     {
         public static SeqNo ReadSeqNo(this NetDataReader reader)
         {

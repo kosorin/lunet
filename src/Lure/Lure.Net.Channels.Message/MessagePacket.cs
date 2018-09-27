@@ -1,20 +1,21 @@
 ﻿using Lure.Net.Data;
+using Lure.Net.Packets;
 using System;
 using System.Collections.Generic;
 
-namespace Lure.Net.Packets
+namespace Lure.Net.Channels.Message
 {
-    public abstract class NetPacket<TRawMessage> : INetPacket
-        where TRawMessage : RawMessage
+    public abstract class MessagePacket<TMessage> : INetPacket
+        where TMessage : Message
     {
-        private readonly Func<TRawMessage> _rawMessageActivator;
+        private readonly Func<TMessage> _messageActivator;
 
-        protected NetPacket(Func<TRawMessage> rawMessageActivator)
+        protected MessagePacket(Func<TMessage> messageActivator)
         {
-            _rawMessageActivator = rawMessageActivator;
+            _messageActivator = messageActivator;
         }
 
-        public List<TRawMessage> RawMessages { get; } = new List<TRawMessage>();
+        public List<TMessage> Messages { get; } = new List<TMessage>();
 
         public void DeserializeHeader(NetDataReader reader)
         {
@@ -37,8 +38,7 @@ namespace Lure.Net.Packets
 
                 if (reader.Position != reader.Length)
                 {
-                    // TODO: Handle bad packets
-                    throw new NetSerializationException("Remaining data in a packet.");
+                    throw new NetSerializationException($"Remaining data in a packet ({reader.Length - reader.Position} bytes).");
                 }
             }
             catch (Exception e)
@@ -78,12 +78,12 @@ namespace Lure.Net.Packets
 
         protected virtual void DeserializeDataCore(NetDataReader reader)
         {
-            RawMessages.Clear();
+            Messages.Clear();
             while (reader.Position < reader.Length)
             {
-                var rawMessage = _rawMessageActivator();
-                rawMessage.Deserialize(reader);
-                RawMessages.Add(rawMessage);
+                var message = _messageActivator();
+                message.Deserialize(reader);
+                Messages.Add(message);
             }
         }
 
@@ -93,9 +93,9 @@ namespace Lure.Net.Packets
 
         protected virtual void SerializeDataCore(NetDataWriter writer)
         {
-            foreach (var rawMessage in RawMessages)
+            foreach (var message in Messages)
             {
-                rawMessage.Serialize(writer);
+                message.Serialize(writer);
             }
         }
     }

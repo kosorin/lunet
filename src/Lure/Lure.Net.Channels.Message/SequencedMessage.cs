@@ -2,9 +2,9 @@
 using Lure.Net.Extensions;
 using System;
 
-namespace Lure.Net.Packets
+namespace Lure.Net.Channels.Message
 {
-    public class SequencedRawMessage : RawMessage, IComparable<SequencedRawMessage>
+    public class SequencedMessage : Message, IComparable<SequencedMessage>
     {
         public SeqNo Seq { get; set; }
 
@@ -22,7 +22,7 @@ namespace Lure.Net.Packets
             base.Serialize(writer);
         }
 
-        int IComparable<SequencedRawMessage>.CompareTo(SequencedRawMessage other)
+        int IComparable<SequencedMessage>.CompareTo(SequencedMessage other)
         {
             return Seq.CompareTo(other.Seq);
         }

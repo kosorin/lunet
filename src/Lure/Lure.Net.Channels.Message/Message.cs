@@ -1,10 +1,9 @@
 ﻿using Lure.Net.Data;
 using Lure.Net.Extensions;
-using System.Diagnostics;
 
-namespace Lure.Net.Packets
+namespace Lure.Net.Channels.Message
 {
-    public class RawMessage
+    public class Message
     {
         public byte[] Data { get; set; }
 

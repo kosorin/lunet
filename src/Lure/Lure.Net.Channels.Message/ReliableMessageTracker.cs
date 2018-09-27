@@ -2,39 +2,39 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net.Channels
+namespace Lure.Net.Channels.Message
 {
-    internal class ReliableRawMessageTracker
+    internal class ReliableMessageTracker
     {
         private const int BufferSize = 1024;
 
         private readonly SeqNo[] _packetSeqBuffer = new SeqNo[BufferSize];
-        private readonly List<SeqNo>[] _rawMessageSeqBuffer = new List<SeqNo>[BufferSize];
+        private readonly List<SeqNo>[] _messageSeqBuffer = new List<SeqNo>[BufferSize];
 
-        public ReliableRawMessageTracker()
+        public ReliableMessageTracker()
         {
             for (int i = 0; i < BufferSize; i++)
             {
-                _rawMessageSeqBuffer[i] = new List<SeqNo>();
+                _messageSeqBuffer[i] = new List<SeqNo>();
             }
         }
 
         /// <summary>
-        /// Tracks sequenced raw messages.
+        /// Tracks sequenced messages.
         /// </summary>
-        public void Track(SeqNo packetSeq, IEnumerable<SeqNo> rawMessageSeqs)
+        public void Track(SeqNo packetSeq, IEnumerable<SeqNo> messageSeqs)
         {
             var index = GetIndex(packetSeq);
 
             _packetSeqBuffer[index] = packetSeq;
 
-            var rawMessageSeqBuffer = _rawMessageSeqBuffer[index];
-            rawMessageSeqBuffer.Clear();
-            rawMessageSeqBuffer.AddRange(rawMessageSeqs);
+            var messageSeqBuffer = _messageSeqBuffer[index];
+            messageSeqBuffer.Clear();
+            messageSeqBuffer.AddRange(messageSeqs);
         }
 
         /// <summary>
-        /// Stops tracking sequenced raw messages and gets assigned raw message seqs to packet seq.
+        /// Stops tracking sequenced messages and gets assigned message seqs to packet seq.
         /// May return <c>null</c>.
         /// </summary>
         public IEnumerable<SeqNo> Clear(SeqNo packetSeq)
@@ -43,7 +43,7 @@ namespace Lure.Net.Channels
 
             if (_packetSeqBuffer[index] == packetSeq)
             {
-                return _rawMessageSeqBuffer[index];
+                return _messageSeqBuffer[index];
             }
             else
             {

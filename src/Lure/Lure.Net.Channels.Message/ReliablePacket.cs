@@ -2,11 +2,11 @@
 using Lure.Net.Extensions;
 using System;
 
-namespace Lure.Net.Packets
+namespace Lure.Net.Channels.Message
 {
-    public class ReliablePacket : NetPacket<SequencedRawMessage>
+    public class ReliablePacket : MessagePacket<SequencedMessage>
     {
-        public ReliablePacket(Func<SequencedRawMessage> rawMessageActivator) : base(rawMessageActivator)
+        public ReliablePacket(Func<SequencedMessage> messageActivator) : base(messageActivator)
         {
         }
 
@@ -31,8 +31,7 @@ namespace Lure.Net.Packets
         protected override void DeserializeDataCore(NetDataReader reader)
         {
             base.DeserializeDataCore(reader);
-
-            RawMessages.Sort();
+            Messages.Sort();
         }
 
         protected override void SerializeHeaderCore(NetDataWriter writer)

@@ -15,7 +15,7 @@ namespace Lure.Net
         private int _messageBufferSize = 32; // 32 B
         private int _connectionTimeout = 6_000; // 6 seconds
         private int _maximumConnections = 32;
-        private INetChannelFactory _channelFactory = new NetChannelFactory(true);
+        private INetChannelFactory _channelFactory = new NetChannelFactory();
 
 
         public int? LocalPort

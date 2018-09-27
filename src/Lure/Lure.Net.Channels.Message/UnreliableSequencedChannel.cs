@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net.Channels
+namespace Lure.Net.Channels.Message
 {
-    public class UnreliableSequencedChannel : NetChannel<UnreliableSequencedPacket, RawMessage>
+    public class UnreliableSequencedChannel : MessageChannel<UnreliableSequencedPacket, Message>
     {
-        private readonly List<RawMessage> _outgoingRawMessageQueue = new List<RawMessage>();
-        private readonly List<RawMessage> _incomingRawMessageQueue = new List<RawMessage>();
+        private readonly List<Message> _outgoingMessageQueue = new List<Message>();
+        private readonly List<Message> _incomingMessageQueue = new List<Message>();
 
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketSeq = SeqNo.Zero - 1;
@@ -18,8 +18,8 @@ namespace Lure.Net.Channels
 
         public override IList<byte[]> GetReceivedMessages()
         {
-            var receivedMessages = _incomingRawMessageQueue.Select(x => x.Data).ToList();
-            _incomingRawMessageQueue.Clear();
+            var receivedMessages = _incomingMessageQueue.Select(x => x.Data).ToList();
+            _incomingMessageQueue.Clear();
             return receivedMessages;
         }
 
@@ -39,7 +39,7 @@ namespace Lure.Net.Channels
             }
         }
 
-        protected override bool AcceptIncomingRawMessage(RawMessage rawMessage)
+        protected override bool AcceptIncomingMessage(Message message)
         {
             return true;
         }
@@ -48,25 +48,25 @@ namespace Lure.Net.Channels
         {
         }
 
-        protected override void OnIncomingRawMessage(RawMessage rawMessage)
+        protected override void OnIncomingMessage(Message message)
         {
-            _incomingRawMessageQueue.Add(rawMessage);
+            _incomingMessageQueue.Add(message);
         }
 
 
-        protected override List<RawMessage> GetOutgoingRawMessages()
+        protected override List<Message> GetOutgoingMessages()
         {
-            lock (_outgoingRawMessageQueue)
+            lock (_outgoingMessageQueue)
             {
-                if (_outgoingRawMessageQueue.Count > 0)
+                if (_outgoingMessageQueue.Count > 0)
                 {
-                    var rawMessages = _outgoingRawMessageQueue.ToList();
-                    _outgoingRawMessageQueue.Clear();
-                    return rawMessages;
+                    var messages = _outgoingMessageQueue.ToList();
+                    _outgoingMessageQueue.Clear();
+                    return messages;
                 }
                 else
                 {
-                    return new List<RawMessage>();
+                    return new List<Message>();
                 }
             }
         }
@@ -76,7 +76,7 @@ namespace Lure.Net.Channels
             packet.Seq = _outgoingPacketSeq++;
         }
 
-        protected override void PrepareOutgoingRawMessage(RawMessage rawMessage)
+        protected override void PrepareOutgoingMessage(Message message)
         {
         }
 
@@ -84,12 +84,17 @@ namespace Lure.Net.Channels
         {
         }
 
-        protected override void OnOutgoingRawMessage(RawMessage rawMessage)
+        protected override void OnOutgoingMessage(Message message)
         {
-            lock (_outgoingRawMessageQueue)
+            lock (_outgoingMessageQueue)
             {
-                _outgoingRawMessageQueue.Add(rawMessage);
+                _outgoingMessageQueue.Add(message);
             }
+        }
+
+        protected override bool AcknowledgeIncomingPacket(UnreliableSequencedPacket packet)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

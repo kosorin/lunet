@@ -4,16 +4,16 @@ namespace Lure.Net
 {
     public class NetException : Exception
     {
-        internal NetException()
+        public NetException()
         {
         }
 
-        internal NetException(string message)
+        public NetException(string message)
             : base(message)
         {
         }
 
-        internal NetException(string message, Exception inner)
+        public NetException(string message, Exception inner)
             : base(message, inner)
         {
         }

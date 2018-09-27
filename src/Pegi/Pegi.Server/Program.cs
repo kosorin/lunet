@@ -1,5 +1,6 @@
 ﻿using Lure.Net;
 using Lure.Net.Channels;
+using Lure.Net.Channels.Message;
 using Lure.Net.Messages;
 using Serilog;
 using System;

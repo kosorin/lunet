@@ -13,14 +13,6 @@ namespace Lure.Net.Channels
             _activators = new Dictionary<byte, Func<Connection, INetChannel>>();
         }
 
-        internal NetChannelFactory(bool isDefault) : this()
-        {
-            if (isDefault)
-            {
-                Add<ReliableOrderedChannel>();
-            }
-        }
-
         public byte Add<TChannel>() where TChannel : INetChannel
         {
             var id = GetNextId();

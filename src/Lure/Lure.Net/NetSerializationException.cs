@@ -4,16 +4,16 @@ namespace Lure.Net
 {
     public class NetSerializationException : NetException
     {
-        internal NetSerializationException()
+        public NetSerializationException()
         {
         }
 
-        internal NetSerializationException(string message)
+        public NetSerializationException(string message)
             : base(message)
         {
         }
 
-        internal NetSerializationException(string message, Exception inner)
+        public NetSerializationException(string message, Exception inner)
             : base(message, inner)
         {
         }

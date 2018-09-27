@@ -54,9 +54,11 @@ namespace Lure.Net
 
         public IPEndPoint RemoteEndPoint { get; }
 
-        internal int MTU => 1000;
+        // TODO: internal?
+        public int MTU => 1000;
 
-        internal int RTT => 500;
+        // TODO: internal?
+        public int RTT => 500;
 
 
         public void Connect()
