@@ -3,11 +3,9 @@ using Lure.Net.Extensions;
 
 namespace Lure.Net.Channels.Message
 {
-    public class Message
+    public abstract class Message
     {
         public byte[] Data { get; set; }
-
-        public long? Timestamp { get; set; }
 
         public virtual int Length => sizeof(ushort) + Data.Length;
 

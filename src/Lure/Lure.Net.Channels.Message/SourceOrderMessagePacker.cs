@@ -3,20 +3,20 @@ using System.Collections.Generic;
 
 namespace Lure.Net.Channels.Message
 {
-    internal class SimpleMessagePacker<TPacket, TMessage> : IMessagePacker<TPacket, TMessage>
+    internal class SourceOrderMessagePacker<TPacket, TMessage> : IMessagePacker<TPacket, TMessage>
         where TPacket : MessagePacket<TMessage>
         where TMessage : Message
     {
         private readonly Func<TPacket> _packetActivator;
 
-        public SimpleMessagePacker(Func<TPacket> packetActivator)
+        public SourceOrderMessagePacker(Func<TPacket> packetActivator)
         {
             _packetActivator = packetActivator;
         }
 
-        public List<TPacket> Pack(List<TMessage> messages, int maxPacketSize)
+        public IList<TPacket> Pack(IList<TMessage> messages, int maxPacketSize)
         {
-            if (messages.Count == 0)
+            if (messages == null || messages.Count == 0)
             {
                 return null;
             }
@@ -34,6 +34,7 @@ namespace Lure.Net.Channels.Message
                     packet = _packetActivator();
                     packetLength = 0;
                 }
+
                 packet.Messages.Add(message);
                 packetLength += message.Length;
             }

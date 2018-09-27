@@ -4,9 +4,9 @@ using System;
 
 namespace Lure.Net.Channels.Message
 {
-    public class UnreliableSequencedPacket : MessagePacket<Message>
+    public class UnreliableSequencedPacket : MessagePacket<UnreliableMessage>
     {
-        public UnreliableSequencedPacket(Func<Message> messageActivator) : base(messageActivator)
+        public UnreliableSequencedPacket(Func<UnreliableMessage> messageActivator) : base(messageActivator)
         {
         }
 

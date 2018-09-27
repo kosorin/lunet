@@ -6,15 +6,15 @@ using System.Linq;
 
 namespace Lure.Net.Channels.Message
 {
-    public class ReliableOrderedChannel : MessageChannel<ReliablePacket, SequencedMessage>
+    public class ReliableOrderedChannel : MessageChannel<ReliablePacket, ReliableMessage>
     {
         private const float RTT = 0.2f;
 
         private readonly ReliableMessageTracker _outgoingMessageTracker = new ReliableMessageTracker();
-        private readonly Dictionary<SeqNo, SequencedMessage> _outgoingMessageQueue = new Dictionary<SeqNo, SequencedMessage>();
+        private readonly Dictionary<SeqNo, ReliableMessage> _outgoingMessageQueue = new Dictionary<SeqNo, ReliableMessage>();
         private SeqNo _outgoingMessageSeq = SeqNo.Zero;
 
-        private readonly Dictionary<SeqNo, SequencedMessage> _incomingMessageQueue = new Dictionary<SeqNo, SequencedMessage>();
+        private readonly Dictionary<SeqNo, ReliableMessage> _incomingMessageQueue = new Dictionary<SeqNo, ReliableMessage>();
         private SeqNo _incomingReadMessageSeq = SeqNo.Zero;
         private SeqNo _incomingMessageSeq = SeqNo.Zero;
 
@@ -80,7 +80,7 @@ namespace Lure.Net.Channels.Message
             }
         }
 
-        protected override bool AcceptIncomingMessage(SequencedMessage message)
+        protected override bool AcceptIncomingMessage(ReliableMessage message)
         {
             if (message.Seq == _incomingMessageSeq)
             {
@@ -119,7 +119,7 @@ namespace Lure.Net.Channels.Message
             _requireAcknowledgement = packet.Messages.Count > 0;
         }
 
-        protected override void OnIncomingMessage(SequencedMessage message)
+        protected override void OnIncomingMessage(ReliableMessage message)
         {
             _incomingMessageQueue[message.Seq] = message;
         }
@@ -135,7 +135,7 @@ namespace Lure.Net.Channels.Message
         }
 
 
-        protected override List<ReliablePacket> PackOutgoingMessages(List<SequencedMessage> messages)
+        protected override List<ReliablePacket> PackOutgoingMessages(List<ReliableMessage> messages)
         {
             var packets = base.PackOutgoingMessages(messages);
 
@@ -154,14 +154,14 @@ namespace Lure.Net.Channels.Message
             return packets;
         }
 
-        protected override List<SequencedMessage> GetOutgoingMessages()
+        protected override List<ReliableMessage> GetOutgoingMessages()
         {
             var now = Timestamp.Current;
             lock (_outgoingMessageQueue)
             {
                 if (_outgoingMessageQueue.Count == 0)
                 {
-                    return new List<SequencedMessage>();
+                    return new List<ReliableMessage>();
                 }
                 var retransmissionTimeout = now - (long)(_connection.RTT * RTT);
                 return _outgoingMessageQueue.Values
@@ -178,7 +178,7 @@ namespace Lure.Net.Channels.Message
             packet.AckBuffer = _incomingPacketAckBuffer.Clone(0, ReliablePacket.PacketAckBufferLength);
         }
 
-        protected override void PrepareOutgoingMessage(SequencedMessage message)
+        protected override void PrepareOutgoingMessage(ReliableMessage message)
         {
             message.Seq = _outgoingMessageSeq++;
         }
@@ -189,7 +189,7 @@ namespace Lure.Net.Channels.Message
             _outgoingMessageTracker.Track(packet.Seq, packet.Messages.Select(x => x.Seq));
         }
 
-        protected override void OnOutgoingMessage(SequencedMessage message)
+        protected override void OnOutgoingMessage(ReliableMessage message)
         {
             lock (_outgoingMessageQueue)
             {

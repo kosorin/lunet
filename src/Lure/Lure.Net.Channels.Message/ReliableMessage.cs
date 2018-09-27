@@ -4,11 +4,13 @@ using System;
 
 namespace Lure.Net.Channels.Message
 {
-    public class SequencedMessage : Message, IComparable<SequencedMessage>
+    public class ReliableMessage : Message, IComparable<ReliableMessage>
     {
+        public long? Timestamp { get; set; }
+
         public SeqNo Seq { get; set; }
 
-        public override int Length => sizeof(ushort) + base.Length;
+        public override int Length => SeqNo.SizeOf + base.Length;
 
         public override void Deserialize(NetDataReader reader)
         {
@@ -22,7 +24,7 @@ namespace Lure.Net.Channels.Message
             base.Serialize(writer);
         }
 
-        int IComparable<SequencedMessage>.CompareTo(SequencedMessage other)
+        int IComparable<ReliableMessage>.CompareTo(ReliableMessage other)
         {
             return Seq.CompareTo(other.Seq);
         }

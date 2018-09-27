@@ -116,7 +116,7 @@ namespace Lure.Net
                 foreach (var (channelId, channel) in _channels)
                 {
                     var receivedMessages = channel.GetReceivedMessages();
-                    if (receivedMessages.Count > 0)
+                    if (receivedMessages?.Count > 0)
                     {
                         foreach (var data in receivedMessages)
                         {
@@ -126,9 +126,13 @@ namespace Lure.Net
                         _lastReceivedMessageTimestamp = now;
                     }
 
-                    foreach (var packet in channel.CollectOutgoingPackets())
+                    var outgoingPackets = channel.CollectOutgoingPackets();
+                    if (outgoingPackets?.Count > 0)
                     {
-                        _peer.SendPacket(RemoteEndPoint, channelId, packet);
+                        foreach (var packet in outgoingPackets)
+                        {
+                            _peer.SendPacket(RemoteEndPoint, channelId, packet);
+                        }
                     }
                 }
 

@@ -7,6 +7,6 @@ namespace Lure.Net.Channels.Message
         where TPacket : MessagePacket<TMessage>
         where TMessage : Message
     {
-        List<TPacket> Pack(List<TMessage> messages, int maxPacketSize);
+        IList<TPacket> Pack(IList<TMessage> messages, int maxPacketSize);
     }
 }

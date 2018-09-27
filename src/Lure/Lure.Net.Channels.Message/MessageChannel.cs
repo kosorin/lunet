@@ -15,7 +15,7 @@ namespace Lure.Net.Channels.Message
 
         private readonly Func<TPacket> _packetActivator;
         private readonly Func<TMessage> _messageActivator;
-        private readonly SimpleMessagePacker<TPacket, TMessage> _messagePacker;
+        private readonly SourceOrderMessagePacker<TPacket, TMessage> _messagePacker;
 
         protected MessageChannel(Connection connection)
         {
@@ -23,7 +23,7 @@ namespace Lure.Net.Channels.Message
 
             _messageActivator = ObjectActivatorFactory.Create<TMessage>();
             _packetActivator = ObjectActivatorFactory.CreateWithValues<Func<TMessage>, TPacket>(_messageActivator);
-            _messagePacker = new SimpleMessagePacker<TPacket, TMessage>(_packetActivator);
+            _messagePacker = new SourceOrderMessagePacker<TPacket, TMessage>(_packetActivator);
 
             //Logger = Log.ForContext(GetType());
             Logger = new LoggerConfiguration().CreateLogger();
@@ -116,39 +116,6 @@ namespace Lure.Net.Channels.Message
 
         protected abstract bool AcknowledgeIncomingPacket(TPacket packet);
 
-
-        protected virtual List<TPacket> PackOutgoingMessages(List<TMessage> messages)
-        {
-            // TODO: Řadit zprávy, aby se vhodně naplnil celý paket.
-            // Např. k velké zprávě doplnit několik malých zpráv.
-            // Pouze pro číslované zprávy.
-
-            var packets = new List<TPacket>();
-
-            if (messages.Count > 0)
-            {
-                var packet = CreateOutgoingPacket();
-                var packetLength = 0; // TODO: Include packet length (without messages)
-                foreach (var message in messages)
-                {
-                    if (packetLength + message.Length > _connection.MTU)
-                    {
-                        packets.Add(packet);
-
-                        packet = CreateOutgoingPacket();
-                        packetLength = 0;
-                    }
-                    packet.Messages.Add(message);
-                    packetLength += message.Length;
-                }
-                if (packetLength > 0)
-                {
-                    packets.Add(packet);
-                }
-            }
-
-            return packets;
-        }
 
         protected TPacket CreateOutgoingPacket()
         {
