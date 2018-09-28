@@ -57,7 +57,7 @@ namespace Lure.Net.Channels.Message
 
         public IList<INetPacket> CollectOutgoingPackets()
         {
-            var outgoingMessages = GetOutgoingMessages();
+            var outgoingMessages = CollectOutgoingMessages();
             if (outgoingMessages == null)
             {
                 return null;
@@ -93,7 +93,7 @@ namespace Lure.Net.Channels.Message
         }
 
 
-        private List<UnreliableMessage> GetOutgoingMessages()
+        private List<UnreliableMessage> CollectOutgoingMessages()
         {
             lock (_outgoingMessageQueue)
             {

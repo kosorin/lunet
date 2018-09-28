@@ -1,14 +1,22 @@
 ﻿using Lure.Extensions.NetCore;
 using Lure.Net.Data;
 using Lure.Net.Packets;
+using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Lure.Net.Channels.Message
 {
-    public class ReliableOrderedChannel : MessageChannel<ReliablePacket, ReliableMessage>
+    public class ReliableOrderedChannel : INetChannel
     {
         private const float RTT = 0.2f;
+
+        private readonly Connection _connection;
+
+        private readonly Func<ReliablePacket> _packetActivator;
+        private readonly Func<ReliableMessage> _messageActivator;
+        private readonly SourceOrderMessagePacker<ReliablePacket, ReliableMessage> _messagePacker;
 
         private readonly ReliableMessageTracker _outgoingMessageTracker = new ReliableMessageTracker();
         private readonly Dictionary<SeqNo, ReliableMessage> _outgoingMessageQueue = new Dictionary<SeqNo, ReliableMessage>();
@@ -18,17 +26,122 @@ namespace Lure.Net.Channels.Message
         private SeqNo _incomingReadMessageSeq = SeqNo.Zero;
         private SeqNo _incomingMessageSeq = SeqNo.Zero;
 
+        private readonly object _outgoingPacketLock = new object();
+        private readonly object _incomingPacketLock = new object();
+
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketAck = SeqNo.Zero - 1;
         private BitVector _incomingPacketAckBuffer = new BitVector(ReliablePacket.ChannelAckBufferLength);
 
         private bool _requireAcknowledgement;
 
-        public ReliableOrderedChannel(Connection connection) : base(connection)
+        public ReliableOrderedChannel(Connection connection)
         {
+            _connection = connection;
+
+            _messageActivator = ObjectActivatorFactory.Create<ReliableMessage>();
+            _packetActivator = ObjectActivatorFactory.CreateWithValues<Func<ReliableMessage>, ReliablePacket>(_messageActivator);
+            _messagePacker = new SourceOrderMessagePacker<ReliablePacket, ReliableMessage>(_packetActivator);
+
+            Logger = Log.ForContext<ReliableOrderedChannel>();
         }
 
-        public override IList<byte[]> GetReceivedMessages()
+
+        public ILogger Logger { get; }
+
+
+        public void ProcessIncomingPacket(NetDataReader reader)
+        {
+            var packet = _packetActivator();
+
+            try
+            {
+                packet.DeserializeHeader(reader);
+            }
+            catch (NetSerializationException)
+            {
+                return;
+            }
+
+            if (!AcknowledgeIncomingPacket(packet.Seq))
+            {
+                return;
+            }
+
+            try
+            {
+                packet.DeserializeData(reader);
+            }
+            catch (NetSerializationException)
+            {
+                return;
+            }
+
+            AcknowledgeOutgoingPackets(packet.Ack, packet.AckBuffer);
+
+            // Packets without messages are ack packets
+            // so we send ack only for received packets with messages
+            _requireAcknowledgement = packet.Messages.Count > 0;
+            if (packet.Messages.Count == 0)
+            {
+                return;
+            }
+
+            var now = Timestamp.Current;
+            foreach (var message in packet.Messages)
+            {
+                message.Timestamp = now;
+                if (AcceptIncomingMessage(message))
+                {
+                    _incomingMessageQueue[message.Seq] = message;
+                }
+            }
+        }
+
+        public IList<INetPacket> CollectOutgoingPackets()
+        {
+            var outgoingMessages = CollectOutgoingMessages();
+            if (outgoingMessages == null)
+            {
+                return null;
+            }
+
+            var outgoingPackets = _messagePacker.Pack(outgoingMessages, _connection.MTU);
+            if (outgoingPackets == null)
+            {
+                if (_requireAcknowledgement)
+                {
+                    // Send at least one packet with acks
+                    outgoingPackets = new List<ReliablePacket> { _packetActivator() };
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            _requireAcknowledgement = false;
+
+            lock (_outgoingPacketLock)
+            {
+                var now = Timestamp.Current;
+                foreach (var packet in outgoingPackets)
+                {
+                    packet.Seq = _outgoingPacketSeq++;
+                    packet.Ack = _incomingPacketAck;
+                    packet.AckBuffer = _incomingPacketAckBuffer.Clone(0, ReliablePacket.PacketAckBufferLength);
+                    _outgoingMessageTracker.Track(packet.Seq, packet.Messages.Select(x => x.Seq));
+
+                    foreach (var message in packet.Messages)
+                    {
+                        message.Timestamp = now;
+                    }
+                }
+            }
+
+            return outgoingPackets.Cast<INetPacket>().ToList();
+        }
+
+        public IList<byte[]> GetReceivedMessages()
         {
             var receivedMessages = new List<byte[]>();
             while (_incomingMessageQueue.Remove(_incomingReadMessageSeq, out var message))
@@ -39,161 +152,14 @@ namespace Lure.Net.Channels.Message
             return receivedMessages;
         }
 
-
-        protected override bool AcceptIncomingPacket(ReliablePacket packet)
-        {
-            var seq = packet.Seq;
-            var diff = seq.CompareTo(_incomingPacketAck);
-            if (diff == 0)
-            {
-                // Already received packet
-                Logger.Warning("PACKET ALREADY {Seq}", seq);
-                return false;
-            }
-            else if (diff > 0)
-            {
-                // Early/new packet
-                return true;
-            }
-            else
-            {
-                diff *= -1;
-                if (diff > _incomingPacketAckBuffer.Capacity)
-                {
-                    // Late packet
-                    return false;
-                }
-                else
-                {
-                    var ackIndex = diff - 1;
-                    if (_incomingPacketAckBuffer[ackIndex])
-                    {
-                        // Already received packet
-                        return false;
-                    }
-                    else
-                    {
-                        // New packet
-                        return true;
-                    }
-                }
-            }
-        }
-
-        protected override bool AcceptIncomingMessage(ReliableMessage message)
-        {
-            if (message.Seq == _incomingMessageSeq)
-            {
-                // New message
-                Logger.Verbose("MESSAGE NEW {Seq}", message.Seq);
-                _incomingMessageSeq++;
-                return true;
-            }
-            else if (message.Seq > _incomingMessageSeq)
-            {
-                if (_incomingMessageQueue.ContainsKey(message.Seq))
-                {
-                    // Already received messages
-                    Logger.Verbose("MESSAGE ALREADY {Seq}", message.Seq);
-                    return false;
-                }
-                else
-                {
-                    // Early message
-                    Logger.Verbose("MESSAGE EARLY {Seq}", message.Seq);
-                    return true;
-                }
-            }
-            else
-            {
-                // Late or already received messages
-                Logger.Verbose("MESSAGE LATE/ALREADY {Seq}", message.Seq);
-                return false;
-            }
-        }
-
-        protected override void OnIncomingPacket(ReliablePacket packet)
-        {
-            // Packets without messages are ack packets
-            // so we send ack only for received packets with messages
-            _requireAcknowledgement = packet.Messages.Count > 0;
-        }
-
-        protected override void OnIncomingMessage(ReliableMessage message)
-        {
-            _incomingMessageQueue[message.Seq] = message;
-        }
-
-        protected override bool AcknowledgeIncomingPacket(ReliablePacket packet)
-        {
-            if (AcknowledgeIncomingPacket(packet.Seq))
-            {
-                AcknowledgeOutgoingPackets(packet.Ack, packet.AckBuffer);
-                return true;
-            }
-            return false;
-        }
-
-
-        protected override List<ReliablePacket> PackOutgoingMessages(List<ReliableMessage> messages)
-        {
-            var packets = base.PackOutgoingMessages(messages);
-
-            if (_requireAcknowledgement)
-            {
-                _requireAcknowledgement = false;
-
-                // Send at least one packet with acks
-                if (packets.Count == 0)
-                {
-                    var ackPacket = CreateOutgoingPacket();
-                    packets.Add(ackPacket);
-                }
-            }
-
-            return packets;
-        }
-
-        protected override List<ReliableMessage> GetOutgoingMessages()
-        {
-            var now = Timestamp.Current;
-            lock (_outgoingMessageQueue)
-            {
-                if (_outgoingMessageQueue.Count == 0)
-                {
-                    return new List<ReliableMessage>();
-                }
-                var retransmissionTimeout = now - (long)(_connection.RTT * RTT);
-                return _outgoingMessageQueue.Values
-                    .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value < retransmissionTimeout)
-                    .OrderBy(x => x.Timestamp ?? long.MaxValue)
-                    .ToList();
-            }
-        }
-
-        protected override void PrepareOutgoingPacket(ReliablePacket packet)
-        {
-            packet.Seq = _outgoingPacketSeq++;
-            packet.Ack = _incomingPacketAck;
-            packet.AckBuffer = _incomingPacketAckBuffer.Clone(0, ReliablePacket.PacketAckBufferLength);
-        }
-
-        protected override void PrepareOutgoingMessage(ReliableMessage message)
-        {
-            message.Seq = _outgoingMessageSeq++;
-        }
-
-        protected override void OnOutgoingPacket(ReliablePacket packet)
-        {
-            Logger.Verbose("OUT PACKET {Seq} : {MessageSeqs}", packet.Seq, packet.Messages.Select(x => x.Seq));
-            _outgoingMessageTracker.Track(packet.Seq, packet.Messages.Select(x => x.Seq));
-        }
-
-        protected override void OnOutgoingMessage(ReliableMessage message)
+        public void SendMessage(byte[] data)
         {
             lock (_outgoingMessageQueue)
             {
-                Logger.Verbose("OUT MESSAGE {Seq}", message.Seq);
+                var message = _messageActivator();
+                message.Seq = _outgoingMessageSeq++;
+                message.Data = data;
+                message.Timestamp = null;
                 if (!_outgoingMessageQueue.TryAdd(message.Seq, message))
                 {
                     throw new NetException("Message buffer overflow.");
@@ -204,56 +170,59 @@ namespace Lure.Net.Channels.Message
 
         private bool AcknowledgeIncomingPacket(SeqNo seq)
         {
-            var diff = seq.CompareTo(_incomingPacketAck);
-            if (diff == 0)
+            lock (_incomingPacketLock)
             {
-                // Already received packet
-                Logger.Warning("PACKET ALREADY {Seq}", seq);
-                return false;
-            }
-            else if (diff > 0)
-            {
-                _incomingPacketAck = seq;
-
-                if (diff > _incomingPacketAckBuffer.Capacity)
+                var diff = seq.CompareTo(_incomingPacketAck);
+                if (diff == 0)
                 {
-                    // Early packet
-                    Logger.Verbose("PACKET EARLY {Seq}", seq);
-                    _incomingPacketAckBuffer.ClearAll();
-                }
-                else
-                {
-                    // New packet
-                    Logger.Verbose("PACKET NEW {Seq}", seq);
-                    _incomingPacketAckBuffer.LeftShift(diff);
-                    _incomingPacketAckBuffer.Set(diff - 1);
-                }
-                return true;
-            }
-            else
-            {
-                diff *= -1;
-                if (diff > _incomingPacketAckBuffer.Capacity)
-                {
-                    // Late packet
-                    Logger.Warning("PACKET LATE x {Seq}", seq);
+                    // Already received packet
+                    Logger.Warning("PACKET: Already {Seq}", seq);
                     return false;
                 }
-                else
+                else if (diff > 0)
                 {
-                    var ackIndex = diff - 1;
-                    if (_incomingPacketAckBuffer[ackIndex])
+                    _incomingPacketAck = seq;
+
+                    if (diff > _incomingPacketAckBuffer.Capacity)
                     {
-                        // Already received packet
-                        Logger.Warning("PACKET ALREADY x {Seq}", seq);
-                        return false;
+                        // Early packet
+                        Logger.Verbose("PACKET: New early {Seq}", seq);
+                        _incomingPacketAckBuffer.ClearAll();
                     }
                     else
                     {
                         // New packet
-                        Logger.Verbose("PACKET NEW x {Seq}", seq);
+                        Logger.Verbose("PACKET: New early {Seq}", seq);
+                        _incomingPacketAckBuffer.LeftShift(diff);
                         _incomingPacketAckBuffer.Set(diff - 1);
-                        return true;
+                    }
+                    return true;
+                }
+                else
+                {
+                    diff *= -1;
+                    if (diff > _incomingPacketAckBuffer.Capacity)
+                    {
+                        // Late packet
+                        Logger.Warning("PACKET: Late {Seq}", seq);
+                        return false;
+                    }
+                    else
+                    {
+                        var ackIndex = diff - 1;
+                        if (_incomingPacketAckBuffer[ackIndex])
+                        {
+                            // Already received packet
+                            Logger.Warning("PACKET: Already {Seq}", seq);
+                            return false;
+                        }
+                        else
+                        {
+                            // New packet
+                            Logger.Verbose("PACKET: New late {Seq}", seq);
+                            _incomingPacketAckBuffer.Set(diff - 1);
+                            return true;
+                        }
                     }
                 }
             }
@@ -286,6 +255,58 @@ namespace Lure.Net.Channels.Message
                     {
                         _outgoingMessageQueue.Remove(messageSeq);
                     }
+                }
+            }
+        }
+
+        private bool AcceptIncomingMessage(ReliableMessage message)
+        {
+            if (message.Seq == _incomingMessageSeq)
+            {
+                // New message
+                Logger.Verbose("MESSAGE: New {Seq}", message.Seq);
+                _incomingMessageSeq++;
+                return true;
+            }
+            else if (message.Seq > _incomingMessageSeq)
+            {
+                if (_incomingMessageQueue.ContainsKey(message.Seq))
+                {
+                    // Already received messages
+                    Logger.Verbose("MESSAGE: Already received {Seq}", message.Seq);
+                    return false;
+                }
+                else
+                {
+                    // Early message
+                    Logger.Verbose("MESSAGE: Early {Seq}; Expected {ExpectedSeq}", message.Seq, _incomingMessageSeq);
+                    return true;
+                }
+            }
+            else
+            {
+                // Late or already received messages
+                Logger.Verbose("MESSAGE: Late {Seq}", message.Seq);
+                return false;
+            }
+        }
+
+        private List<ReliableMessage> CollectOutgoingMessages()
+        {
+            lock (_outgoingMessageQueue)
+            {
+                if (_outgoingMessageQueue.Count > 0)
+                {
+                    var now = Timestamp.Current;
+                    var retransmissionTimeout = now - (long)(_connection.RTT * RTT);
+                    return _outgoingMessageQueue.Values
+                        .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value < retransmissionTimeout)
+                        .OrderBy(x => x.Timestamp ?? long.MaxValue)
+                        .ToList();
+                }
+                else
+                {
+                    return null;
                 }
             }
         }

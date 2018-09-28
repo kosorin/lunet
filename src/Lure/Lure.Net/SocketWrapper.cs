@@ -134,7 +134,6 @@ namespace Lure.Net
                 var crc32 = Crc32Algorithm.Append(_initialCrc32, token.Buffer, token.Offset, token.BytesTransferred);
                 if (crc32 != Crc32Check)
                 {
-                    Log.Error("CRC32");
                     StartReceive();
                     return;
                 }

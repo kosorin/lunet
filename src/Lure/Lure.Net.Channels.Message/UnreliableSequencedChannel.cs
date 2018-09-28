@@ -16,8 +16,9 @@ namespace Lure.Net.Channels.Message
 
         private readonly List<UnreliableMessage> _outgoingMessageQueue = new List<UnreliableMessage>();
         private readonly List<UnreliableMessage> _incomingMessageQueue = new List<UnreliableMessage>();
-        private readonly object _outgoingPacketSeqLock = new object();
-        private readonly object _incomingPacketSeqLock = new object();
+
+        private readonly object _outgoingPacketLock = new object();
+        private readonly object _incomingPacketLock = new object();
 
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketSeq = SeqNo.Zero - 1;
@@ -39,21 +40,19 @@ namespace Lure.Net.Channels.Message
             try
             {
                 packet.DeserializeHeader(reader);
+            }
+            catch (NetSerializationException)
+            {
+                return;
+            }
 
-                lock (_incomingPacketSeqLock)
-                {
-                    if (_incomingPacketSeq < packet.Seq)
-                    {
-                        // New packet
-                        _incomingPacketSeq = packet.Seq;
-                    }
-                    else
-                    {
-                        // Late packet
-                        return;
-                    }
-                }
+            if (!AcceptIncomingPacket(packet.Seq))
+            {
+                return;
+            }
 
+            try
+            {
                 packet.DeserializeData(reader);
             }
             catch (NetSerializationException)
@@ -77,7 +76,7 @@ namespace Lure.Net.Channels.Message
 
         public IList<INetPacket> CollectOutgoingPackets()
         {
-            var outgoingMessages = GetOutgoingMessages();
+            var outgoingMessages = CollectOutgoingMessages();
             if (outgoingMessages == null)
             {
                 return null;
@@ -89,7 +88,7 @@ namespace Lure.Net.Channels.Message
                 return null;
             }
 
-            lock (_outgoingPacketSeqLock)
+            lock (_outgoingPacketLock)
             {
                 foreach (var packet in outgoingPackets)
                 {
@@ -121,7 +120,25 @@ namespace Lure.Net.Channels.Message
         }
 
 
-        private List<UnreliableMessage> GetOutgoingMessages()
+        private bool AcceptIncomingPacket(SeqNo seq)
+        {
+            lock (_incomingPacketLock)
+            {
+                if (_incomingPacketSeq < seq)
+                {
+                    // New packet
+                    _incomingPacketSeq = seq;
+                    return true;
+                }
+                else
+                {
+                    // Late packet
+                    return false;
+                }
+            }
+        }
+
+        private List<UnreliableMessage> CollectOutgoingMessages()
         {
             lock (_outgoingMessageQueue)
             {

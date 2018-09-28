@@ -4,6 +4,7 @@ using System.Linq;
 
 namespace Lure.Net.Channels.Message
 {
+    // TODO: Thread safe
     internal class ReliableMessageTracker
     {
         private const int BufferSize = 1024;
