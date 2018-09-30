@@ -1,15 +1,12 @@
-﻿using Lure.Net.Packets;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
 namespace Lure.Net.Channels.Message
 {
-    // TODO: Thread safe
     internal class ReliableMessageTracker
     {
         private const int BufferSize = 1024;
 
-        private readonly SeqNo[] _packetSeqBuffer = new SeqNo[BufferSize];
+        private readonly SeqNo?[] _packetSeqBuffer = new SeqNo?[BufferSize];
         private readonly List<SeqNo>[] _messageSeqBuffer = new List<SeqNo>[BufferSize];
 
         public ReliableMessageTracker()
@@ -42,17 +39,20 @@ namespace Lure.Net.Channels.Message
         {
             var index = GetIndex(packetSeq);
 
+            var messageSeqs = _messageSeqBuffer[index];
             if (_packetSeqBuffer[index] == packetSeq)
             {
-                return _messageSeqBuffer[index];
+                messageSeqs = _messageSeqBuffer[index];
             }
             else
             {
-                return null;
+                messageSeqs = null;
             }
+            _packetSeqBuffer[index] = null;
+            return messageSeqs;
         }
 
-        private int GetIndex(SeqNo packetSeq)
+        private static int GetIndex(SeqNo packetSeq)
         {
             return packetSeq.Value % BufferSize;
         }

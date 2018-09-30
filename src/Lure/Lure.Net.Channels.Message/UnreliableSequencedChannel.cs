@@ -15,12 +15,11 @@ namespace Lure.Net.Channels.Message
         private readonly SourceOrderMessagePacker<UnreliableSequencedPacket, UnreliableMessage> _messagePacker;
 
         private readonly List<UnreliableMessage> _outgoingMessageQueue = new List<UnreliableMessage>();
-        private readonly List<UnreliableMessage> _incomingMessageQueue = new List<UnreliableMessage>();
-
-        private readonly object _outgoingPacketLock = new object();
-        private readonly object _incomingPacketLock = new object();
-
+        private readonly object _outgoingPacketSeqLock = new object();
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
+
+        private readonly List<UnreliableMessage> _incomingMessageQueue = new List<UnreliableMessage>();
+        private readonly object _incomingPacketSeqLock = new object();
         private SeqNo _incomingPacketSeq = SeqNo.Zero - 1;
 
         public UnreliableSequencedChannel(Connection connection)
@@ -88,7 +87,7 @@ namespace Lure.Net.Channels.Message
                 return null;
             }
 
-            lock (_outgoingPacketLock)
+            lock (_outgoingPacketSeqLock)
             {
                 foreach (var packet in outgoingPackets)
                 {
@@ -122,7 +121,7 @@ namespace Lure.Net.Channels.Message
 
         private bool AcceptIncomingPacket(SeqNo seq)
         {
-            lock (_incomingPacketLock)
+            lock (_incomingPacketSeqLock)
             {
                 if (_incomingPacketSeq < seq)
                 {

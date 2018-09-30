@@ -60,11 +60,16 @@ namespace Pegi.Client
                     {
                         time += sendTime;
 
-                        i++;
                         var message = NetMessageManager.Create<DebugMessage>();
                         message.Integer = i;
                         message.Float = i;
                         connection.SendMessage(message);
+
+                        i++;
+                        if (i == 1000)
+                        {
+                            break;
+                        }
                     }
 
                     Thread.Sleep(1000 / updateTime);
