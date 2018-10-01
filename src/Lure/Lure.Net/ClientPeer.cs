@@ -53,6 +53,10 @@ namespace Lure.Net
 
         internal override void OnConnect(Connection connection)
         {
+            if (!IsRunning)
+            {
+                throw new NetException("Peer is not ruuning.");
+            }
             connection.OnConnect();
         }
 

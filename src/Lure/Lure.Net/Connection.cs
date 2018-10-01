@@ -65,10 +65,6 @@ namespace Lure.Net
         {
             if (_state == ConnectionState.NotConnected)
             {
-                if (!_peer.IsRunning)
-                {
-                    throw new NetException("Peer is not ruuning.");
-                }
                 Log.Debug("Connecting {RemoteEndPoint}", RemoteEndPoint);
                 _state = ConnectionState.Connecting;
                 _peer.OnConnect(this);
