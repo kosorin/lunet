@@ -24,6 +24,7 @@ namespace Lure.Net
 
         private readonly uint _initialCrc32;
         private Socket _socket;
+        private EndPoint _anyEndPoint;
 
         public SocketWrapper(ISocketConfig config)
         {
@@ -67,6 +68,7 @@ namespace Lure.Net
                 _socket.Bind(localEndPoint);
                 Log.Debug("Bind socket {LocalEndPoint}", _socket.LocalEndPoint);
 
+                _anyEndPoint = _socket.AddressFamily.GetAnyEndPoint();
                 StartReceive();
             }
             catch (SocketException e)
@@ -96,8 +98,7 @@ namespace Lure.Net
 
             try
             {
-                // TODO: Is it necessary to reset remote end point every receive call?
-                _receiveToken.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
+                _receiveToken.RemoteEndPoint = _anyEndPoint;
                 if (!_socket.ReceiveFromAsync(_receiveToken))
                 {
                     ProcessReceive(_receiveToken);
@@ -109,11 +110,7 @@ namespace Lure.Net
         private SocketAsyncEventArgs CreateReceiveToken()
         {
             var buffer = new byte[_config.PacketBufferSize];
-            var token = new SocketAsyncEventArgs
-            {
-                RemoteEndPoint = _config.AddressFamily.GetAnyEndPoint(),
-                UserToken = new NetDataReader(buffer),
-            };
+            var token = new SocketAsyncEventArgs();
             token.Completed += IO_Completed;
             token.SetBuffer(buffer, 0, buffer.Length);
             return token;

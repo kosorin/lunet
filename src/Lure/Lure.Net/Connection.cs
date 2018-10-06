@@ -19,7 +19,6 @@ namespace Lure.Net
         internal static byte SystemChannelId => 255;
 
         private readonly Peer _peer;
-        private readonly IObjectPool<NetDataWriter> _messageWriterPool;
         private readonly byte _defaultChannelId;
         private readonly IDictionary<byte, INetChannel> _channels;
 
@@ -30,7 +29,6 @@ namespace Lure.Net
         internal Connection(IPEndPoint remoteEndPoint, Peer peer)
         {
             _peer = peer;
-            _messageWriterPool = new ObjectPool<NetDataWriter>(() => new NetDataWriter(_peer.Config.MessageBufferSize));
 
             _channels = _peer.Config.ChannelFactory.Create(this);
             if (_channels.ContainsKey(SystemChannelId))
@@ -47,7 +45,7 @@ namespace Lure.Net
 
         public event TypedEventHandler<Connection> Disconnected;
 
-        public event TypedEventHandler<Connection, NetMessage> MessageReceived;
+        public event TypedEventHandler<Connection, byte[]> MessageReceived;
 
 
         public ConnectionState State => _state;
@@ -81,16 +79,15 @@ namespace Lure.Net
             }
         }
 
-        public void SendMessage(NetMessage message)
+        public void SendMessage(byte[] data)
         {
-            SendMessage(_defaultChannelId, message);
+            SendMessage(_defaultChannelId, data);
         }
 
-        public void SendMessage(byte channelId, NetMessage message)
+        public void SendMessage(byte channelId, byte[] data)
         {
             if (_channels.TryGetValue(channelId, out var channel))
             {
-                var data = SerializeMessage(message);
                 if (data.Length > MTU)
                 {
                     throw new NetException("MTU");
@@ -116,8 +113,7 @@ namespace Lure.Net
                     {
                         foreach (var data in receivedMessages)
                         {
-                            var message = DeserializeMessage(data);
-                            MessageReceived?.Invoke(this, message);
+                            MessageReceived?.Invoke(this, data);
                         }
                         _lastReceivedMessageTimestamp = now;
                     }
@@ -172,41 +168,6 @@ namespace Lure.Net
         }
 
 
-        private NetMessage DeserializeMessage(byte[] data)
-        {
-            try
-            {
-                var reader = new NetDataReader(data);
-                var typeId = reader.ReadUShort();
-                var message = NetMessageManager.Create(typeId);
-                message.DeserializeLib(reader);
-                return message;
-            }
-            catch
-            {
-                // Just drop bad messages
-                return null;
-            }
-        }
-
-        private byte[] SerializeMessage(NetMessage message)
-        {
-            var writer = _messageWriterPool.Rent();
-            try
-            {
-                writer.Reset();
-                message.SerializeLib(writer);
-                writer.Flush();
-
-                return writer.GetBytes();
-            }
-            finally
-            {
-                _messageWriterPool.Return(writer);
-            }
-        }
-
-
         private bool _disposed;
 
         public void Dispose()
@@ -221,8 +182,6 @@ namespace Lure.Net
                 if (disposing)
                 {
                     Disconnect();
-
-                    _messageWriterPool.Dispose();
                 }
                 _disposed = true;
             }

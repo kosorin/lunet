@@ -2,6 +2,7 @@
 
 namespace Lure.Net.Messages
 {
+    [Obsolete]
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class NetMessageAttribute : Attribute
     {

@@ -1,19 +1,21 @@
 ﻿using Lure.Net.Data;
+using System;
 
 namespace Lure.Net.Messages
 {
+    [Obsolete]
     public abstract class NetMessage
     {
         internal ushort TypeId { get; set; }
 
-        internal void DeserializeLib(NetDataReader reader)
+        public void DeserializeLib(NetDataReader reader)
         {
             // Skip reading a type id - already read and used to create a message
 
             Deserialize(reader);
         }
 
-        internal void SerializeLib(NetDataWriter writer)
+        public void SerializeLib(NetDataWriter writer)
         {
             writer.WriteUShort(TypeId);
 

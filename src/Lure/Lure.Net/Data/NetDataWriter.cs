@@ -60,8 +60,6 @@ namespace Lure.Net.Data
 
         public int BitPosition => (_position * NC.BitsPerByte) + _bitPosition;
 
-        public bool IsShared => _isShared;
-
         public byte[] Data => _data;
 
         public int Offset => _offset;

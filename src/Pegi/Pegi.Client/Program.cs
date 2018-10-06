@@ -2,6 +2,7 @@
 using Lure.Net;
 using Lure.Net.Channels;
 using Lure.Net.Channels.Message;
+using Lure.Net.Data;
 using Lure.Net.Messages;
 using Serilog;
 using System;
@@ -40,13 +41,14 @@ namespace Pegi.Client
                 var connection = client.Connection;
                 connection.MessageReceived += (_, message) =>
                 {
-                    if (message != null && message is DebugMessage testMessage)
-                    {
-                        Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
-                    }
+                    //if (message != null && message is DebugMessage testMessage)
+                    //{
+                    //    Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
+                    //}
                 };
                 connection.Connect();
 
+                var writer = new NetDataWriter();
                 var updateTime = 30;
                 var sendTime = 30;
                 var time = Timestamp.Current;
@@ -63,7 +65,10 @@ namespace Pegi.Client
                         var message = NetMessageManager.Create<DebugMessage>();
                         message.Integer = i;
                         message.Float = i;
-                        connection.SendMessage(message);
+
+                        writer.Reset();
+                        message.SerializeLib(writer);
+                        connection.SendMessage(writer.GetBytes());
 
                         i++;
                         if (i == 1000)

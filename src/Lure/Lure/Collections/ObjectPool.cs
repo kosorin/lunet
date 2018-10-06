@@ -11,7 +11,9 @@ namespace Lure.Collections
         private readonly int _capacity;
         private readonly Func<TItem> _activator;
         private readonly ConcurrentQueue<TItem> _objects;
+
         private bool _disposed;
+        private int _activated = 0;
 
         public ObjectPool()
             : this(int.MaxValue)
@@ -66,6 +68,7 @@ namespace Lure.Collections
             {
                 item = _activator();
                 OnItemCreated(item);
+                _activated++;
             }
 
             OnItemRented(item);
@@ -108,6 +111,7 @@ namespace Lure.Collections
             {
                 if (disposing)
                 {
+                    Log.Verbose("ObjectPool<{ItemType}>: Activated={Activated}", typeof(TItem).Name, _activated);
                     foreach (var item in _objects)
                     {
                         OnItemDisposed(item);

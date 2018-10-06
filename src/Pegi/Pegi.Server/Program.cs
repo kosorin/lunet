@@ -1,10 +1,10 @@
 ﻿using Lure.Net;
 using Lure.Net.Channels;
 using Lure.Net.Channels.Message;
+using Lure.Net.Data;
 using Lure.Net.Messages;
 using Serilog;
 using System;
-using System.Net.Sockets;
 using System.Threading;
 
 namespace Pegi.Server
@@ -34,14 +34,20 @@ namespace Pegi.Server
 
                 server.NewConnection += (_, connection) =>
                 {
-                    connection.MessageReceived += (__, message) =>
+                    connection.MessageReceived += (__, data) =>
                     {
+                        var reader = new NetDataReader(data);
+                        var typeId = reader.ReadUShort();
+                        var message = NetMessageManager.Create(typeId);
                         if (message != null && message is DebugMessage testMessage)
                         {
                             Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
+                            var writer = new NetDataWriter();
                             testMessage.Integer *= 2;
                             testMessage.Float *= 2;
-                            connection.SendMessage(testMessage);
+                            writer.Reset();
+                            message.SerializeLib(writer);
+                            connection.SendMessage(writer.GetBytes());
                         }
                     };
                 };

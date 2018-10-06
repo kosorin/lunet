@@ -5,6 +5,7 @@ using System.Reflection;
 
 namespace Lure.Net.Messages
 {
+    [Obsolete]
     public static class NetMessageManager
     {
         private static readonly Dictionary<Type, ushort> TypeActivators = new Dictionary<Type, ushort>();
@@ -43,7 +44,7 @@ namespace Lure.Net.Messages
             }
         }
 
-        internal static NetMessage Create(ushort typeId)
+        public static NetMessage Create(ushort typeId)
         {
             if (IdActivators.TryGetValue(typeId, out var activator))
             {
