@@ -129,7 +129,7 @@ namespace Lure.Net.Channels.Message
                         message.Timestamp = now;
                     }
 
-                    Logger.Error("PACKET: OUT Messages {Seq} {Messages}", packet.Seq, packet.Messages.Select(x => x.Seq).ToList());
+                    Logger.Verbose("PACKET: OUT Messages {Seq} {Messages}", packet.Seq, packet.Messages.Select(x => x.Seq).ToList());
                 }
             }
 

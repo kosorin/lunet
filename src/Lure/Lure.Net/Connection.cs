@@ -45,7 +45,7 @@ namespace Lure.Net
 
         public event TypedEventHandler<Connection> Disconnected;
 
-        public event TypedEventHandler<Connection, byte[]> MessageReceived;
+        public event TypedEventHandler<INetChannel, byte[]> MessageReceived;
 
 
         public ConnectionState State => _state;
@@ -113,7 +113,7 @@ namespace Lure.Net
                     {
                         foreach (var data in receivedMessages)
                         {
-                            MessageReceived?.Invoke(this, data);
+                            MessageReceived?.Invoke(channel, data);
                         }
                         _lastReceivedMessageTimestamp = now;
                     }
@@ -130,6 +130,7 @@ namespace Lure.Net
 
                 if (now - _lastReceivedMessageTimestamp > _peer.Config.ConnectionTimeout)
                 {
+                    Log.Warning("Timeout...");
                     Disconnect();
                 }
             }
