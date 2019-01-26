@@ -6,10 +6,8 @@ using System.Linq;
 
 namespace Lure.Net.Channels.Message
 {
-    public class UnreliableSequencedChannel : INetChannel
+    public class UnreliableSequencedChannel : NetChannel
     {
-        private readonly Connection _connection;
-
         private readonly Func<UnreliableSequencedPacket> _packetActivator;
         private readonly Func<UnreliableMessage> _messageActivator;
         private readonly SourceOrderMessagePacker<UnreliableSequencedPacket, UnreliableMessage> _messagePacker;
@@ -22,17 +20,15 @@ namespace Lure.Net.Channels.Message
         private readonly object _incomingPacketSeqLock = new object();
         private SeqNo _incomingPacketSeq = SeqNo.Zero - 1;
 
-        public UnreliableSequencedChannel(Connection connection)
+        public UnreliableSequencedChannel(byte id, Connection connection) : base(id, connection)
         {
-            _connection = connection;
-
             _messageActivator = ObjectActivatorFactory.Create<UnreliableMessage>();
             _packetActivator = ObjectActivatorFactory.CreateWithValues<Func<UnreliableMessage>, UnreliableSequencedPacket>(_messageActivator);
             _messagePacker = new SourceOrderMessagePacker<UnreliableSequencedPacket, UnreliableMessage>(_packetActivator);
         }
 
 
-        public void ProcessIncomingPacket(NetDataReader reader)
+        public override void ProcessIncomingPacket(NetDataReader reader)
         {
             var packet = _packetActivator();
 
@@ -73,7 +69,7 @@ namespace Lure.Net.Channels.Message
             }
         }
 
-        public IList<INetPacket> CollectOutgoingPackets()
+        public override IList<INetPacket> CollectOutgoingPackets()
         {
             var outgoingMessages = CollectOutgoingMessages();
             if (outgoingMessages == null)
@@ -81,7 +77,7 @@ namespace Lure.Net.Channels.Message
                 return null;
             }
 
-            var outgoingPackets = _messagePacker.Pack(outgoingMessages, _connection.MTU);
+            var outgoingPackets = _messagePacker.Pack(outgoingMessages, Connection.MTU);
             if (outgoingPackets == null)
             {
                 return null;
@@ -98,7 +94,7 @@ namespace Lure.Net.Channels.Message
             return outgoingPackets.Cast<INetPacket>().ToList();
         }
 
-        public IList<byte[]> GetReceivedMessages()
+        public override IList<byte[]> GetReceivedMessages()
         {
             lock (_incomingMessageQueue)
             {
@@ -108,7 +104,7 @@ namespace Lure.Net.Channels.Message
             }
         }
 
-        public void SendMessage(byte[] data)
+        public override void SendMessage(byte[] data)
         {
             lock (_outgoingMessageQueue)
             {

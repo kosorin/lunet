@@ -8,11 +8,9 @@ using System.Linq;
 
 namespace Lure.Net.Channels.Message
 {
-    public class ReliableOrderedChannel : INetChannel
+    public class ReliableOrderedChannel : NetChannel
     {
         private const float RTT = 0.2f;
-
-        private readonly Connection _connection;
 
         private readonly Func<ReliablePacket> _packetActivator;
         private readonly Func<ReliableMessage> _messageActivator;
@@ -32,10 +30,8 @@ namespace Lure.Net.Channels.Message
         private SeqNo _incomingReadMessageSeq = SeqNo.Zero;
         private SeqNo _incomingMessageSeq = SeqNo.Zero;
 
-        public ReliableOrderedChannel(Connection connection)
+        public ReliableOrderedChannel(byte id, Connection connection) : base(id, connection)
         {
-            _connection = connection;
-
             _messageActivator = ObjectActivatorFactory.Create<ReliableMessage>();
             _packetActivator = ObjectActivatorFactory.CreateWithValues<Func<ReliableMessage>, ReliablePacket>(_messageActivator);
             _messagePacker = new SourceOrderMessagePacker<ReliablePacket, ReliableMessage>(_packetActivator);
@@ -47,7 +43,7 @@ namespace Lure.Net.Channels.Message
         public ILogger Logger { get; }
 
 
-        public void ProcessIncomingPacket(NetDataReader reader)
+        public override void ProcessIncomingPacket(NetDataReader reader)
         {
             var packet = _packetActivator();
 
@@ -90,7 +86,7 @@ namespace Lure.Net.Channels.Message
             SaveIncomingMessages(packet.Messages);
         }
 
-        public IList<INetPacket> CollectOutgoingPackets()
+        public override IList<INetPacket> CollectOutgoingPackets()
         {
             var outgoingMessages = CollectOutgoingMessages();
             if (outgoingMessages == null)
@@ -98,7 +94,7 @@ namespace Lure.Net.Channels.Message
                 return null;
             }
 
-            var outgoingPackets = _messagePacker.Pack(outgoingMessages, _connection.MTU);
+            var outgoingPackets = _messagePacker.Pack(outgoingMessages, Connection.MTU);
 
             lock (_packetLock)
             {
@@ -136,7 +132,7 @@ namespace Lure.Net.Channels.Message
             return outgoingPackets.Cast<INetPacket>().ToList();
         }
 
-        public IList<byte[]> GetReceivedMessages()
+        public override IList<byte[]> GetReceivedMessages()
         {
             lock (_incomingMessageQueue)
             {
@@ -151,7 +147,7 @@ namespace Lure.Net.Channels.Message
             }
         }
 
-        public void SendMessage(byte[] data)
+        public override void SendMessage(byte[] data)
         {
             lock (_outgoingMessageQueue)
             {
@@ -310,7 +306,7 @@ namespace Lure.Net.Channels.Message
                 if (_outgoingMessageQueue.Count > 0)
                 {
                     var now = Timestamp.Current;
-                    var retransmissionTimeout = now - (long)(_connection.RTT * RTT);
+                    var retransmissionTimeout = now - (long)(Connection.RTT * RTT);
                     return _outgoingMessageQueue.Values
                         .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value < retransmissionTimeout)
                         .OrderBy(x => x.Timestamp ?? long.MaxValue)
