@@ -7,7 +7,7 @@ namespace Lure.Net
     [DebuggerDisplay("{Value,nq}")]
     public struct SeqNo : IEquatable<SeqNo>, IComparable<SeqNo>
     {
-        public static int SizeOf = sizeof(ushort);
+        public const int SizeOf = sizeof(ushort);
 
         public const int Range = ushort.MaxValue + 1;
 
