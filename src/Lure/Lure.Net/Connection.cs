@@ -45,12 +45,15 @@ namespace Lure.Net
 
         public event TypedEventHandler<Connection> Disconnected;
 
+        public event TypedEventHandler<Connection> Timeout;
+
         public event TypedEventHandler<INetChannel, byte[]> MessageReceived;
 
 
         public ConnectionState State => _state;
 
         public IPEndPoint RemoteEndPoint { get; }
+
 
         // TODO: internal?
         public int MTU => 1000;
@@ -130,8 +133,7 @@ namespace Lure.Net
 
                 if (now - _lastReceivedMessageTimestamp > _peer.Config.ConnectionTimeout)
                 {
-                    Log.Warning("Timeout...");
-                    Disconnect();
+                    OnTimeout();
                 }
             }
         }
@@ -166,6 +168,13 @@ namespace Lure.Net
                     channel.ProcessIncomingPacket(reader);
                 }
             }
+        }
+
+        private void OnTimeout()
+        {
+            Log.Debug("Timeout {RemoteEndPoint}", RemoteEndPoint);
+
+            Timeout?.Invoke(this);
         }
 
 
