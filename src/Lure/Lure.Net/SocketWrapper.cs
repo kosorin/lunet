@@ -141,6 +141,10 @@ namespace Lure.Net
                 var channelId = reader.ReadByte();
                 PacketReceived?.Invoke(remoteEndPoint, channelId, reader);
             }
+            else
+            {
+                // Ignore bad receive
+            }
 
             StartReceive();
         }
@@ -221,6 +225,11 @@ namespace Lure.Net
                 Statistics.SentBytes += (ulong)token.BytesTransferred;
                 Statistics.SentPackets++;
             }
+            else
+            {
+                // Ignore bad send
+            }
+
             _sendTokenPool.Return(token);
         }
 
