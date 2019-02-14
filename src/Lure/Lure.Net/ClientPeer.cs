@@ -43,6 +43,7 @@ namespace Lure.Net
         protected override void OnStop()
         {
             _connection.Disconnect();
+            _connection.Dispose();
             base.OnStop();
         }
 
@@ -64,9 +65,10 @@ namespace Lure.Net
         internal override void OnDisconnect(Connection connection)
         {
             connection.OnDisconnect();
+            connection.Dispose();
         }
 
-        internal override void OnPacketReceived(IPEndPoint remoteEndPoint, byte channelId, NetDataReader reader)
+        internal override void OnPacketReceived(IPEndPoint remoteEndPoint, NetDataReader reader)
         {
             if (_connection.RemoteEndPoint.Equals(remoteEndPoint))
             {
