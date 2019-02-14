@@ -1,4 +1,5 @@
-﻿using Lure.Net.Data;
+﻿using Lure.Net.Channels;
+using Lure.Net.Data;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -15,12 +16,12 @@ namespace Lure.Net
             {
                 LocalPort = localPort,
                 AddressFamily = addressFamily,
-            })
+            }, null)
         {
         }
 
-        public ServerPeer(ServerPeerConfig config)
-            : base(config)
+        public ServerPeer(ServerPeerConfig config, INetChannelFactory channelFactory)
+            : base(config, channelFactory)
         {
             _config = config;
 
@@ -79,7 +80,7 @@ namespace Lure.Net
                     return;
                 }
 
-                connection = new Connection(remoteEndPoint, this);
+                connection = new Connection(remoteEndPoint, this, ChannelFactory);
                 if (_connections.TryAdd(remoteEndPoint, connection))
                 {
                     OnConnect(connection);

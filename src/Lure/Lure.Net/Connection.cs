@@ -1,8 +1,6 @@
-﻿using Lure.Collections;
-using Lure.Extensions;
+﻿using Lure.Extensions;
 using Lure.Net.Channels;
 using Lure.Net.Data;
-using Lure.Net.Messages;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -16,8 +14,6 @@ namespace Lure.Net
     /// </summary>
     public class Connection : IDisposable
     {
-        internal static byte SystemChannelId => 255;
-
         private readonly Peer _peer;
         private readonly byte _defaultChannelId;
         private readonly IDictionary<byte, INetChannel> _channels;
@@ -26,15 +22,11 @@ namespace Lure.Net
 
         private long _lastReceivedMessageTimestamp;
 
-        internal Connection(IPEndPoint remoteEndPoint, Peer peer)
+        internal Connection(IPEndPoint remoteEndPoint, Peer peer, INetChannelFactory channelFactory)
         {
             _peer = peer;
 
-            _channels = _peer.Config.ChannelFactory.Create(this);
-            if (_channels.ContainsKey(SystemChannelId))
-            {
-                throw new NetException($"Reserved channel {SystemChannelId}.");
-            }
+            _channels = channelFactory.Create(this);
             _defaultChannelId = _channels.Keys.Min();
 
             _state = ConnectionState.NotConnected;

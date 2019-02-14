@@ -20,12 +20,11 @@ namespace Pegi.Client
             channelFactory.Add<ReliableOrderedChannel>();
             var config = new ClientPeerConfig
             {
-                ChannelFactory = channelFactory,
                 //Hostname = "bur.kosorin.net",
                 Port = 45685,
                 LocalPort = 45688,
             };
-            using (var client = new ClientPeer(config))
+            using (var client = new ClientPeer(config, channelFactory))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>

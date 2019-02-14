@@ -1,4 +1,5 @@
-﻿using Lure.Net.Data;
+﻿using Lure.Net.Channels;
+using Lure.Net.Data;
 using System.Net;
 using System.Net.Sockets;
 
@@ -15,12 +16,12 @@ namespace Lure.Net
                 Hostname = hostname,
                 Port = port,
                 AddressFamily = addressFamily,
-            })
+            }, null)
         {
         }
 
-        public ClientPeer(ClientPeerConfig config)
-            : base(config)
+        public ClientPeer(ClientPeerConfig config, INetChannelFactory channelFactory)
+            : base(config, channelFactory)
         {
             _config = config;
 
@@ -30,7 +31,7 @@ namespace Lure.Net
                 throw new NetException($"Could not resolve hostname '{_config.Hostname}'");
             }
             var remoteEndPoint = new IPEndPoint(hostAddress, _config.Port);
-            _connection = new Connection(remoteEndPoint, this);
+            _connection = new Connection(remoteEndPoint, this, ChannelFactory);
         }
 
 

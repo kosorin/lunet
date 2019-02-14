@@ -19,10 +19,9 @@ namespace Pegi.Server
             channelFactory.Add<ReliableOrderedChannel>();
             var config = new ServerPeerConfig
             {
-                ChannelFactory = channelFactory,
                 LocalPort = 45685,
             };
-            using (var server = new ServerPeer(config))
+            using (var server = new ServerPeer(config, channelFactory))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>

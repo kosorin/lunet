@@ -1,37 +1,38 @@
-﻿using Lure.Net.Data;
+﻿using Lure.Net.Channels;
+using Lure.Net.Data;
 using Lure.Net.Packets;
 using Serilog;
 using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace Lure.Net
 {
     public abstract class Peer : IDisposable
     {
-        public static byte Version => 1;
-
-
-        private readonly PeerConfig _config;
         private readonly SocketWrapper _socket;
 
         private volatile PeerState _state;
 
-        private protected Peer(PeerConfig config)
+        private protected Peer(PeerConfig config, INetChannelFactory channelFactory)
         {
             if (!config.IsLocked)
             {
                 config.Lock();
             }
-            _config = config;
+            Config = config;
+            ChannelFactory = channelFactory;
 
-            _socket = new SocketWrapper(_config);
+            _socket = new SocketWrapper(Config);
             _socket.PacketReceived += OnPacketReceived;
 
             _state = PeerState.NotStarted;
         }
 
 
-        public PeerConfig Config => _config;
+        public PeerConfig Config { get; }
+
+        public INetChannelFactory ChannelFactory { get; }
 
         public bool IsRunning => _state == PeerState.Running;
 
