@@ -14,6 +14,8 @@ namespace Lure.Net
 
     internal sealed class SocketWrapper : IDisposable
     {
+        private static Guid Version { get; } = Guid.Parse("1EDEFE8C-9469-4D68-9F3E-40A4A1971B90");
+
         private const uint Crc32Check = 0x2144DF1C; // dec = 558_161_692
         private const int Crc32Length = sizeof(uint);
 
@@ -33,8 +35,7 @@ namespace Lure.Net
             _receiveToken = CreateReceiveToken();
             _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateSendToken);
 
-            var version = new Guid("{1EDEFE8C-9469-4D68-9F3E-40A4A1971B90}");
-            _initialCrc32 = Crc32Algorithm.Compute(version.ToByteArray());
+            _initialCrc32 = Crc32Algorithm.Compute(Version.ToByteArray());
         }
 
 
@@ -89,6 +90,15 @@ namespace Lure.Net
         }
 
 
+        private SocketAsyncEventArgs CreateReceiveToken()
+        {
+            var buffer = new byte[_config.PacketBufferSize];
+            var token = new SocketAsyncEventArgs();
+            token.Completed += IO_Completed;
+            token.SetBuffer(buffer, 0, buffer.Length);
+            return token;
+        }
+
         private void StartReceive()
         {
             if (_socket == null)
@@ -105,15 +115,6 @@ namespace Lure.Net
                 }
             }
             catch (ObjectDisposedException) { }
-        }
-
-        private SocketAsyncEventArgs CreateReceiveToken()
-        {
-            var buffer = new byte[_config.PacketBufferSize];
-            var token = new SocketAsyncEventArgs();
-            token.Completed += IO_Completed;
-            token.SetBuffer(buffer, 0, buffer.Length);
-            return token;
         }
 
         private void ProcessReceive(SocketAsyncEventArgs token)
