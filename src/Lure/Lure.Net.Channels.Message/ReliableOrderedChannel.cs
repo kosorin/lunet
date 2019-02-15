@@ -169,7 +169,7 @@ namespace Lure.Net.Channels.Message
             if (diff == 0)
             {
                 // Already received packet
-                Logger.Warning("PACKET: Already {Seq}", seq);
+                Logger.Verbose("PACKET: Already {Seq}", seq);
                 return false;
             }
             else if (diff > 0)
@@ -197,7 +197,7 @@ namespace Lure.Net.Channels.Message
                 if (diff > _incomingPacketAckBuffer.Capacity)
                 {
                     // Late packet
-                    Logger.Warning("PACKET: Late {Seq}", seq);
+                    Logger.Verbose("PACKET: Late {Seq}", seq);
                     return false;
                 }
                 else
@@ -206,7 +206,7 @@ namespace Lure.Net.Channels.Message
                     if (_incomingPacketAckBuffer[ackIndex])
                     {
                         // Already received packet
-                        Logger.Warning("PACKET: Already {Seq}", seq);
+                        Logger.Verbose("PACKET: Already {Seq}", seq);
                         return false;
                     }
                     else
