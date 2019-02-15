@@ -68,7 +68,7 @@ namespace Lure.Net
             connection.Dispose();
         }
 
-        internal override void OnPacketReceived(IPEndPoint remoteEndPoint, NetDataReader reader)
+        internal override void OnPacketReceived(IPEndPoint remoteEndPoint, byte channelId, NetDataReader reader)
         {
             if (_connection.RemoteEndPoint.Equals(remoteEndPoint))
             {
