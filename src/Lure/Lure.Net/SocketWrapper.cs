@@ -123,7 +123,7 @@ namespace Lure.Net
                 return;
             }
 
-            if (token.IsOk())
+            if (IsOk(token))
             {
                 Statistics.ReceivedBytes += (ulong)token.BytesTransferred;
                 Statistics.ReceivedPackets++;
@@ -219,7 +219,7 @@ namespace Lure.Net
                 return;
             }
 
-            if (token.IsOk())
+            if (IsOk(token))
             {
                 Statistics.SentBytes += (ulong)token.BytesTransferred;
                 Statistics.SentPackets++;
@@ -246,6 +246,12 @@ namespace Lure.Net
             default:
                 throw new InvalidOperationException("Unexpected socket async operation.");
             }
+        }
+
+
+        public static bool IsOk(SocketAsyncEventArgs token)
+        {
+            return token.SocketError == SocketError.Success && token.BytesTransferred > 0;
         }
 
 
