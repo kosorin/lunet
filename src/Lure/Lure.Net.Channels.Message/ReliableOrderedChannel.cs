@@ -9,8 +9,6 @@ namespace Lure.Net.Channels.Message
 {
     public class ReliableOrderedChannel : NetChannel
     {
-        private const float RTT = 0.2f;
-
         private readonly Func<ReliablePacket> _packetActivator;
         private readonly Func<ReliableMessage> _messageActivator;
         private readonly SourceOrderMessagePacker<ReliablePacket, ReliableMessage> _messagePacker;
@@ -307,7 +305,7 @@ namespace Lure.Net.Channels.Message
                 if (_outgoingMessageQueue.Count > 0)
                 {
                     var now = Timestamp.Current;
-                    var retransmissionTimeout = now - (long)(Connection.RTT * RTT);
+                    var retransmissionTimeout = now - Connection.RTT;
                     return _outgoingMessageQueue.Values
                         .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value < retransmissionTimeout)
                         .OrderBy(x => x.Timestamp ?? long.MaxValue)

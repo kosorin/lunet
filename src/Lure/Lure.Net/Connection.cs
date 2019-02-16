@@ -50,7 +50,7 @@ namespace Lure.Net
         public int MTU => 1000;
 
         // TODO: internal?
-        public int RTT => 500;
+        public int RTT => 100;
 
 
         public void Connect()
