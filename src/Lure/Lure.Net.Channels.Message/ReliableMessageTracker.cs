@@ -2,7 +2,7 @@
 
 namespace Lure.Net.Channels.Message
 {
-    internal class ReliableMessageTracker
+    public class ReliableMessageTracker
     {
         private const int BufferSize = 1024;
 
