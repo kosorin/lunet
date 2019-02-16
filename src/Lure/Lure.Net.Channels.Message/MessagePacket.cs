@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Lure.Net.Channels.Message
 {
-    public abstract class MessagePacket<TMessage> : IPacket
+    public abstract class MessagePacket<TMessage> : Packet
         where TMessage : Message
     {
         private readonly Func<TMessage> _messageActivator;
@@ -17,13 +17,11 @@ namespace Lure.Net.Channels.Message
 
         public List<TMessage> Messages { get; } = new List<TMessage>();
 
-        public int Length => HeaderLength + DataLength;
+        public override int HeaderLength => 0;
 
-        public virtual int HeaderLength => 0;
+        public override int DataLength => Messages.Sum(x => x.Length);
 
-        public virtual int DataLength => Messages.Sum(x => x.Length);
-
-        public void DeserializeHeader(NetDataReader reader)
+        public override void DeserializeHeader(NetDataReader reader)
         {
             try
             {
@@ -36,7 +34,7 @@ namespace Lure.Net.Channels.Message
             }
         }
 
-        public void DeserializeData(NetDataReader reader)
+        public override void DeserializeData(NetDataReader reader)
         {
             try
             {
@@ -53,7 +51,7 @@ namespace Lure.Net.Channels.Message
             }
         }
 
-        public void SerializeHeader(NetDataWriter writer)
+        public override void SerializeHeader(NetDataWriter writer)
         {
             try
             {
@@ -66,7 +64,7 @@ namespace Lure.Net.Channels.Message
             }
         }
 
-        public void SerializeData(NetDataWriter writer)
+        public override void SerializeData(NetDataWriter writer)
         {
             try
             {
