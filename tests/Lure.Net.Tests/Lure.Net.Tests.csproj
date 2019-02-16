@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Lure\Lure.Net\Lure.Net.csproj" />
+    <ProjectReference Include="..\..\src\Lure.Net\Lure.Net.csproj" />
   </ItemGroup>
 
 </Project>

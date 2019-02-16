@@ -3,21 +3,21 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pegi.Client", "src\Pegi\Pegi.Client\Pegi.Client.csproj", "{FE46E88C-3CEA-4BD3-9660-059B00A50A84}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pegi.Client", "tests\Pegi\Pegi.Client\Pegi.Client.csproj", "{FE46E88C-3CEA-4BD3-9660-059B00A50A84}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net", "src\Lure\Lure.Net\Lure.Net.csproj", "{C370D6AE-4EFE-4997-B702-A15729CCD2AA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net", "src\Lure.Net\Lure.Net.csproj", "{C370D6AE-4EFE-4997-B702-A15729CCD2AA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure", "src\Lure\Lure\Lure.csproj", "{E95F8E01-D144-4AFB-894B-712B6AE6FE32}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure", "src\Lure\Lure.csproj", "{E95F8E01-D144-4AFB-894B-712B6AE6FE32}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pegi.Server", "src\Pegi\Pegi.Server\Pegi.Server.csproj", "{922B6C61-8C68-4699-8F7C-6F571F6A8375}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pegi.Server", "tests\Pegi\Pegi.Server\Pegi.Server.csproj", "{922B6C61-8C68-4699-8F7C-6F571F6A8375}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{14E2B85C-CE5A-43EE-80DB-315C619746CC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net.Tests", "tests\Lure\Lure.Net.Tests\Lure.Net.Tests.csproj", "{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net.Tests", "tests\Lure.Net.Tests\Lure.Net.Tests.csproj", "{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net.Channels.Message", "src\Lure\Lure.Net.Channels.Message\Lure.Net.Channels.Message.csproj", "{99A862AD-40E3-4957-B1E5-0CE20952BB82}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net.Channels.Message", "src\Lure.Net.Channels.Message\Lure.Net.Channels.Message.csproj", "{99A862AD-40E3-4957-B1E5-0CE20952BB82}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net.Message", "src\Lure\Lure.Net.Message\Lure.Net.Message.csproj", "{8CAFEFE7-4FCB-4B33-9292-1D47DA6A8A2E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net.Message", "src\Lure.Net.Message\Lure.Net.Message.csproj", "{8CAFEFE7-4FCB-4B33-9292-1D47DA6A8A2E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -59,6 +59,8 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A} = {14E2B85C-CE5A-43EE-80DB-315C619746CC}
+		{FE46E88C-3CEA-4BD3-9660-059B00A50A84} = {14E2B85C-CE5A-43EE-80DB-315C619746CC}
+		{922B6C61-8C68-4699-8F7C-6F571F6A8375} = {14E2B85C-CE5A-43EE-80DB-315C619746CC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EBC38A3F-5A0D-4EC1-934A-F55295885EF7}
