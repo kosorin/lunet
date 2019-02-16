@@ -2,7 +2,7 @@
 
 namespace Lure.Net.Channels.Message
 {
-    internal interface IMessagePacker<TPacket, TMessage>
+    public interface IMessagePacker<TPacket, TMessage>
         where TPacket : MessagePacket<TMessage>
         where TMessage : Message
     {

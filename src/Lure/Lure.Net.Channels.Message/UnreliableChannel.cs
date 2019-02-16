@@ -5,26 +5,19 @@ using System.Linq;
 
 namespace Lure.Net.Channels.Message
 {
-    public class UnreliableChannel : NetChannel
+    public class UnreliableChannel : MessageChannel<UnreliablePacket, UnreliableMessage>
     {
-        private readonly Func<UnreliablePacket> _packetActivator;
-        private readonly Func<UnreliableMessage> _messageActivator;
-        private readonly SourceOrderMessagePacker<UnreliablePacket, UnreliableMessage> _messagePacker;
-
         private readonly List<UnreliableMessage> _outgoingMessageQueue = new List<UnreliableMessage>();
         private readonly List<UnreliableMessage> _incomingMessageQueue = new List<UnreliableMessage>();
 
         public UnreliableChannel(byte id, Connection connection) : base(id, connection)
         {
-            _messageActivator = ObjectActivatorFactory.Create<UnreliableMessage>();
-            _packetActivator = ObjectActivatorFactory.CreateWithValues<Func<UnreliableMessage>, UnreliablePacket>(_messageActivator);
-            _messagePacker = new SourceOrderMessagePacker<UnreliablePacket, UnreliableMessage>(_packetActivator);
         }
 
 
         public override void ProcessIncomingPacket(NetDataReader reader)
         {
-            var packet = _packetActivator();
+            var packet = PacketActivator();
 
             try
             {
@@ -58,7 +51,7 @@ namespace Lure.Net.Channels.Message
                 return null;
             }
 
-            var outgoingPackets = _messagePacker.Pack(outgoingMessages, Connection.MTU);
+            var outgoingPackets = MessagePacker.Pack(outgoingMessages, Connection.MTU);
             if (outgoingPackets == null)
             {
                 return null;
@@ -81,7 +74,7 @@ namespace Lure.Net.Channels.Message
         {
             lock (_outgoingMessageQueue)
             {
-                var message = _messageActivator();
+                var message = MessageActivator();
                 message.Data = data;
                 _outgoingMessageQueue.Add(message);
             }

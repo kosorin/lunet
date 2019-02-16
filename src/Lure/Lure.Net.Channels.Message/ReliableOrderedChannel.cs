@@ -1,18 +1,13 @@
 ﻿using Lure.Extensions.NetCore;
 using Lure.Net.Data;
 using Serilog;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Lure.Net.Channels.Message
 {
-    public class ReliableOrderedChannel : NetChannel
+    public class ReliableOrderedChannel : MessageChannel<ReliablePacket, ReliableMessage>
     {
-        private readonly Func<ReliablePacket> _packetActivator;
-        private readonly Func<ReliableMessage> _messageActivator;
-        private readonly SourceOrderMessagePacker<ReliablePacket, ReliableMessage> _messagePacker;
-
         private readonly object _packetLock = new object();
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketAck = SeqNo.Zero - 1;
@@ -29,10 +24,6 @@ namespace Lure.Net.Channels.Message
 
         public ReliableOrderedChannel(byte id, Connection connection) : base(id, connection)
         {
-            _messageActivator = ObjectActivatorFactory.Create<ReliableMessage>();
-            _packetActivator = ObjectActivatorFactory.CreateWithValues<Func<ReliableMessage>, ReliablePacket>(_messageActivator);
-            _messagePacker = new SourceOrderMessagePacker<ReliablePacket, ReliableMessage>(_packetActivator);
-
             Logger = Log.ForContext<ReliableOrderedChannel>();
         }
 
@@ -44,7 +35,7 @@ namespace Lure.Net.Channels.Message
 
         public override void ProcessIncomingPacket(NetDataReader reader)
         {
-            var packet = _packetActivator();
+            var packet = PacketActivator();
 
             try
             {
@@ -93,7 +84,7 @@ namespace Lure.Net.Channels.Message
                 return null;
             }
 
-            var outgoingPackets = _messagePacker.Pack(outgoingMessages, Connection.MTU);
+            var outgoingPackets = MessagePacker.Pack(outgoingMessages, Connection.MTU);
 
             lock (_packetLock)
             {
@@ -102,7 +93,7 @@ namespace Lure.Net.Channels.Message
                     if (_requireAckPacket)
                     {
                         // Send at least one packet with acks
-                        outgoingPackets = new List<ReliablePacket> { _packetActivator() };
+                        outgoingPackets = new[] { PacketActivator() };
                     }
                     else
                     {
@@ -150,7 +141,7 @@ namespace Lure.Net.Channels.Message
         {
             lock (_outgoingMessageQueue)
             {
-                var message = _messageActivator();
+                var message = MessageActivator();
                 message.Seq = _outgoingMessageSeq++;
                 message.Data = data;
                 message.Timestamp = null;

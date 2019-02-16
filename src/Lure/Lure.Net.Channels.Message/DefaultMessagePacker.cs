@@ -3,18 +3,15 @@ using System.Collections.Generic;
 
 namespace Lure.Net.Channels.Message
 {
-    internal class SourceOrderMessagePacker<TPacket, TMessage> : IMessagePacker<TPacket, TMessage>
+    public class DefaultMessagePacker<TPacket, TMessage> : MessagePacker<TPacket, TMessage>
         where TPacket : MessagePacket<TMessage>
         where TMessage : Message
     {
-        private readonly Func<TPacket> _packetActivator;
-
-        public SourceOrderMessagePacker(Func<TPacket> packetActivator)
+        public DefaultMessagePacker(Func<TPacket> packetActivator) : base(packetActivator)
         {
-            _packetActivator = packetActivator;
         }
 
-        public IList<TPacket> Pack(IList<TMessage> messages, int maxPacketSize)
+        public override IList<TPacket> Pack(IList<TMessage> messages, int maxPacketSize)
         {
             if (messages == null || messages.Count == 0)
             {
@@ -23,7 +20,7 @@ namespace Lure.Net.Channels.Message
 
             var packets = new List<TPacket>();
 
-            var currentPacket = _packetActivator();
+            var currentPacket = CreatePacket();
             var currentLength = currentPacket.HeaderLength;
 
             if (currentPacket.HeaderLength >= maxPacketSize)
@@ -37,8 +34,10 @@ namespace Lure.Net.Channels.Message
                 {
                     packets.Add(currentPacket);
 
-                    currentPacket = _packetActivator();
+                    currentPacket = CreatePacket();
                     currentLength = currentPacket.HeaderLength;
+
+                    // Next packet may be too big even with single message => fragmentation
                 }
 
                 currentPacket.Messages.Add(message);

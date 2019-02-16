@@ -1,11 +1,11 @@
 ﻿using Lure.Net.Data;
 using System.Collections.Generic;
 
-namespace Lure.Net.Channels.Message
+namespace Lure.Net
 {
-    public abstract class NetChannel : IChannel
+    public abstract class Channel : IChannel
     {
-        protected NetChannel(byte id, Connection connection)
+        protected Channel(byte id, Connection connection)
         {
             Id = id;
             Connection = connection;
