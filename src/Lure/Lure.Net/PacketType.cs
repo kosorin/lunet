@@ -2,9 +2,10 @@
 {
     internal enum PacketType : byte
     {
-        System = 0,
-        Fragment = 1,
-        Reserved = 2,
-        User = 3,
+        User = 0,
+        System = 1,
+        Fragment = 2,
+
+        // Max 16 fields (4 bits)
     }
 }
