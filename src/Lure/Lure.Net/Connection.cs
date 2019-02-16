@@ -47,7 +47,7 @@ namespace Lure.Net
 
 
         // TODO: internal?
-        public int MTU => 1000;
+        public int MTU => 100;
 
         // TODO: internal?
         public int RTT => 100;
@@ -82,10 +82,6 @@ namespace Lure.Net
         {
             if (_channels.TryGetValue(channelId, out var channel))
             {
-                if (data.Length > MTU)
-                {
-                    throw new NetException("MTU");
-                }
                 channel.SendMessage(data);
             }
             else

@@ -23,30 +23,31 @@ namespace Lure.Net.Channels.Message
 
             var packets = new List<TPacket>();
 
-            var packet = _packetActivator();
-            var packetLength = packet.HeaderLength;
+            var currentPacket = _packetActivator();
+            var currentLength = currentPacket.HeaderLength;
+
+            if (currentPacket.HeaderLength >= maxPacketSize)
+            {
+                throw new NetException("Too big packet header.");
+            }
+
             foreach (var message in messages)
             {
-                if (packetLength + message.Length > maxPacketSize)
+                if (currentLength + message.Length > maxPacketSize && currentPacket.Messages.Count > 0)
                 {
-                    if (packet.Messages.Count == 0)
-                    {
-                        // TODO: Message too big -> fragment
-                        throw new NotSupportedException("Message too big");
-                    }
+                    packets.Add(currentPacket);
 
-                    packets.Add(packet);
-
-                    packet = _packetActivator();
-                    packetLength = 0;
+                    currentPacket = _packetActivator();
+                    currentLength = currentPacket.HeaderLength;
                 }
 
-                packet.Messages.Add(message);
-                packetLength += message.Length;
+                currentPacket.Messages.Add(message);
+                currentLength += message.Length;
             }
-            if (packetLength > 0)
+
+            if (currentPacket.Messages.Count > 0)
             {
-                packets.Add(packet);
+                packets.Add(currentPacket);
             }
 
             return packets;
