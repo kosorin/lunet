@@ -1,7 +1,7 @@
 ﻿using Lure.Net.Data;
 using System;
 
-namespace Lure.Net.Messages
+namespace Lure.Net.Message
 {
     [Obsolete]
     public abstract class NetMessage

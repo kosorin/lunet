@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Lure\Lure.Net.Channels.Message\Lure.Net.Channels.Message.csproj" />
+    <ProjectReference Include="..\..\Lure\Lure.Net.Message\Lure.Net.Message.csproj" />
     <ProjectReference Include="..\..\Lure\Lure\Lure.csproj" />
     <ProjectReference Include="..\..\Lure\Lure.Net\Lure.Net.csproj" />
   </ItemGroup>

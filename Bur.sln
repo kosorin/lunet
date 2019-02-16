@@ -17,7 +17,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{14E2B85C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net.Tests", "tests\Lure\Lure.Net.Tests\Lure.Net.Tests.csproj", "{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lure.Net.Channels.Message", "src\Lure\Lure.Net.Channels.Message\Lure.Net.Channels.Message.csproj", "{99A862AD-40E3-4957-B1E5-0CE20952BB82}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net.Channels.Message", "src\Lure\Lure.Net.Channels.Message\Lure.Net.Channels.Message.csproj", "{99A862AD-40E3-4957-B1E5-0CE20952BB82}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lure.Net.Message", "src\Lure\Lure.Net.Message\Lure.Net.Message.csproj", "{8CAFEFE7-4FCB-4B33-9292-1D47DA6A8A2E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -53,6 +55,10 @@ Global
 		{99A862AD-40E3-4957-B1E5-0CE20952BB82}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{99A862AD-40E3-4957-B1E5-0CE20952BB82}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{99A862AD-40E3-4957-B1E5-0CE20952BB82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CAFEFE7-4FCB-4B33-9292-1D47DA6A8A2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CAFEFE7-4FCB-4B33-9292-1D47DA6A8A2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CAFEFE7-4FCB-4B33-9292-1D47DA6A8A2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CAFEFE7-4FCB-4B33-9292-1D47DA6A8A2E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

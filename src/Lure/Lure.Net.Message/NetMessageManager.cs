@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Lure.Net.Messages
+namespace Lure.Net.Message
 {
     [Obsolete]
     public static class NetMessageManager
