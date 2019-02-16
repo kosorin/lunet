@@ -18,7 +18,7 @@ namespace Lure.Net.Channels.Message
         private readonly object _packetLock = new object();
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketAck = SeqNo.Zero - 1;
-        private BitVector _incomingPacketAckBuffer = new BitVector(ReliablePacket.ChannelAckBufferLength);
+        private BitVector _incomingPacketAckBuffer = new BitVector(AckBufferLength);
         private bool _requireAckPacket;
 
         private readonly ReliableMessageTracker _outgoingMessageTracker = new ReliableMessageTracker();
@@ -38,6 +38,8 @@ namespace Lure.Net.Channels.Message
             Logger = Log.ForContext<ReliableOrderedChannel>();
         }
 
+
+        public static int AckBufferLength { get; } = 128;
 
         public ILogger Logger { get; }
 
@@ -116,7 +118,7 @@ namespace Lure.Net.Channels.Message
                 {
                     packet.Seq = _outgoingPacketSeq++;
                     packet.Ack = _incomingPacketAck;
-                    packet.AckBuffer = _incomingPacketAckBuffer.Clone(0, ReliablePacket.PacketAckBufferLength);
+                    packet.AckBuffer = _incomingPacketAckBuffer.Clone(0, ReliablePacket.AckBufferLength);
                     _outgoingMessageTracker.Track(packet.Seq, packet.Messages.Select(x => x.Seq));
 
                     foreach (var message in packet.Messages)

@@ -7,7 +7,11 @@ namespace Lure.Net.Channels.Message
     {
         public byte[] Data { get; set; }
 
-        public virtual int Length => sizeof(ushort) + Data.Length;
+        public int Length => HeaderLength + DataLength;
+
+        public virtual int HeaderLength => 0;
+
+        public virtual int DataLength => sizeof(ushort) + Data.Length;
 
         public virtual void Deserialize(NetDataReader reader)
         {

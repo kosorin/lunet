@@ -1,6 +1,7 @@
 ﻿using Lure.Net.Data;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Lure.Net.Channels.Message
 {
@@ -15,6 +16,12 @@ namespace Lure.Net.Channels.Message
         }
 
         public List<TMessage> Messages { get; } = new List<TMessage>();
+
+        public int Length => HeaderLength + DataLength;
+
+        public virtual int HeaderLength => 0;
+
+        public virtual int DataLength => Messages.Sum(x => x.Length);
 
         public void DeserializeHeader(NetDataReader reader)
         {
@@ -64,6 +71,7 @@ namespace Lure.Net.Channels.Message
             try
             {
                 SerializeDataCore(writer);
+                writer.PadBits();
             }
             catch (Exception e)
             {

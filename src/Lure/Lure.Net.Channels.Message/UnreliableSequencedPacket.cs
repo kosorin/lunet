@@ -12,6 +12,8 @@ namespace Lure.Net.Channels.Message
 
         public SeqNo Seq { get; set; }
 
+        public override int HeaderLength => SeqNo.SizeOf;
+
         protected override void DeserializeHeaderCore(NetDataReader reader)
         {
             Seq = reader.ReadSeqNo();

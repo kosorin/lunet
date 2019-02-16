@@ -10,7 +10,7 @@ namespace Lure.Net.Channels.Message
 
         public SeqNo Seq { get; set; }
 
-        public override int Length => SeqNo.SizeOf + base.Length;
+        public override int HeaderLength => SeqNo.SizeOf;
 
         public override void Deserialize(NetDataReader reader)
         {
@@ -24,6 +24,12 @@ namespace Lure.Net.Channels.Message
             base.Serialize(writer);
         }
 
+        /// <summary>
+        /// Compare reliable message.
+        /// </summary>
+        /// <remarks>
+        /// Used for sorting received packets.
+        /// </remarks>
         int IComparable<ReliableMessage>.CompareTo(ReliableMessage other)
         {
             return Seq.CompareTo(other.Seq);

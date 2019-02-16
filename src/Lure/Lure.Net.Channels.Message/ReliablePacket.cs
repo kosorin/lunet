@@ -10,9 +10,7 @@ namespace Lure.Net.Channels.Message
         {
         }
 
-        public static int ChannelAckBufferLength { get; } = 128;
-
-        public static int PacketAckBufferLength { get; } = 32;
+        public static int AckBufferLength { get; } = 32;
 
         public SeqNo Seq { get; set; }
 
@@ -20,11 +18,13 @@ namespace Lure.Net.Channels.Message
 
         public BitVector AckBuffer { get; set; }
 
+        public override int HeaderLength => SeqNo.SizeOf + SeqNo.SizeOf + AckBufferLength;
+
         protected override void DeserializeHeaderCore(NetDataReader reader)
         {
             Seq = reader.ReadSeqNo();
             Ack = reader.ReadSeqNo();
-            AckBuffer = reader.ReadBits(PacketAckBufferLength);
+            AckBuffer = reader.ReadBits(AckBufferLength);
             base.DeserializeHeaderCore(reader);
         }
 

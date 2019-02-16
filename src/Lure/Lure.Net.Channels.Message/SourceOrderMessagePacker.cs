@@ -24,11 +24,17 @@ namespace Lure.Net.Channels.Message
             var packets = new List<TPacket>();
 
             var packet = _packetActivator();
-            var packetLength = 0; // TODO: Include packet header length
+            var packetLength = packet.HeaderLength;
             foreach (var message in messages)
             {
                 if (packetLength + message.Length > maxPacketSize)
                 {
+                    if (packet.Messages.Count == 0)
+                    {
+                        // TODO: Message too big -> fragment
+                        throw new NotSupportedException("Message too big");
+                    }
+
                     packets.Add(packet);
 
                     packet = _packetActivator();
