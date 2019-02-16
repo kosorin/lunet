@@ -1,5 +1,4 @@
 ﻿using Lure.Net;
-using Lure.Net.Channels;
 using Lure.Net.Channels.Message;
 using Lure.Net.Data;
 using Lure.Net.Messages;
@@ -15,7 +14,7 @@ namespace Pegi.Server
         {
             PegiLogging.Configure("Server");
 
-            var channelFactory = new NetChannelFactory();
+            var channelFactory = new ChannelFactory();
             channelFactory.Add<ReliableOrderedChannel>();
             var config = new ServerPeerConfig
             {

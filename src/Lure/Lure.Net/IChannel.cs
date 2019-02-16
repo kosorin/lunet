@@ -1,10 +1,9 @@
 ﻿using Lure.Net.Data;
-using Lure.Net.Packets;
 using System.Collections.Generic;
 
-namespace Lure.Net.Channels
+namespace Lure.Net
 {
-    public interface INetChannel
+    public interface IChannel
     {
         byte Id { get; }
 
@@ -13,7 +12,7 @@ namespace Lure.Net.Channels
 
         void ProcessIncomingPacket(NetDataReader reader);
 
-        IList<INetPacket> CollectOutgoingPackets();
+        IList<IPacket> CollectOutgoingPackets();
 
         IList<byte[]> GetReceivedMessages();
 

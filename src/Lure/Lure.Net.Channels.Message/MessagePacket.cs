@@ -1,11 +1,10 @@
 ﻿using Lure.Net.Data;
-using Lure.Net.Packets;
 using System;
 using System.Collections.Generic;
 
 namespace Lure.Net.Channels.Message
 {
-    public abstract class MessagePacket<TMessage> : INetPacket
+    public abstract class MessagePacket<TMessage> : IPacket
         where TMessage : Message
     {
         private readonly Func<TMessage> _messageActivator;

@@ -2,7 +2,6 @@
 using Lure.Collections;
 using Lure.Net.Data;
 using Lure.Net.Extensions;
-using Lure.Net.Packets;
 using Serilog;
 using System;
 using System.Net;
@@ -150,7 +149,7 @@ namespace Lure.Net
         }
 
 
-        public void Send(IPEndPoint remoteEndPoint, byte channelId, INetPacket packet)
+        public void Send(IPEndPoint remoteEndPoint, byte channelId, IPacket packet)
         {
             if (_socket == null)
             {

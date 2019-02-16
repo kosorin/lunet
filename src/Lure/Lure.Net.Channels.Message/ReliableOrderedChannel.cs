@@ -1,6 +1,5 @@
 ﻿using Lure.Extensions.NetCore;
 using Lure.Net.Data;
-using Lure.Net.Packets;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -86,7 +85,7 @@ namespace Lure.Net.Channels.Message
             SaveIncomingMessages(packet.Messages);
         }
 
-        public override IList<INetPacket> CollectOutgoingPackets()
+        public override IList<IPacket> CollectOutgoingPackets()
         {
             var outgoingMessages = CollectOutgoingMessages();
             if (outgoingMessages == null)
@@ -129,7 +128,7 @@ namespace Lure.Net.Channels.Message
                 }
             }
 
-            return outgoingPackets.Cast<INetPacket>().ToList();
+            return outgoingPackets.Cast<IPacket>().ToList();
         }
 
         public override IList<byte[]> GetReceivedMessages()

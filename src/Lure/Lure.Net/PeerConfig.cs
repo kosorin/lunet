@@ -1,5 +1,4 @@
-﻿using Lure.Net.Channels;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 
 namespace Lure.Net

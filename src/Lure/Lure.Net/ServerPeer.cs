@@ -1,5 +1,4 @@
-﻿using Lure.Net.Channels;
-using Lure.Net.Data;
+﻿using Lure.Net.Data;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -20,7 +19,7 @@ namespace Lure.Net
         {
         }
 
-        public ServerPeer(ServerPeerConfig config, INetChannelFactory channelFactory)
+        public ServerPeer(ServerPeerConfig config, IChannelFactory channelFactory)
             : base(config, channelFactory)
         {
             _config = config;

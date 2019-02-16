@@ -1,9 +1,8 @@
 ﻿using Lure.Net.Data;
-using System;
 
-namespace Lure.Net.Packets
+namespace Lure.Net
 {
-    public interface INetPacket
+    public interface IPacket
     {
         void DeserializeHeader(NetDataReader reader);
 

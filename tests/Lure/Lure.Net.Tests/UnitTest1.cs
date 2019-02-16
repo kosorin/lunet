@@ -1,8 +1,5 @@
 using Lure.Net.Data;
-using Lure.Net.Packets;
 using Serilog;
-using System;
-using System.Diagnostics;
 using Xunit;
 
 namespace Lure.Net.Tests

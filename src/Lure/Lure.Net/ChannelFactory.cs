@@ -2,26 +2,26 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net.Channels
+namespace Lure.Net
 {
-    public class NetChannelFactory : INetChannelFactory
+    public class ChannelFactory : IChannelFactory
     {
-        private readonly IDictionary<byte, Func<byte, Connection, INetChannel>> _activators;
+        private readonly IDictionary<byte, Func<byte, Connection, IChannel>> _activators;
 
-        public NetChannelFactory()
+        public ChannelFactory()
         {
-            _activators = new Dictionary<byte, Func<byte, Connection, INetChannel>>();
+            _activators = new Dictionary<byte, Func<byte, Connection, IChannel>>();
         }
 
-        public byte Add<TChannel>() where TChannel : INetChannel
+        public byte Add<TChannel>() where TChannel : IChannel
         {
             var id = GetNextId();
-            var activator = ObjectActivatorFactory.CreateParameterizedAs<byte, Connection, TChannel, INetChannel>();
+            var activator = ObjectActivatorFactory.CreateParameterizedAs<byte, Connection, TChannel, IChannel>();
             _activators.Add(id, activator);
             return id;
         }
 
-        public byte Add(Func<byte, Connection, INetChannel> activator)
+        public byte Add(Func<byte, Connection, IChannel> activator)
         {
             var id = GetNextId();
             _activators.Add(id, activator);
@@ -33,7 +33,7 @@ namespace Lure.Net.Channels
             _activators.Clear();
         }
 
-        public IDictionary<byte, INetChannel> Create(Connection connection)
+        public IDictionary<byte, IChannel> Create(Connection connection)
         {
             return _activators.ToDictionary(x => x.Key, x => x.Value(x.Key, connection));
         }

@@ -1,5 +1,4 @@
 ﻿using Lure.Extensions;
-using Lure.Net.Channels;
 using Lure.Net.Data;
 using Serilog;
 using System;
@@ -16,13 +15,13 @@ namespace Lure.Net
     {
         private readonly Peer _peer;
         private readonly byte _defaultChannelId;
-        private readonly IDictionary<byte, INetChannel> _channels;
+        private readonly IDictionary<byte, IChannel> _channels;
 
         private volatile ConnectionState _state;
 
         private long _lastReceivedMessageTimestamp;
 
-        internal Connection(IPEndPoint remoteEndPoint, Peer peer, INetChannelFactory channelFactory)
+        internal Connection(IPEndPoint remoteEndPoint, Peer peer, IChannelFactory channelFactory)
         {
             _peer = peer;
 
@@ -39,7 +38,7 @@ namespace Lure.Net
 
         public event TypedEventHandler<Connection> Timeout;
 
-        public event TypedEventHandler<INetChannel, byte[]> MessageReceived;
+        public event TypedEventHandler<IChannel, byte[]> MessageReceived;
 
 
         public ConnectionState State => _state;

@@ -1,9 +1,6 @@
-﻿using Lure.Net.Channels;
-using Lure.Net.Data;
-using Lure.Net.Packets;
+﻿using Lure.Net.Data;
 using Serilog;
 using System;
-using System.Collections.Generic;
 using System.Net;
 
 namespace Lure.Net
@@ -14,7 +11,7 @@ namespace Lure.Net
 
         private volatile PeerState _state;
 
-        private protected Peer(PeerConfig config, INetChannelFactory channelFactory)
+        private protected Peer(PeerConfig config, IChannelFactory channelFactory)
         {
             if (!config.IsLocked)
             {
@@ -32,7 +29,7 @@ namespace Lure.Net
 
         public PeerConfig Config { get; }
 
-        public INetChannelFactory ChannelFactory { get; }
+        public IChannelFactory ChannelFactory { get; }
 
         public bool IsRunning => _state == PeerState.Running;
 
@@ -129,7 +126,7 @@ namespace Lure.Net
 
         internal abstract void OnPacketReceived(IPEndPoint remoteEndPoint, byte channelId, NetDataReader reader);
 
-        internal void SendPacket(IPEndPoint remoteEndPoint, byte channelId, INetPacket packet)
+        internal void SendPacket(IPEndPoint remoteEndPoint, byte channelId, IPacket packet)
         {
             _socket.Send(remoteEndPoint, channelId, packet);
         }

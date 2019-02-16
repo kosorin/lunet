@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Lure
+﻿namespace Lure
 {
     public delegate void TypedEventHandler<in TSender>(TSender sender);
 
