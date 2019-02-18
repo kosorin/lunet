@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net.Channels.Message
+namespace Lure.Net.Channels
 {
     public class UnreliableChannel : MessageChannel<UnreliablePacket, UnreliableMessage>
     {

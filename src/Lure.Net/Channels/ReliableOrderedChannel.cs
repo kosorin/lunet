@@ -4,13 +4,10 @@ using Lure.Net.Logging;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net.Channels.Message
+namespace Lure.Net.Channels
 {
     public class ReliableOrderedChannel : MessageChannel<ReliablePacket, ReliableMessage>
     {
-        private static ILog Log { get; } = LogProvider.For<ReliableOrderedChannel>();
-
-
         private readonly object _packetLock = new object();
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketAck = SeqNo.Zero - 1;
@@ -31,6 +28,8 @@ namespace Lure.Net.Channels.Message
 
 
         public static int AckBufferLength { get; } = 128;
+
+        private static ILog Log { get; } = LogProvider.For<ReliableOrderedChannel>();
 
 
         public override void ProcessIncomingPacket(NetDataReader reader)
@@ -155,7 +154,6 @@ namespace Lure.Net.Channels.Message
 
         private bool AcceptIncomingPacket(SeqNo seq)
         {
-                        throw new System.Exception("KEK");
             var diff = seq.CompareTo(_incomingPacketAck);
             if (diff == 0)
             {

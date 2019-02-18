@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Lure.Net.Channels.Message
+namespace Lure.Net.Channels
 {
     public abstract class MessageChannel<TPacket, TMessage> : Channel
         where TPacket : MessagePacket<TMessage>

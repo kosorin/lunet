@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Lure.Net.Message
+namespace Lure.Net.Messages
 {
     [Obsolete]
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]

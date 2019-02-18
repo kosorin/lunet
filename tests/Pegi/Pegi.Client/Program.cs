@@ -1,8 +1,8 @@
 ﻿using Lure;
 using Lure.Net;
-using Lure.Net.Channels.Message;
+using Lure.Net.Channels;
 using Lure.Net.Data;
-using Lure.Net.Message;
+using Lure.Net.Messages;
 using Serilog;
 using System;
 using System.Threading;

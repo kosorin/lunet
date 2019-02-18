@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Lure.Net.Channels.Message
+namespace Lure.Net.Channels
 {
     public interface IMessagePacker<TPacket, TMessage>
         where TPacket : MessagePacket<TMessage>

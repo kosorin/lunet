@@ -7,9 +7,6 @@ namespace Lure.Net
 {
     public abstract class Peer : IDisposable
     {
-        private static ILog Log { get; } = LogProvider.For<Peer>();
-
-
         private readonly SocketWrapper _socket;
 
         private volatile PeerState _state;
@@ -28,6 +25,9 @@ namespace Lure.Net
 
             _state = PeerState.NotStarted;
         }
+
+
+        private static ILog Log { get; } = LogProvider.For<Peer>();
 
 
         public PeerConfig Config { get; }

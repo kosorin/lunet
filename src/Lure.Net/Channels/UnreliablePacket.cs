@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Lure.Net.Channels.Message
+namespace Lure.Net.Channels
 {
     public class UnreliablePacket : MessagePacket<UnreliableMessage>
     {
