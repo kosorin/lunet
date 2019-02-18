@@ -8,8 +8,6 @@ using System.Net.Sockets;
 
 namespace Lure.Net
 {
-    internal delegate void PacketReceivedHandler(IPEndPoint remoteEndPoint, byte channelId, NetDataReader reader);
-
     internal sealed class SocketWrapper : IDisposable
     {
         private static Guid Version { get; } = Guid.Parse("1EDEFE8C-9469-4D68-9F3E-40A4A1971B90");
