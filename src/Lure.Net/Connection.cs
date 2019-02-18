@@ -19,8 +19,6 @@ namespace Lure.Net
 
         private volatile ConnectionState _state;
 
-        private long _lastReceivedMessageTimestamp;
-
         internal Connection(IPEndPoint remoteEndPoint, Peer peer, IChannelFactory channelFactory)
         {
             _peer = peer;
@@ -39,8 +37,6 @@ namespace Lure.Net
 
         public event TypedEventHandler<Connection> Disconnected;
 
-        public event TypedEventHandler<Connection> Timeout;
-
         public event TypedEventHandler<IChannel, byte[]> MessageReceived;
 
 
@@ -56,23 +52,13 @@ namespace Lure.Net
         public int RTT => 100;
 
 
-        public void Connect()
-        {
-            if (_state == ConnectionState.NotConnected)
-            {
-                Log.Debug("Connecting {RemoteEndPoint}", RemoteEndPoint);
-                _state = ConnectionState.Connecting;
-                _peer.OnConnect(this);
-            }
-        }
-
         public void Disconnect()
         {
             if (_state == ConnectionState.Connected)
             {
                 Log.Debug("Disconnecting {RemoteEndPoint}", RemoteEndPoint);
                 _state = ConnectionState.Disconnecting;
-                _peer.OnDisconnect(this);
+                _peer.Disconnect(this);
             }
         }
 
@@ -98,7 +84,6 @@ namespace Lure.Net
         {
             if (_state == ConnectionState.Connected)
             {
-                var now = Timestamp.Current;
                 foreach (var (channelId, channel) in _channels)
                 {
                     var receivedMessages = channel.GetReceivedMessages();
@@ -108,7 +93,6 @@ namespace Lure.Net
                         {
                             MessageReceived?.Invoke(channel, data);
                         }
-                        _lastReceivedMessageTimestamp = now;
                     }
 
                     var outgoingPackets = channel.CollectOutgoingPackets();
@@ -120,11 +104,6 @@ namespace Lure.Net
                         }
                     }
                 }
-
-                if (now - _lastReceivedMessageTimestamp > _peer.Config.ConnectionTimeout)
-                {
-                    OnTimeout();
-                }
             }
         }
 
@@ -133,7 +112,6 @@ namespace Lure.Net
             if (_state == ConnectionState.NotConnected || _state == ConnectionState.Connecting)
             {
                 _state = ConnectionState.Connected;
-                _lastReceivedMessageTimestamp = Timestamp.Current;
                 Log.Debug("Connected {RemoteEndPoint}", RemoteEndPoint);
             }
         }
@@ -158,13 +136,6 @@ namespace Lure.Net
                     channel.ProcessIncomingPacket(reader);
                 }
             }
-        }
-
-        private void OnTimeout()
-        {
-            Log.Debug("Timeout {RemoteEndPoint}", RemoteEndPoint);
-
-            Timeout?.Invoke(this);
         }
 
 

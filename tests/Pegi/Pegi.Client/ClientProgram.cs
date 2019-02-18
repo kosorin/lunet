@@ -34,8 +34,6 @@ namespace Pegi.Client
                 };
                 Thread.Sleep(1000);
 
-                client.Start();
-
                 var connection = client.Connection;
                 connection.MessageReceived += (_, message) =>
                 {
@@ -44,7 +42,8 @@ namespace Pegi.Client
                     //    Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
                     //}
                 };
-                connection.Connect();
+
+                client.Start();
 
                 var writer = new NetDataWriter();
                 var updateTime = 30;

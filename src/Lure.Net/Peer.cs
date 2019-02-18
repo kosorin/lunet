@@ -53,10 +53,10 @@ namespace Lure.Net
 
             try
             {
-                OnStart();
-
                 _state = PeerState.Running;
                 Log.Trace("Peer started");
+
+                OnStart();
             }
             catch
             {
@@ -123,9 +123,7 @@ namespace Lure.Net
         protected abstract void OnUpdate();
 
 
-        internal abstract void OnConnect(Connection connection);
-
-        internal abstract void OnDisconnect(Connection connection);
+        internal abstract void Disconnect(Connection connection);
 
         internal abstract void OnPacketReceived(IPEndPoint remoteEndPoint, byte channelId, NetDataReader reader);
 

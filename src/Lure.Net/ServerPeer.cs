@@ -54,13 +54,7 @@ namespace Lure.Net
         }
 
 
-        internal override void OnConnect(Connection connection)
-        {
-            connection.OnConnect();
-            NewConnection?.Invoke(this, connection);
-        }
-
-        internal override void OnDisconnect(Connection connection)
+        internal override void Disconnect(Connection connection)
         {
             if (_connections.TryRemove(connection.RemoteEndPoint, out connection))
             {
@@ -82,7 +76,8 @@ namespace Lure.Net
                 connection = new Connection(remoteEndPoint, this, ChannelFactory);
                 if (_connections.TryAdd(remoteEndPoint, connection))
                 {
-                    OnConnect(connection);
+                    connection.OnConnect();
+                    NewConnection?.Invoke(this, connection);
                 }
                 else
                 {

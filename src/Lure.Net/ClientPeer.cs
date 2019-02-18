@@ -39,6 +39,12 @@ namespace Lure.Net
         public Connection Connection => _connection;
 
 
+        protected override void OnStart()
+        {
+            base.OnStart();
+            _connection.OnConnect();
+        }
+
         protected override void OnStop()
         {
             _connection.Disconnect();
@@ -52,16 +58,7 @@ namespace Lure.Net
         }
 
 
-        internal override void OnConnect(Connection connection)
-        {
-            if (!IsRunning)
-            {
-                throw new NetException("Peer is not ruuning.");
-            }
-            connection.OnConnect();
-        }
-
-        internal override void OnDisconnect(Connection connection)
+        internal override void Disconnect(Connection connection)
         {
             connection.OnDisconnect();
             connection.Dispose();
