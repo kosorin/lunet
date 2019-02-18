@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace Pegi.Client
 {
-    internal static class Program
+    internal static class ClientProgram
     {
         private static void Main()
         {

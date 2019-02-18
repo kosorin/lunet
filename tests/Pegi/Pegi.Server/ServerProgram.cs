@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace Pegi.Server
 {
-    internal static class Program
+    internal static class ServerProgram
     {
         private static void Main()
         {
