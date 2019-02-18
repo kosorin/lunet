@@ -3,7 +3,7 @@ using System.Net.Sockets;
 
 namespace Lure.Net
 {
-    public abstract class PeerConfig : Configuration, ISocketConfig
+    public abstract class PeerConfiguration : Configuration, ISocketConfig
     {
         private int? _localPort = null;
         private AddressFamily _addressFamily = AddressFamily.InterNetwork;

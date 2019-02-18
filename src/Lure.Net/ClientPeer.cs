@@ -6,11 +6,11 @@ namespace Lure.Net
 {
     public sealed class ClientPeer : Peer
     {
-        private readonly ClientPeerConfig _config;
+        private readonly ClientConfiguration _config;
         private readonly Connection _connection;
 
         public ClientPeer(string hostname, int port, AddressFamily addressFamily = AddressFamily.InterNetwork)
-            : this(new ClientPeerConfig
+            : this(new ClientConfiguration
             {
                 Hostname = hostname,
                 Port = port,
@@ -19,7 +19,7 @@ namespace Lure.Net
         {
         }
 
-        public ClientPeer(ClientPeerConfig config, IChannelFactory channelFactory)
+        public ClientPeer(ClientConfiguration config, IChannelFactory channelFactory)
             : base(config, channelFactory)
         {
             _config = config;
@@ -34,7 +34,7 @@ namespace Lure.Net
         }
 
 
-        public new ClientPeerConfig Config => _config;
+        public new ClientConfiguration Config => _config;
 
         public Connection Connection => _connection;
 

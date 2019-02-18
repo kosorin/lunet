@@ -7,11 +7,11 @@ namespace Lure.Net
 {
     public sealed class ServerPeer : Peer
     {
-        private readonly ServerPeerConfig _config;
+        private readonly ServerConfiguration _config;
         private readonly ConcurrentDictionary<IPEndPoint, Connection> _connections;
 
         public ServerPeer(int localPort, AddressFamily addressFamily = AddressFamily.InterNetwork)
-            : this(new ServerPeerConfig
+            : this(new ServerConfiguration
             {
                 LocalPort = localPort,
                 AddressFamily = addressFamily,
@@ -19,7 +19,7 @@ namespace Lure.Net
         {
         }
 
-        public ServerPeer(ServerPeerConfig config, IChannelFactory channelFactory)
+        public ServerPeer(ServerConfiguration config, IChannelFactory channelFactory)
             : base(config, channelFactory)
         {
             _config = config;
@@ -31,7 +31,7 @@ namespace Lure.Net
         public event TypedEventHandler<ServerPeer, Connection> NewConnection;
 
 
-        public new ServerPeerConfig Config => _config;
+        public new ServerConfiguration Config => _config;
 
 
         protected override void OnStop()

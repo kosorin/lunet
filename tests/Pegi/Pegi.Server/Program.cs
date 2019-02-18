@@ -16,7 +16,7 @@ namespace Pegi.Server
 
             var channelFactory = new ChannelFactory();
             channelFactory.Add<ReliableOrderedChannel>();
-            var config = new ServerPeerConfig
+            var config = new ServerConfiguration
             {
                 LocalPort = 45685,
             };

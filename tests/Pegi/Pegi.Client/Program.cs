@@ -17,7 +17,7 @@ namespace Pegi.Client
 
             var channelFactory = new ChannelFactory();
             channelFactory.Add<ReliableOrderedChannel>();
-            var config = new ClientPeerConfig
+            var config = new ClientConfiguration
             {
                 //Hostname = "bur.kosorin.net",
                 Port = 45685,

@@ -2,13 +2,13 @@
 
 namespace Lure.Net
 {
-    public class ClientPeerConfig : PeerConfig
+    public class ClientConfiguration : PeerConfiguration
     {
         private string _hostname = "localhost";
         private int _port;
 
 
-        public ClientPeerConfig()
+        public ClientConfiguration()
         {
             MaximumConnections = 1;
         }

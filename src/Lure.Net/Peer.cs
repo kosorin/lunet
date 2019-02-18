@@ -11,7 +11,7 @@ namespace Lure.Net
 
         private volatile PeerState _state;
 
-        private protected Peer(PeerConfig config, IChannelFactory channelFactory)
+        private protected Peer(PeerConfiguration config, IChannelFactory channelFactory)
         {
             if (!config.IsLocked)
             {
@@ -30,7 +30,7 @@ namespace Lure.Net
         private static ILog Log { get; } = LogProvider.For<Peer>();
 
 
-        public PeerConfig Config { get; }
+        public PeerConfiguration Config { get; }
 
         public IChannelFactory ChannelFactory { get; }
 
