@@ -2,7 +2,6 @@
 using Lure.Collections;
 using Lure.Net.Data;
 using Lure.Net.Extensions;
-using Serilog;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -66,7 +65,6 @@ namespace Lure.Net
                 var address = _config.AddressFamily.GetAnyAddress();
                 var localEndPoint = new IPEndPoint(address, _config.LocalPort ?? IPEndPoint.MinPort);
                 _socket.Bind(localEndPoint);
-                Log.Debug("Bind socket {LocalEndPoint}", _socket.LocalEndPoint);
 
                 _anyEndPoint = _socket.AddressFamily.GetAnyEndPoint();
                 StartReceive();

@@ -3,23 +3,23 @@ using System.Collections.Generic;
 
 namespace Lure.Collections
 {
-    public sealed class ArrayEqualityComparer<T> : IEqualityComparer<T[]>
+    public sealed class ArrayEqualityComparer<TElement> : IEqualityComparer<TElement[]>
     {
-        private static readonly EqualityComparer<T> DefaultElementComparer = EqualityComparer<T>.Default;
+        private static readonly EqualityComparer<TElement> DefaultElementComparer = EqualityComparer<TElement>.Default;
 
-        private readonly IEqualityComparer<T> _elementComparer;
+        private readonly IEqualityComparer<TElement> _elementComparer;
 
         public ArrayEqualityComparer() : this(DefaultElementComparer)
         {
         }
 
-        public ArrayEqualityComparer(IEqualityComparer<T> elementComparer)
+        public ArrayEqualityComparer(IEqualityComparer<TElement> elementComparer)
         {
             this._elementComparer = elementComparer;
         }
 
 
-        public bool Equals(T[] x, T[] y)
+        public bool Equals(TElement[] x, TElement[] y)
         {
             if (ReferenceEquals(x, y))
             {
@@ -47,7 +47,7 @@ namespace Lure.Collections
             return true;
         }
 
-        public int GetHashCode(T[] obj)
+        public int GetHashCode(TElement[] obj)
         {
             unchecked
             {

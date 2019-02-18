@@ -1,5 +1,5 @@
 ﻿using Lure.Net.Data;
-using Serilog;
+using Lure.Net.Logging;
 using System;
 using System.Net;
 
@@ -7,6 +7,9 @@ namespace Lure.Net
 {
     public abstract class Peer : IDisposable
     {
+        private static ILog Log { get; } = LogProvider.For<Peer>();
+
+
         private readonly SocketWrapper _socket;
 
         private volatile PeerState _state;
@@ -46,14 +49,14 @@ namespace Lure.Net
             }
 
             _state = PeerState.Starting;
-            Log.Verbose("Starting peer");
+            Log.Trace("Starting peer");
 
             try
             {
                 OnStart();
 
                 _state = PeerState.Running;
-                Log.Debug("Peer started");
+                Log.Trace("Peer started");
             }
             catch
             {
@@ -74,7 +77,7 @@ namespace Lure.Net
             }
 
             _state = PeerState.Stopping;
-            Log.Verbose("Stopping peer");
+            Log.Trace("Stopping peer");
 
             try
             {
@@ -84,10 +87,10 @@ namespace Lure.Net
                 Log.Debug("Peer stopped");
 
                 var statistics = _socket.Statistics;
-                Log.Information("Received bytes: {ReceivedBytes}", statistics.ReceivedBytes);
-                Log.Information("Received packets: {ReceivedPackets}", statistics.ReceivedPackets);
-                Log.Information("Sent bytes: {SentBytes}", statistics.SentBytes);
-                Log.Information("Sent packets: {SentPackets}", statistics.SentPackets);
+                Log.Debug("Received bytes: {ReceivedBytes}", statistics.ReceivedBytes);
+                Log.Debug("Received packets: {ReceivedPackets}", statistics.ReceivedPackets);
+                Log.Debug("Sent bytes: {SentBytes}", statistics.SentBytes);
+                Log.Debug("Sent packets: {SentPackets}", statistics.SentPackets);
             }
             catch
             {

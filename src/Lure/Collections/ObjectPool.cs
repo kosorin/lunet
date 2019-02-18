@@ -1,5 +1,4 @@
-﻿using Serilog;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 
 namespace Lure.Collections
@@ -96,7 +95,6 @@ namespace Lure.Collections
             else
             {
                 OnItemDisposed(item);
-                Log.Verbose("ObjectPool<{ItemType}> overflow.", typeof(TItem).Name);
             }
         }
 
@@ -111,7 +109,6 @@ namespace Lure.Collections
             {
                 if (disposing)
                 {
-                    Log.Verbose("ObjectPool<{ItemType}>: Activated={Activated}", typeof(TItem).Name, _activated);
                     foreach (var item in _objects)
                     {
                         OnItemDisposed(item);

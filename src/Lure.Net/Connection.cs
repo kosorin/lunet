@@ -1,6 +1,6 @@
 ﻿using Lure.Extensions;
 using Lure.Net.Data;
-using Serilog;
+using Lure.Net.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +13,9 @@ namespace Lure.Net
     /// </summary>
     public class Connection : IDisposable
     {
+        private static ILog Log { get; } = LogProvider.For<Connection>();
+
+
         private readonly Peer _peer;
         private readonly byte _defaultChannelId;
         private readonly IDictionary<byte, IChannel> _channels;

@@ -39,6 +39,7 @@ namespace Pegi.Server
                         var message = NetMessageManager.Create(typeId);
                         if (message != null && message is DebugMessage testMessage)
                         {
+                            message.DeserializeLib(reader);
                             Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
                             var writer = new NetDataWriter();
                             testMessage.Integer *= 2;

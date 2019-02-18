@@ -6,17 +6,21 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <Compile Include="..\..\..\src\GlobalSuppressions.cs" Link="GlobalSuppressions.cs" />
     <Compile Include="..\PegiLogging.cs" Link="PegiLogging.cs" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Serilog" Version="2.8.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\src\Lure\Lure.csproj" />
     <ProjectReference Include="..\..\..\src\Lure.Net\Lure.Net.csproj" />
-    <ProjectReference Include="..\..\..\src\Lure.Net.Channels.Message\Lure.Net.Channels.Message.csproj" />
-    <ProjectReference Include="..\..\..\src\Lure.Net.Message\Lure.Net.Message.csproj" />
   </ItemGroup>
 
 </Project>
