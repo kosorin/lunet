@@ -89,11 +89,6 @@ namespace Lure.Net.Data
             return bytes;
         }
 
-        public byte[] ReadBytesToEnd()
-        {
-            return ReadBytes(_length - _position);
-        }
-
         public bool ReadBit()
         {
             EnsureReadSize(1);
