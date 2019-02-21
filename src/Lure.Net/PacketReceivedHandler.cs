@@ -3,5 +3,6 @@ using System.Net;
 
 namespace Lure.Net
 {
-    internal delegate void PacketReceivedHandler(IPEndPoint remoteEndPoint, byte channelId, NetDataReader reader);
+    public delegate void PacketReceivedHandler<in TEndPoint>(TEndPoint remoteEndPoint, byte channelId, NetDataReader reader)
+        where TEndPoint : IEndPoint;
 }

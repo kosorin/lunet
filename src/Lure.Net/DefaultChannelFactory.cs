@@ -4,24 +4,24 @@ using System.Linq;
 
 namespace Lure.Net
 {
-    public class ChannelFactory : IChannelFactory
+    public class DefaultChannelFactory : IChannelFactory
     {
-        private readonly IDictionary<byte, Func<byte, Connection, IChannel>> _activators;
+        private readonly IDictionary<byte, Func<byte, IConnection, IChannel>> _activators;
 
-        public ChannelFactory()
+        public DefaultChannelFactory()
         {
-            _activators = new Dictionary<byte, Func<byte, Connection, IChannel>>();
+            _activators = new Dictionary<byte, Func<byte, IConnection, IChannel>>();
         }
 
         public byte Add<TChannel>() where TChannel : IChannel
         {
             var id = GetNextId();
-            var activator = ObjectActivatorFactory.CreateParameterizedAs<byte, Connection, TChannel, IChannel>();
+            var activator = ObjectActivatorFactory.CreateParameterizedAs<byte, IConnection, TChannel, IChannel>();
             _activators.Add(id, activator);
             return id;
         }
 
-        public byte Add(Func<byte, Connection, IChannel> activator)
+        public byte Add(Func<byte, IConnection, IChannel> activator)
         {
             var id = GetNextId();
             _activators.Add(id, activator);
@@ -33,9 +33,9 @@ namespace Lure.Net
             _activators.Clear();
         }
 
-        public IDictionary<byte, IChannel> Create(Connection connection)
+        public IEnumerable<IChannel> Create(IConnection connection)
         {
-            return _activators.ToDictionary(x => x.Key, x => x.Value(x.Key, connection));
+            return _activators.Select(x => x.Value(x.Key, connection));
         }
 
         private byte GetNextId()

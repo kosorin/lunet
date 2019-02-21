@@ -7,10 +7,10 @@ namespace Lure.Net
     {
         byte Id { get; }
 
-        Connection Connection { get; }
+        IConnection Connection { get; }
 
 
-        void ProcessIncomingPacket(NetDataReader reader);
+        void HandleIncomingPacket(NetDataReader reader);
 
         IList<IPacket> CollectOutgoingPackets();
 

@@ -1,70 +1,56 @@
-﻿using Force.Crc32;
-using Lure.Collections;
+﻿using Lure.Collections;
 using Lure.Net.Data;
 using Lure.Net.Extensions;
 using System;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Lure.Net
+namespace Lure.Net.Udp
 {
-    internal sealed class SocketWrapper : IDisposable
+    internal class UdpSocket : IDisposable
     {
-        private static Guid Version { get; } = Guid.Parse("1EDEFE8C-9469-4D68-9F3E-40A4A1971B90");
-
-        private const uint Crc32Check = 0x2144DF1C; // dec = 558_161_692
-        private const int Crc32Length = sizeof(uint);
-
         private readonly ISocketConfig _config;
 
+        private readonly ProtocolProcessor _protocolProcessor = new ProtocolProcessor();
+
+        private readonly Socket _socket;
         private readonly SocketAsyncEventArgs _receiveToken;
         private readonly IObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
-        private readonly uint _initialCrc32;
-        private Socket _socket;
-        private EndPoint _anyEndPoint;
-
-        public SocketWrapper(ISocketConfig config)
+        public UdpSocket(ISocketConfig config)
         {
             _config = config;
 
+            _socket = new Socket(_config.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            _socket.SendBufferSize = _config.SendBufferSize;
+            _socket.ReceiveBufferSize = _config.ReceiveBufferSize;
+            if (_config.AddressFamily == AddressFamily.InterNetworkV6)
+            {
+                _socket.DualMode = _config.DualMode;
+            }
+
             _receiveToken = CreateReceiveToken();
             _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateSendToken);
-
-            _initialCrc32 = Crc32Algorithm.Compute(Version.ToByteArray());
         }
 
 
-        public event PacketReceivedHandler PacketReceived;
+        public void Close()
+        {
+            _socket.Close();
+            _socket.Dispose();
 
-
-        public bool IsBound => _socket != null;
-
-        public SocketStatistics Statistics { get; } = new SocketStatistics();
-
+            _receiveToken.Dispose();
+            _sendTokenPool.Dispose();
+        }
 
         public void Bind()
         {
-            if (_socket != null)
-            {
-                throw new InvalidOperationException("Socket is already bound.");
-            }
-
             try
             {
-                _socket = new Socket(_config.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-                _socket.SendBufferSize = _config.SendBufferSize;
-                _socket.ReceiveBufferSize = _config.ReceiveBufferSize;
-                if (_config.AddressFamily == AddressFamily.InterNetworkV6)
-                {
-                    _socket.DualMode = _config.DualMode;
-                }
-
-                var address = _config.AddressFamily.GetAnyAddress();
+                var address = _config.AddressFamily.GetLoopbackAddress();
                 var localEndPoint = new IPEndPoint(address, _config.LocalPort ?? IPEndPoint.MinPort);
                 _socket.Bind(localEndPoint);
 
-                _anyEndPoint = _socket.AddressFamily.GetAnyEndPoint();
                 StartReceive();
             }
             catch (SocketException e)
@@ -73,22 +59,14 @@ namespace Lure.Net
             }
         }
 
-        public void Unbind()
-        {
-            if (_socket == null)
-            {
-                return;
-            }
 
-            _socket.Dispose();
-            _socket = null;
-        }
-
+        public event PacketReceivedHandler<InternetEndPoint> PacketReceived;
 
         private SocketAsyncEventArgs CreateReceiveToken()
         {
-            var buffer = new byte[_config.PacketBufferSize];
+            var buffer = new byte[ushort.MaxValue];
             var token = new SocketAsyncEventArgs();
+            token.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
             token.Completed += IO_Completed;
             token.SetBuffer(buffer, 0, buffer.Length);
             return token;
@@ -103,7 +81,6 @@ namespace Lure.Net
 
             try
             {
-                _receiveToken.RemoteEndPoint = _anyEndPoint;
                 if (!_socket.ReceiveFromAsync(_receiveToken))
                 {
                     ProcessReceive(_receiveToken);
@@ -119,22 +96,9 @@ namespace Lure.Net
                 return;
             }
 
-            if (IsOk(token))
+            if (token.SocketError == SocketError.Success && token.BytesTransferred > 0)
             {
-                Statistics.ReceivedBytes += (ulong)token.BytesTransferred;
-                Statistics.ReceivedPackets++;
-
-                var crc32 = Crc32Algorithm.Append(_initialCrc32, token.Buffer, token.Offset, token.BytesTransferred);
-                if (crc32 != Crc32Check)
-                {
-                    StartReceive();
-                    return;
-                }
-
-                var remoteEndPoint = (IPEndPoint)token.RemoteEndPoint;
-                var reader = new NetDataReader(token.Buffer, token.Offset, token.BytesTransferred - Crc32Length);
-                var channelId = reader.ReadByte();
-                PacketReceived?.Invoke(remoteEndPoint, channelId, reader);
+                ReadPacket(token);
             }
             else
             {
@@ -144,8 +108,19 @@ namespace Lure.Net
             StartReceive();
         }
 
+        private void ReadPacket(SocketAsyncEventArgs token)
+        {
+            var data = _protocolProcessor.Read(token.Buffer, token.Offset, token.BytesTransferred);
+            if (data.Reader == null)
+            {
+                return;
+            }
 
-        public void Send(IPEndPoint remoteEndPoint, byte channelId, IPacket packet)
+            PacketReceived?.Invoke(new InternetEndPoint(token.RemoteEndPoint), data.ChannelId, data.Reader);
+        }
+
+
+        public void SendPacket(InternetEndPoint remoteEndPoint, byte channelId, IPacket packet)
         {
             if (_socket == null)
             {
@@ -157,15 +132,7 @@ namespace Lure.Net
             var writer = (NetDataWriter)token.UserToken;
             try
             {
-                writer.Reset();
-                writer.WriteByte(channelId);
-                packet.SerializeHeader(writer);
-                packet.SerializeData(writer);
-                writer.Flush();
-
-                var crc32 = Crc32Algorithm.Append(_initialCrc32, writer.Data, writer.Offset, writer.Length);
-                writer.WriteUInt(crc32);
-                writer.Flush();
+                WritePacket(writer, channelId, packet);
             }
             catch
             {
@@ -174,7 +141,7 @@ namespace Lure.Net
             }
 
             token.SetBuffer(writer.Data, writer.Offset, writer.Length);
-            token.RemoteEndPoint = remoteEndPoint;
+            token.RemoteEndPoint = remoteEndPoint.EndPoint;
 
             StartSend(token);
         }
@@ -183,7 +150,7 @@ namespace Lure.Net
         {
             var token = new SocketAsyncEventArgs
             {
-                UserToken = new NetDataWriter(_config.PacketBufferSize),
+                UserToken = new NetDataWriter(),
             };
             token.Completed += IO_Completed;
             return token;
@@ -204,28 +171,22 @@ namespace Lure.Net
                     ProcessSend(token);
                 }
             }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException)
+            {
+                _sendTokenPool.Return(token);
+            }
         }
 
         private void ProcessSend(SocketAsyncEventArgs token)
         {
-            if (_socket == null)
-            {
-                _sendTokenPool.Return(token);
-                return;
-            }
-
-            if (IsOk(token))
-            {
-                Statistics.SentBytes += (ulong)token.BytesTransferred;
-                Statistics.SentPackets++;
-            }
-            else
-            {
-                // Ignore bad send
-            }
-
             _sendTokenPool.Return(token);
+        }
+
+        private void WritePacket(NetDataWriter writer, byte channelId, IPacket packet)
+        {
+            writer.Reset();
+            _protocolProcessor.Write(writer, channelId, packet);
+            writer.Flush();
         }
 
 
@@ -245,12 +206,6 @@ namespace Lure.Net
         }
 
 
-        public static bool IsOk(SocketAsyncEventArgs token)
-        {
-            return token.SocketError == SocketError.Success && token.BytesTransferred > 0;
-        }
-
-
         private bool disposed;
 
         public void Dispose()
@@ -264,10 +219,7 @@ namespace Lure.Net
             {
                 if (disposing)
                 {
-                    Unbind();
-
-                    _receiveToken.Dispose();
-                    _sendTokenPool.Dispose();
+                    Close();
                 }
                 disposed = true;
             }

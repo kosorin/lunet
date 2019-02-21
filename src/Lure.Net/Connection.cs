@@ -1,66 +1,88 @@
 ﻿using Lure.Extensions;
 using Lure.Net.Data;
-using Lure.Net.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 
 namespace Lure.Net
 {
-    /// <summary>
-    /// Represents a connection to a remote peer.
-    /// </summary>
-    public class Connection : IDisposable
+    public abstract class Connection<TEndPoint> : IConnection<TEndPoint>
+        where TEndPoint : IEndPoint
     {
-        private readonly Peer _peer;
+        private volatile ConnectionState _state;
+
         private readonly byte _defaultChannelId;
         private readonly IDictionary<byte, IChannel> _channels;
 
-        private volatile ConnectionState _state;
-
-        internal Connection(IPEndPoint remoteEndPoint, Peer peer, IChannelFactory channelFactory)
+        protected Connection(TEndPoint remoteEndPoint, IChannelFactory channelFactory)
         {
-            _peer = peer;
-
-            _channels = channelFactory.Create(this);
-            _defaultChannelId = _channels.Keys.Min();
-
-            _state = ConnectionState.NotConnected;
-
             RemoteEndPoint = remoteEndPoint;
+
+            State = ConnectionState.Disconnected;
+
+            _channels = channelFactory.Create(this).ToDictionary(x => x.Id);
+            _defaultChannelId = _channels.Keys.Min();
         }
 
 
-        private static ILog Log { get; } = LogProvider.For<Connection>();
+        public int MTU => 100;
+
+        public int RTT => 100;
+
+        public ConnectionState State
+        {
+            get => _state;
+            protected set => _state = value;
+        }
+
+        public TEndPoint RemoteEndPoint { get; }
+
+        IEndPoint IConnection.RemoteEndPoint => RemoteEndPoint;
 
 
-        public event TypedEventHandler<Connection> Disconnected;
+        public event TypedEventHandler<IConnection<TEndPoint>> Disconnected;
+
+        event TypedEventHandler<IConnection> IConnection.Disconnected
+        {
+            add => Disconnected += value;
+            remove => Disconnected -= value;
+        }
 
         public event TypedEventHandler<IChannel, byte[]> MessageReceived;
 
 
-        public ConnectionState State => _state;
-
-        public IPEndPoint RemoteEndPoint { get; }
-
-
-        // TODO: internal?
-        public int MTU => 100;
-
-        // TODO: internal?
-        public int RTT => 100;
-
-
-        public void Disconnect()
+        public void Update()
         {
-            if (_state == ConnectionState.Connected)
+            if (State != ConnectionState.Connected)
             {
-                Log.Debug("Disconnecting {RemoteEndPoint}", RemoteEndPoint);
-                _state = ConnectionState.Disconnecting;
-                _peer.Disconnect(this);
+                return;
+            }
+
+            foreach (var (channelId, channel) in _channels)
+            {
+                var receivedMessages = channel.GetReceivedMessages();
+                if (receivedMessages?.Count > 0)
+                {
+                    foreach (var data in receivedMessages)
+                    {
+                        OnMessageReceived(channel, data);
+                    }
+                }
+
+                var outgoingPackets = channel.CollectOutgoingPackets();
+                if (outgoingPackets?.Count > 0)
+                {
+                    foreach (var packet in outgoingPackets)
+                    {
+                        SendPacket(channelId, packet);
+                    }
+                }
             }
         }
+
+        public abstract void Connect();
+
+        public abstract void Disconnect();
 
         public void SendMessage(byte[] data)
         {
@@ -69,6 +91,11 @@ namespace Lure.Net
 
         public void SendMessage(byte channelId, byte[] data)
         {
+            if (State != ConnectionState.Connected)
+            {
+                return;
+            }
+
             if (_channels.TryGetValue(channelId, out var channel))
             {
                 channel.SendMessage(data);
@@ -80,62 +107,30 @@ namespace Lure.Net
         }
 
 
-        internal void Update()
+        internal void HandleReceivedPacket(byte channelId, NetDataReader reader)
         {
-            if (_state == ConnectionState.Connected)
+            if (State != ConnectionState.Connected)
             {
-                foreach (var (channelId, channel) in _channels)
-                {
-                    var receivedMessages = channel.GetReceivedMessages();
-                    if (receivedMessages?.Count > 0)
-                    {
-                        foreach (var data in receivedMessages)
-                        {
-                            MessageReceived?.Invoke(channel, data);
-                        }
-                    }
+                return;
+            }
 
-                    var outgoingPackets = channel.CollectOutgoingPackets();
-                    if (outgoingPackets?.Count > 0)
-                    {
-                        foreach (var packet in outgoingPackets)
-                        {
-                            _peer.SendPacket(RemoteEndPoint, channelId, packet);
-                        }
-                    }
-                }
+            if (_channels.TryGetValue(channelId, out var channel))
+            {
+                channel.HandleIncomingPacket(reader);
             }
         }
 
-        internal void OnConnect()
+        internal abstract void SendPacket(byte channelId, IPacket packet);
+
+
+        protected virtual void OnDisconnected()
         {
-            if (_state == ConnectionState.NotConnected || _state == ConnectionState.Connecting)
-            {
-                _state = ConnectionState.Connected;
-                Log.Debug("Connected {RemoteEndPoint}", RemoteEndPoint);
-            }
+            Disconnected?.Invoke(this);
         }
 
-        internal void OnDisconnect()
+        protected virtual void OnMessageReceived(IChannel channel, byte[] data)
         {
-            if (_state == ConnectionState.Connected || _state == ConnectionState.Disconnecting)
-            {
-                _state = ConnectionState.NotConnected;
-                Log.Debug("Disconnected {RemoteEndPoint}", RemoteEndPoint);
-
-                Disconnected?.Invoke(this);
-            }
-        }
-
-        internal void OnReceivedPacket(byte channelId, NetDataReader reader)
-        {
-            if (_state == ConnectionState.Connected)
-            {
-                if (_channels.TryGetValue(channelId, out var channel))
-                {
-                    channel.ProcessIncomingPacket(reader);
-                }
-            }
+            MessageReceived?.Invoke(channel, data);
         }
 
 

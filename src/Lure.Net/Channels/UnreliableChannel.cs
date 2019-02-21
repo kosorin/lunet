@@ -10,12 +10,12 @@ namespace Lure.Net.Channels
         private readonly List<UnreliableMessage> _outgoingMessageQueue = new List<UnreliableMessage>();
         private readonly List<UnreliableMessage> _incomingMessageQueue = new List<UnreliableMessage>();
 
-        public UnreliableChannel(byte id, Connection connection) : base(id, connection)
+        public UnreliableChannel(byte id, IConnection connection) : base(id, connection)
         {
         }
 
 
-        public override void ProcessIncomingPacket(NetDataReader reader)
+        public override void HandleIncomingPacket(NetDataReader reader)
         {
             var packet = PacketActivator();
 

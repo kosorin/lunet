@@ -5,7 +5,7 @@ namespace Lure.Net
 {
     public abstract class Channel : IChannel
     {
-        protected Channel(byte id, Connection connection)
+        protected Channel(byte id, IConnection connection)
         {
             Id = id;
             Connection = connection;
@@ -14,10 +14,10 @@ namespace Lure.Net
 
         public byte Id { get; }
 
-        public Connection Connection { get; }
+        public IConnection Connection { get; }
 
 
-        public abstract void ProcessIncomingPacket(NetDataReader reader);
+        public abstract void HandleIncomingPacket(NetDataReader reader);
 
         public abstract IList<IPacket> CollectOutgoingPackets();
 

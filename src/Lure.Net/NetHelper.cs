@@ -45,17 +45,16 @@ namespace Lure.Net
         /// <param name="addressFamily">Expected address family.</param>
         public static IPAddress ResolveAddress(string text, AddressFamily addressFamily)
         {
-            IPAddress address = null;
-            if (!IPAddress.TryParse(text, out address))
+            if (IPAddress.TryParse(text, out var address))
             {
                 address = Dns
                     .GetHostAddresses(text)
                     .FirstOrDefault(x => x.AddressFamily == addressFamily);
+                return address.AddressFamily == addressFamily
+                    ? address
+                    : null;
             }
-
-            return address?.AddressFamily == addressFamily
-                ? address
-                : null;
+            return null;
         }
     }
 }

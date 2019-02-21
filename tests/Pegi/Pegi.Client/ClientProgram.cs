@@ -3,6 +3,7 @@ using Lure.Net;
 using Lure.Net.Channels;
 using Lure.Net.Data;
 using Lure.Net.Messages;
+using Lure.Net.Tcp;
 using Serilog;
 using System;
 using System.Threading;
@@ -15,15 +16,19 @@ namespace Pegi.Client
         {
             PegiLogging.Configure("Client");
 
-            var channelFactory = new ChannelFactory();
+            var remoteEndPoint = new InternetEndPoint("127.0.0.1", 45685);
+
+            var channelFactory = new DefaultChannelFactory();
             channelFactory.Add<ReliableOrderedChannel>();
+
             var config = new ClientConfiguration
             {
                 //Hostname = "bur.kosorin.net",
                 Port = 45685,
                 LocalPort = 45688,
             };
-            using (var client = new ClientPeer(config, channelFactory))
+
+            using (var connection = new TcpConnection(remoteEndPoint, channelFactory, config))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
@@ -34,16 +39,19 @@ namespace Pegi.Client
                 };
                 Thread.Sleep(1000);
 
-                var connection = client.Connection;
-                connection.MessageReceived += (_, message) =>
+                connection.MessageReceived += (_, data) =>
                 {
-                    //if (message != null && message is DebugMessage testMessage)
-                    //{
-                    //    Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
-                    //}
+                    var reader = new NetDataReader(data);
+                    var typeId = reader.ReadUShort();
+                    var message = NetMessageManager.Create(typeId);
+                    if (message != null && message is DebugMessage testMessage)
+                    {
+                        message.DeserializeLib(reader);
+                        Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
+                    }
                 };
 
-                client.Start();
+                connection.Connect();
 
                 var writer = new NetDataWriter();
                 var updateTime = 30;
@@ -52,7 +60,7 @@ namespace Pegi.Client
                 var i = 0;
                 while (!resetEvent.IsSet && (connection.State == ConnectionState.Connecting || connection.State == ConnectionState.Connected))
                 {
-                    client.Update();
+                    connection.Update();
 
                     var now = Timestamp.Current;
                     if (now - time > sendTime)
@@ -77,8 +85,9 @@ namespace Pegi.Client
                     Thread.Sleep(1000 / updateTime);
                 }
 
-                client.Stop();
+                Log.Information("Disconnecting...");
             }
+            Log.Information("Disconnected");
 
             Thread.Sleep(1000);
         }

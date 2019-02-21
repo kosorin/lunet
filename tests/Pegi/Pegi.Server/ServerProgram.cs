@@ -2,8 +2,10 @@
 using Lure.Net.Channels;
 using Lure.Net.Data;
 using Lure.Net.Messages;
+using Lure.Net.Tcp;
 using Serilog;
 using System;
+using System.Collections.Concurrent;
 using System.Threading;
 
 namespace Pegi.Server
@@ -14,13 +16,15 @@ namespace Pegi.Server
         {
             PegiLogging.Configure("Server");
 
-            var channelFactory = new ChannelFactory();
+            var channelFactory = new DefaultChannelFactory();
             channelFactory.Add<ReliableOrderedChannel>();
+
             var config = new ServerConfiguration
             {
                 LocalPort = 45685,
             };
-            using (var server = new ServerPeer(config, channelFactory))
+
+            using (var listener = new TcpConnectionListener(config, channelFactory))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
@@ -30,8 +34,16 @@ namespace Pegi.Server
                     resetEvent.Set();
                 };
 
-                server.NewConnection += (_, connection) =>
+                var connections = new ConcurrentDictionary<IEndPoint, IConnection>();
+
+                listener.NewConnection += (_, connection) =>
                 {
+                    Log.Information("[{ConnectionEndPoint}] New connection", connection.RemoteEndPoint);
+                    connection.Disconnected += (__) =>
+                    {
+                        Log.Information("[{ConnectionEndPoint}] Disconnected", connection.RemoteEndPoint);
+                        connections.TryRemove(connection.RemoteEndPoint, out var ___);
+                    };
                     connection.MessageReceived += (__, data) =>
                     {
                         var reader = new NetDataReader(data);
@@ -49,17 +61,26 @@ namespace Pegi.Server
                             connection.SendMessage(writer.GetBytes());
                         }
                     };
+                    connections.TryAdd(connection.RemoteEndPoint, connection);
                 };
-                server.Start();
+                listener.Start();
 
                 var updateTime = 30;
                 while (!resetEvent.IsSet)
                 {
-                    server.Update();
+                    foreach (var connection in connections.Values)
+                    {
+                        connection.Update();
+                    }
                     Thread.Sleep(1000 / updateTime);
                 }
 
-                server.Stop();
+                Log.Information("Disconnecting...");
+                foreach (var connection in connections.Values)
+                {
+                    connection.Disconnect();
+                }
+                Log.Information("Disconnected");
             }
 
             Thread.Sleep(1000);

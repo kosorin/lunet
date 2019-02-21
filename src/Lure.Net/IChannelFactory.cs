@@ -4,6 +4,6 @@ namespace Lure.Net
 {
     public interface IChannelFactory
     {
-        IDictionary<byte, IChannel> Create(Connection connection);
+        IEnumerable<IChannel> Create(IConnection connection);
     }
 }
