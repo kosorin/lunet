@@ -204,7 +204,7 @@ namespace Lure.Net.Data
 
         public void Seek(int bitPosition)
         {
-            if (bitPosition < 0 || BitLength < bitPosition)
+            if (bitPosition < 0 || bitPosition > BitLength)
             {
                 throw new ArgumentOutOfRangeException(nameof(bitPosition));
             }

@@ -58,7 +58,7 @@ namespace Pegi.Server
                             testMessage.Float *= 2;
                             writer.Reset();
                             message.SerializeLib(writer);
-                            connection.SendMessage(writer.GetBytes());
+                            //connection.SendMessage(writer.GetBytes());
                         }
                     };
                     connections.TryAdd(connection.RemoteEndPoint, connection);

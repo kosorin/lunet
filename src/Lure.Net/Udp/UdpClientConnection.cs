@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Lure.Net.Data;
+using System;
 
 namespace Lure.Net.Udp
 {
@@ -31,7 +32,7 @@ namespace Lure.Net.Udp
         }
 
 
-        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte channelId, Data.NetDataReader reader)
+        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte channelId, NetDataReader reader)
         {
             if (RemoteEndPoint.Equals(remoteEndPoint))
             {
