@@ -7,6 +7,7 @@ namespace Lure.Collections
         where TItem : class
     {
         private readonly bool isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
+        private readonly bool isItemPoolable = typeof(IPoolable).IsAssignableFrom(typeof(TItem));
         private readonly int _capacity;
         private readonly Func<TItem> _activator;
         private readonly ConcurrentQueue<TItem> _objects;
@@ -125,18 +126,18 @@ namespace Lure.Collections
 
         protected virtual void OnItemRented(TItem item)
         {
-            if (item is IPoolable poolable)
+            if (isItemPoolable)
             {
-                poolable.OnRent();
+                ((IPoolable)item).OnRent();
             }
             ItemRented?.Invoke(this, item);
         }
 
         protected virtual void OnItemReturned(TItem item)
         {
-            if (item is IPoolable poolable)
+            if (isItemPoolable)
             {
-                poolable.OnReturn();
+                ((IPoolable)item).OnReturn();
             }
             ItemReturned?.Invoke(this, item);
         }
