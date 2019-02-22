@@ -1,26 +1,20 @@
 ﻿using Lure.Net.Data;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Lure.Net.Udp
 {
-    public class UdpConnectionListener : ConnectionListener<InternetEndPoint, UdpServerConnection>
+    public class UdpConnectionListener : ConnectionListener<InternetEndPoint, UdpConnection>
     {
         private readonly UdpSocket _socket;
 
         private readonly Dictionary<InternetEndPoint, UdpServerConnection> _connections = new Dictionary<InternetEndPoint, UdpServerConnection>();
         private readonly object _connectionsLock = new object();
 
-        public UdpConnectionListener(ServerConfiguration config, IChannelFactory channelFactory) : base(channelFactory)
+        public UdpConnectionListener(InternetEndPoint localEndPoint, IChannelFactory channelFactory) : base(channelFactory)
         {
-            Config = config;
-
-            _socket = new UdpSocket(Config);
+            _socket = new UdpSocket(localEndPoint);
             _socket.PacketReceived += Socket_PacketReceived;
         }
-
-
-        protected ServerConfiguration Config { get; }
 
 
         public override void Start()
@@ -41,31 +35,23 @@ namespace Lure.Net.Udp
         }
 
 
-        private void Socket_PacketReceived(InternetEndPoint internetEndPoint, byte channelId, NetDataReader reader)
+        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte channelId, NetDataReader reader)
         {
             UdpServerConnection connection = null;
             lock (_connectionsLock)
             {
-                _connections.TryGetValue(internetEndPoint, out connection);
+                _connections.TryGetValue(remoteEndPoint, out connection);
                 if (connection == null)
                 {
-                    if (_connections.Count >= Config.MaximumConnections)
-                    {
-                        return;
-                    }
-
-                    connection = new UdpServerConnection(internetEndPoint, ChannelFactory, _socket);
+                    connection = new UdpServerConnection(_socket, remoteEndPoint, ChannelFactory);
                     connection.Disconnected += Connection_Disconnected;
-                    _connections.Add(internetEndPoint, connection);
+                    _connections.Add(remoteEndPoint, connection);
 
                     OnNewConnection(connection);
                 }
             }
 
-            if (connection != null)
-            {
-                connection.HandleReceivedPacket(channelId, reader);
-            }
+            connection.HandleReceivedPacket(channelId, reader);
         }
 
         private void Connection_Disconnected(IConnection<InternetEndPoint> connection)

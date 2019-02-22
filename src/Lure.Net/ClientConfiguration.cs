@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 
 namespace Lure.Net
 {
@@ -31,12 +32,12 @@ namespace Lure.Net
         {
             if (string.IsNullOrWhiteSpace(Hostname))
             {
-                throw new ConfigurationException("Hostname is not set.");
+                throw new Exception("Hostname is not set.");
             }
 
             if (Port < IPEndPoint.MinPort || Port > IPEndPoint.MaxPort)
             {
-                throw new ConfigurationException($"Port {Port} is out of range.");
+                throw new Exception($"Port {Port} is out of range.");
             }
 
             base.OnLock();

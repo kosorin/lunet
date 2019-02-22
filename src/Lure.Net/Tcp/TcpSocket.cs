@@ -8,8 +8,6 @@ namespace Lure.Net.Tcp
 {
     internal class TcpSocket : IDisposable
     {
-        private readonly ISocketConfig _config;
-
         private readonly ProtocolProcessor _protocolProcessor = new ProtocolProcessor();
 
         private readonly Socket _socket;
@@ -17,18 +15,9 @@ namespace Lure.Net.Tcp
         private readonly SocketAsyncEventArgs _receiveToken;
         private readonly IObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
-        public TcpSocket(ISocketConfig config, InternetEndPoint remoteEndPoint)
+        public TcpSocket(InternetEndPoint remoteEndPoint)
         {
-            _config = config;
-
-            _socket = new Socket(_config.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            _socket.SendBufferSize = _config.SendBufferSize;
-            _socket.ReceiveBufferSize = _config.ReceiveBufferSize;
-            _socket.ExclusiveAddressUse = false;
-            if (_config.AddressFamily == AddressFamily.InterNetworkV6)
-            {
-                _socket.DualMode = _config.DualMode;
-            }
+            _socket = new Socket(remoteEndPoint.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             _receiveToken = CreateReceiveToken();
             _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateSendToken);
@@ -36,10 +25,8 @@ namespace Lure.Net.Tcp
             RemoteEndPoint = remoteEndPoint;
         }
 
-        internal TcpSocket(ISocketConfig config, Socket socket)
+        internal TcpSocket(Socket socket)
         {
-            _config = config;
-
             _socket = socket;
 
             _receiveToken = CreateReceiveToken();

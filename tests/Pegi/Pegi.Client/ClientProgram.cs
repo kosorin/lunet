@@ -4,6 +4,7 @@ using Lure.Net.Channels;
 using Lure.Net.Data;
 using Lure.Net.Messages;
 using Lure.Net.Tcp;
+using Lure.Net.Udp;
 using Serilog;
 using System;
 using System.Threading;
@@ -21,14 +22,7 @@ namespace Pegi.Client
             var channelFactory = new DefaultChannelFactory();
             channelFactory.Add<SimpleChannel>();
 
-            var config = new ClientConfiguration
-            {
-                //Hostname = "bur.kosorin.net",
-                Port = 45685,
-                LocalPort = 45688,
-            };
-
-            using (var connection = new TcpConnection(remoteEndPoint, channelFactory, config))
+            using (var connection = new TcpClientConnection(remoteEndPoint, channelFactory))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>

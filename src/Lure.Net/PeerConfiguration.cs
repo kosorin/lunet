@@ -1,9 +1,10 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Sockets;
 
 namespace Lure.Net
 {
-    public abstract class PeerConfiguration : Configuration, ISocketConfig
+    public abstract class PeerConfiguration : ISocketConfig
     {
         private int? _localPort = null;
         private AddressFamily _addressFamily = AddressFamily.InterNetwork;
@@ -71,31 +72,39 @@ namespace Lure.Net
         }
 
 
-        protected override void OnLock()
+        protected void Set<T>(ref T field, T value)
+        {
+            if (!Equals(field, value))
+            {
+                field = value;
+            }
+        }
+
+        protected virtual void OnLock()
         {
             if (LocalPort.HasValue && (LocalPort < IPEndPoint.MinPort || LocalPort > IPEndPoint.MaxPort))
             {
-                throw new ConfigurationException($"Local port {LocalPort} is out of range.");
+                throw new Exception($"Local port {LocalPort} is out of range.");
             }
 
             if (AddressFamily != AddressFamily.InterNetwork && AddressFamily != AddressFamily.InterNetworkV6)
             {
-                throw new ConfigurationException("Configuration accepta only IPv4 or IPv6 addresses.");
+                throw new Exception("Configuration accepta only IPv4 or IPv6 addresses.");
             }
 
             if (DualMode && AddressFamily != AddressFamily.InterNetworkV6)
             {
-                throw new ConfigurationException("Dual mode is available only for IPv6 addresses.");
+                throw new Exception("Dual mode is available only for IPv6 addresses.");
             }
 
             if (AddressFamily == AddressFamily.InterNetwork && !Socket.OSSupportsIPv4)
             {
-                throw new ConfigurationException("IPv4 not supported.");
+                throw new Exception("IPv4 not supported.");
             }
 
             if (AddressFamily == AddressFamily.InterNetworkV6 && !Socket.OSSupportsIPv6)
             {
-                throw new ConfigurationException("IPv6 not supported.");
+                throw new Exception("IPv6 not supported.");
             }
         }
     }

@@ -9,28 +9,24 @@ namespace Lure.Net.Udp
 {
     internal class UdpSocket : IDisposable
     {
-        private readonly ISocketConfig _config;
-
         private readonly ProtocolProcessor _protocolProcessor = new ProtocolProcessor();
+        private readonly InternetEndPoint _localEndPoint;
 
         private readonly Socket _socket;
         private readonly SocketAsyncEventArgs _receiveToken;
         private readonly IObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
-        public UdpSocket(ISocketConfig config)
+        public UdpSocket(InternetEndPoint localEndPoint)
         {
-            _config = config;
+            _localEndPoint = localEndPoint;
 
-            _socket = new Socket(_config.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-            _socket.SendBufferSize = _config.SendBufferSize;
-            _socket.ReceiveBufferSize = _config.ReceiveBufferSize;
-            if (_config.AddressFamily == AddressFamily.InterNetworkV6)
-            {
-                _socket.DualMode = _config.DualMode;
-            }
-
+            _socket = new Socket(_localEndPoint.EndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             _receiveToken = CreateReceiveToken();
             _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateSendToken);
+        }
+
+        internal UdpSocket(AddressFamily addressFamily) : this(new InternetEndPoint(addressFamily.GetAnyAddress(), IPEndPoint.MinPort))
+        {
         }
 
 
@@ -47,9 +43,7 @@ namespace Lure.Net.Udp
         {
             try
             {
-                var address = _config.AddressFamily.GetLoopbackAddress();
-                var localEndPoint = new IPEndPoint(address, _config.LocalPort ?? IPEndPoint.MinPort);
-                _socket.Bind(localEndPoint);
+                _socket.Bind(_localEndPoint.EndPoint);
 
                 StartReceive();
             }

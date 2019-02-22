@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 
 namespace Lure.Net
 {
@@ -15,7 +16,7 @@ namespace Lure.Net
         {
             if (!base.LocalPort.HasValue)
             {
-                throw new ConfigurationException("Local port is not set.");
+                throw new Exception("Local port is not set.");
             }
 
             base.OnLock();

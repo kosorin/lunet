@@ -1,5 +1,4 @@
 ﻿using Lure.Net.Data;
-using System;
 
 namespace Lure.Net.Udp
 {
@@ -7,10 +6,12 @@ namespace Lure.Net.Udp
     {
         private readonly UdpSocket _socket;
 
-        public UdpClientConnection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory, ClientConfiguration config) : base(remoteEndPoint, channelFactory)
+        public UdpClientConnection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory) : base(remoteEndPoint, channelFactory)
         {
-            _socket = new UdpSocket(config);
+            _socket = new UdpSocket(remoteEndPoint.EndPoint.AddressFamily);
             _socket.PacketReceived += Socket_PacketReceived;
+
+            State = ConnectionState.Disconnected;
         }
 
 

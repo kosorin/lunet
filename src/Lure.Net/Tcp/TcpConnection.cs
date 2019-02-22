@@ -3,38 +3,20 @@ using System;
 
 namespace Lure.Net.Tcp
 {
-    public class TcpConnection : Connection<InternetEndPoint>
+    public abstract class TcpConnection : Connection<InternetEndPoint>
     {
-        private readonly bool _isServer;
         private readonly TcpSocket _socket;
-
-        public TcpConnection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory, ClientConfiguration config) : base(remoteEndPoint, channelFactory)
-        {
-            _socket = new TcpSocket(config, remoteEndPoint);
-            _socket.Disconnected += Socket_Disconnected;
-            _socket.PacketReceived += Socket_PacketReceived;
-
-            _isServer = false;
-        }
 
         internal TcpConnection(TcpSocket socket, IChannelFactory channelFactory) : base(socket.RemoteEndPoint, channelFactory)
         {
             _socket = socket;
             _socket.Disconnected += Socket_Disconnected;
             _socket.PacketReceived += Socket_PacketReceived;
-
-            State = ConnectionState.Connected;
-            _isServer = true;
         }
 
 
         public override void Connect()
         {
-            if (_isServer)
-            {
-                throw new InvalidOperationException($"{nameof(TcpConnection)} is automatically connected by listener.");
-            }
-
             State = ConnectionState.Connecting;
             _socket.Connect();
 

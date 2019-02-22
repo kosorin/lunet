@@ -3,6 +3,7 @@ using Lure.Net.Channels;
 using Lure.Net.Data;
 using Lure.Net.Messages;
 using Lure.Net.Tcp;
+using Lure.Net.Udp;
 using Serilog;
 using System;
 using System.Collections.Concurrent;
@@ -16,15 +17,12 @@ namespace Pegi.Server
         {
             PegiLogging.Configure("Server");
 
+            var localEndPoint = new InternetEndPoint("127.0.0.1", 45685);
+
             var channelFactory = new DefaultChannelFactory();
             channelFactory.Add<SimpleChannel>();
 
-            var config = new ServerConfiguration
-            {
-                LocalPort = 45685,
-            };
-
-            using (var listener = new TcpConnectionListener(config, channelFactory))
+            using (var listener = new TcpConnectionListener(localEndPoint, channelFactory))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
@@ -58,7 +56,7 @@ namespace Pegi.Server
                             testMessage.Float *= 2;
                             writer.Reset();
                             message.SerializeLib(writer);
-                            //connection.SendMessage(writer.GetBytes());
+                            connection.SendMessage(writer.GetBytes());
                         }
                     };
                     connections.TryAdd(connection.RemoteEndPoint, connection);

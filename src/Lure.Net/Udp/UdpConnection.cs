@@ -2,7 +2,7 @@
 {
     public abstract class UdpConnection : Connection<InternetEndPoint>
     {
-        protected UdpConnection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory) : base(remoteEndPoint, channelFactory)
+        internal UdpConnection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory) : base(remoteEndPoint, channelFactory)
         {
         }
     }

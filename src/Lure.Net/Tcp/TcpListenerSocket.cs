@@ -1,31 +1,22 @@
 ﻿using Lure.Collections;
-using Lure.Net.Extensions;
 using System;
-using System.Net;
 using System.Net.Sockets;
 
 namespace Lure.Net.Tcp
 {
     internal class TcpListenerSocket : IDisposable
     {
-        private readonly ISocketConfig _config;
+        private readonly int _listenBacklog = 32;
+        private readonly InternetEndPoint _localEndPoint;
 
         private readonly Socket _socket;
         private readonly IObjectPool<SocketAsyncEventArgs> _acceptTokenPool;
 
-        public TcpListenerSocket(ISocketConfig config)
+        public TcpListenerSocket(InternetEndPoint localEndPoint)
         {
-            _config = config;
+            _localEndPoint = localEndPoint;
 
-            _socket = new Socket(_config.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            _socket.SendBufferSize = _config.SendBufferSize;
-            _socket.ReceiveBufferSize = _config.ReceiveBufferSize;
-            _socket.ExclusiveAddressUse = false;
-            if (_config.AddressFamily == AddressFamily.InterNetworkV6)
-            {
-                _socket.DualMode = _config.DualMode;
-            }
-
+            _socket = new Socket(_localEndPoint.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             _acceptTokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateAcceptToken);
         }
 
@@ -47,11 +38,8 @@ namespace Lure.Net.Tcp
         {
             try
             {
-                var address = _config.AddressFamily.GetLoopbackAddress();
-                var localEndPoint = new IPEndPoint(address, _config.LocalPort ?? IPEndPoint.MinPort);
-                _socket.Bind(localEndPoint);
-
-                _socket.Listen(8); // TODO pending connections
+                _socket.Bind(_localEndPoint.EndPoint);
+                _socket.Listen(_listenBacklog);
 
                 StartAccept();
             }
@@ -95,7 +83,7 @@ namespace Lure.Net.Tcp
             {
                 if (token.SocketError == SocketError.Success)
                 {
-                    AcceptSocket?.Invoke(this, new TcpSocket(_config, token.AcceptSocket));
+                    AcceptSocket?.Invoke(this, new TcpSocket(token.AcceptSocket));
                 }
                 else
                 {

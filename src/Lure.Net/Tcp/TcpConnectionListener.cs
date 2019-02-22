@@ -4,16 +4,11 @@
     {
         private readonly TcpListenerSocket _socket;
 
-        public TcpConnectionListener(ServerConfiguration config, IChannelFactory channelFactory) : base(channelFactory)
+        public TcpConnectionListener(InternetEndPoint localEndPoint, IChannelFactory channelFactory) : base(channelFactory)
         {
-            Config = config;
-
-            _socket = new TcpListenerSocket(Config);
+            _socket = new TcpListenerSocket(localEndPoint);
             _socket.AcceptSocket += Socket_AcceptSocket;
         }
-
-
-        protected ServerConfiguration Config { get; }
 
 
         public override void Start()
@@ -27,10 +22,10 @@
         }
 
 
-        private void Socket_AcceptSocket(TcpListenerSocket serverSocket, TcpSocket clientSocket)
+        private void Socket_AcceptSocket(TcpListenerSocket listenerSocket, TcpSocket socket)
         {
-            var remoteEndPoint = clientSocket.RemoteEndPoint;
-            var connection = new TcpConnection(clientSocket, ChannelFactory);
+            var remoteEndPoint = socket.RemoteEndPoint;
+            var connection = new TcpServerConnection(socket, ChannelFactory);
 
             OnNewConnection(connection);
         }

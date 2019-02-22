@@ -2,11 +2,11 @@
 
 namespace Lure.Net.Udp
 {
-    public class UdpServerConnection : UdpConnection
+    internal class UdpServerConnection : UdpConnection
     {
         private readonly UdpSocket _socket;
 
-        internal UdpServerConnection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory, UdpSocket socket) : base(remoteEndPoint, channelFactory)
+        internal UdpServerConnection(UdpSocket socket, InternetEndPoint remoteEndPoint, IChannelFactory channelFactory) : base(remoteEndPoint, channelFactory)
         {
             _socket = socket;
 
