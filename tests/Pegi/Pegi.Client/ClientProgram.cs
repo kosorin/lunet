@@ -19,7 +19,7 @@ namespace Pegi.Client
             var remoteEndPoint = new InternetEndPoint("127.0.0.1", 45685);
 
             var channelFactory = new DefaultChannelFactory();
-            channelFactory.Add<ReliableOrderedChannel>();
+            channelFactory.Add<SimpleChannel>();
 
             var config = new ClientConfiguration
             {

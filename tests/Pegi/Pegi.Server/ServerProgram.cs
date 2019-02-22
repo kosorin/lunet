@@ -17,7 +17,7 @@ namespace Pegi.Server
             PegiLogging.Configure("Server");
 
             var channelFactory = new DefaultChannelFactory();
-            channelFactory.Add<ReliableOrderedChannel>();
+            channelFactory.Add<SimpleChannel>();
 
             var config = new ServerConfiguration
             {

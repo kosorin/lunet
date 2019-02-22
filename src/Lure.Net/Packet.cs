@@ -8,7 +8,7 @@ namespace Lure.Net
 
         public abstract int HeaderLength { get; }
 
-        public virtual int DataLength { get; }
+        public abstract int DataLength { get; }
 
         public abstract void DeserializeHeader(NetDataReader reader);
 
