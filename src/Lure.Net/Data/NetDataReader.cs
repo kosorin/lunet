@@ -89,6 +89,15 @@ namespace Lure.Net.Data
             return bytes;
         }
 
+        public byte[] ReadBytesToEnd()
+        {
+            if (_bitPosition != 0)
+            {
+                throw new InvalidOperationException($"Bit position must be divisible by {NC.BitsPerByte}. Can read only full bytes.");
+            }
+            return ReadBytes(_length - _position);
+        }
+
         public bool ReadBit()
         {
             EnsureReadSize(1);
