@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace Lure.Net.Data
 {
-    public class NetDataReader
+    public class NetDataReader : INetBuffer
     {
         private readonly byte[] _data;
         private readonly int _offset;

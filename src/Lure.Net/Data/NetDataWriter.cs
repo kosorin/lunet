@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace Lure.Net.Data
 {
-    public class NetDataWriter
+    public class NetDataWriter : INetBuffer
     {
         private const int ResizeData = 8;
 

@@ -15,6 +15,8 @@ namespace Lure.Net.Tcp
         private readonly SocketAsyncEventArgs _receiveToken;
         private readonly IObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
+        private readonly TcpStreamParser _receiveStreamParser = new TcpStreamParser();
+
         public TcpSocket(InternetEndPoint remoteEndPoint)
         {
             _socket = new Socket(remoteEndPoint.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -126,23 +128,44 @@ namespace Lure.Net.Tcp
         {
             if (token.SocketError != SocketError.Success || token.BytesTransferred <= 0)
             {
+                // TODO: Disconnected or error?
                 Disconnected?.Invoke(this);
                 Close();
+                return;
             }
 
-            ReadPacket(token);
+            try
+            {
+                var reader = new NetDataReader(token.Buffer, token.Offset, token.BytesTransferred);
+                while (reader.Position < reader.Length)
+                {
+                    if (_receiveStreamParser.Next(reader))
+                    {
+                        var buffer = _receiveStreamParser.Buffer;
+                        ReadPacket(buffer.Data, buffer.Offset, buffer.Length);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // TODO: Bad TCP data
+                Disconnected?.Invoke(this);
+                Close();
+                return;
+            }
+
             StartReceive();
         }
 
-        private void ReadPacket(SocketAsyncEventArgs token)
+        private void ReadPacket(byte[] data, int offset, int length)
         {
-            var data = _protocolProcessor.Read(token.Buffer, token.Offset, token.BytesTransferred);
-            if (data.Reader == null)
+            var dataX = _protocolProcessor.Read(data, offset, length);
+            if (dataX.Reader == null)
             {
                 return;
             }
 
-            PacketReceived?.Invoke(new InternetEndPoint(token.RemoteEndPoint), data.ChannelId, data.Reader);
+            PacketReceived?.Invoke(null, dataX.ChannelId, dataX.Reader);
         }
 
 
@@ -199,6 +222,7 @@ namespace Lure.Net.Tcp
         private void WritePacket(NetDataWriter writer, byte channelId, IPacket packet)
         {
             writer.Reset();
+            writer.WriteUShort(_protocolProcessor.GetTotalLength(packet));
             _protocolProcessor.Write(writer, channelId, packet);
             writer.Flush();
         }

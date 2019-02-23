@@ -34,16 +34,25 @@ namespace Lure.Net
 
         public void Write(NetDataWriter writer, byte channelId, IPacket packet)
         {
+            var offset = writer.Position;
+
             // Packet
             writer.WriteByte(channelId);
             packet.SerializeHeader(writer);
             packet.SerializeData(writer);
             writer.Flush();
 
+            var length = writer.Length - offset;
+
             // CRC
-            var crc32 = Crc32Algorithm.Append(InitialCrc32, writer.Data, writer.Offset, writer.Length);
+            var crc32 = Crc32Algorithm.Append(InitialCrc32, writer.Data, offset, length);
             writer.WriteUInt(crc32);
             writer.Flush();
+        }
+
+        public ushort GetTotalLength(IPacket packet)
+        {
+            return (ushort)(1 + Crc32Length + packet.Length);
         }
     }
 }
