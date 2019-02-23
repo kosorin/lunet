@@ -10,11 +10,4 @@ namespace Lure.Net
 
         void Stop();
     }
-
-    public interface IConnectionListener<TEndPoint, TConnection> : IConnectionListener
-        where TEndPoint : IEndPoint
-        where TConnection : IConnection<TEndPoint>
-    {
-        new event TypedEventHandler<IConnectionListener<TEndPoint, TConnection>, IConnection<TEndPoint>> NewConnection;
-    }
 }

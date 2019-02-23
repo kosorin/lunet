@@ -26,9 +26,9 @@ namespace Lure.Net.Udp
         }
 
 
-        internal override void SendPacket(byte channelId, IPacket packet)
+        internal override void HandleSendPacket(ProtocolPacket packet)
         {
-            _socket.SendPacket(RemoteEndPoint, channelId, packet);
+            _socket.SendPacket(RemoteEndPoint, packet.ChannelId, packet.ChannelPacket);
         }
 
 

@@ -2,7 +2,7 @@
 
 namespace Lure.Net
 {
-    public abstract class Packet : IPacket
+    public abstract class ChannelPacket : IChannelPacket
     {
         public int Length => HeaderLength + DataLength;
 

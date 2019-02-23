@@ -43,7 +43,7 @@ namespace Lure.Net.Channels
             }
         }
 
-        public override IList<IPacket> CollectOutgoingPackets()
+        public override IList<IChannelPacket> CollectOutgoingPackets()
         {
             var outgoingMessages = CollectOutgoingMessages();
             if (outgoingMessages == null)
@@ -57,7 +57,7 @@ namespace Lure.Net.Channels
                 return null;
             }
 
-            return outgoingPackets.Cast<IPacket>().ToList();
+            return outgoingPackets.Cast<IChannelPacket>().ToList();
         }
 
         public override IList<byte[]> GetReceivedMessages()

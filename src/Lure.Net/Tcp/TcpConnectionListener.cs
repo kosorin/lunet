@@ -1,6 +1,6 @@
 ﻿namespace Lure.Net.Tcp
 {
-    public class TcpConnectionListener : ConnectionListener<InternetEndPoint, TcpConnection>
+    public class TcpConnectionListener : ConnectionListener
     {
         private readonly TcpListenerSocket _socket;
 

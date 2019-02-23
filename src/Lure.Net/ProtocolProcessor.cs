@@ -32,9 +32,9 @@ namespace Lure.Net
             return (reader.ReadByte(), reader);
         }
 
-        public void Write(NetDataWriter writer, byte channelId, IPacket packet)
+        public void Write(NetDataWriter writer, byte channelId, IChannelPacket packet)
         {
-            var offset = writer.Position;
+            var offset = writer.Length;
 
             // Packet
             writer.WriteByte(channelId);
@@ -50,7 +50,7 @@ namespace Lure.Net
             writer.Flush();
         }
 
-        public ushort GetTotalLength(IPacket packet)
+        public ushort GetTotalLength(IChannelPacket packet)
         {
             return (ushort)(1 + Crc32Length + packet.Length);
         }

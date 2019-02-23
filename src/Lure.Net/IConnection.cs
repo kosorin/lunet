@@ -31,7 +31,5 @@ namespace Lure.Net
         where TEndPoint : IEndPoint
     {
         new TEndPoint RemoteEndPoint { get; }
-
-        new event TypedEventHandler<IConnection<TEndPoint>> Disconnected;
     }
 }

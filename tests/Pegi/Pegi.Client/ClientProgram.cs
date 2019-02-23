@@ -22,7 +22,7 @@ namespace Pegi.Client
             var channelFactory = new DefaultChannelFactory();
             channelFactory.Add<RawChannel>();
 
-            using (var connection = new TcpClientConnection(remoteEndPoint, channelFactory))
+            using (var connection = new UdpClientConnection(remoteEndPoint, channelFactory))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>

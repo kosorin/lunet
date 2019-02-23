@@ -19,7 +19,7 @@ namespace Lure.Net
 
         public abstract void HandleIncomingPacket(NetDataReader reader);
 
-        public abstract IList<IPacket> CollectOutgoingPackets();
+        public abstract IList<IChannelPacket> CollectOutgoingPackets();
 
         public abstract IList<byte[]> GetReceivedMessages();
 

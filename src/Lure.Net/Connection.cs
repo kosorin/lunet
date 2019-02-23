@@ -1,5 +1,4 @@
 ﻿using Lure.Extensions;
-using Lure.Net.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,13 +39,7 @@ namespace Lure.Net
         IEndPoint IConnection.RemoteEndPoint => RemoteEndPoint;
 
 
-        public event TypedEventHandler<IConnection<TEndPoint>> Disconnected;
-
-        event TypedEventHandler<IConnection> IConnection.Disconnected
-        {
-            add => Disconnected += value;
-            remove => Disconnected -= value;
-        }
+        public event TypedEventHandler<IConnection> Disconnected;
 
         public event TypedEventHandler<IChannel, byte[]> MessageReceived;
 
@@ -74,7 +67,11 @@ namespace Lure.Net
                 {
                     foreach (var packet in outgoingPackets)
                     {
-                        SendPacket(channelId, packet);
+                        HandleSendPacket(new ProtocolPacket
+                        {
+                            ChannelId = channelId,
+                            ChannelPacket = packet,
+                        });
                     }
                 }
             }
@@ -107,20 +104,26 @@ namespace Lure.Net
         }
 
 
-        internal void HandleReceivedPacket(byte channelId, NetDataReader reader)
+        internal void HandleReceivedPacket(byte[] data, int offset, int length)
         {
             if (State != ConnectionState.Connected)
             {
                 return;
             }
 
-            if (_channels.TryGetValue(channelId, out var channel))
+            var dataX = new ProtocolProcessor().Read(data, offset, length);
+            if (dataX.Reader == null)
             {
-                channel.HandleIncomingPacket(reader);
+                return;
+            }
+
+            if (_channels.TryGetValue(dataX.ChannelId, out var channel))
+            {
+                channel.HandleIncomingPacket(dataX.Reader);
             }
         }
 
-        internal abstract void SendPacket(byte channelId, IPacket packet);
+        internal abstract void HandleSendPacket(ProtocolPacket packet);
 
 
         protected virtual void OnDisconnected()

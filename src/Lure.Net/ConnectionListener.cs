@@ -1,8 +1,6 @@
 ﻿namespace Lure.Net
 {
-    public abstract class ConnectionListener<TEndPoint, TConnection> : IConnectionListener<TEndPoint, TConnection>
-        where TEndPoint : IEndPoint
-        where TConnection : IConnection<TEndPoint>
+    public abstract class ConnectionListener : IConnectionListener
     {
         protected ConnectionListener(IChannelFactory channelFactory)
         {
@@ -13,15 +11,9 @@
         protected IChannelFactory ChannelFactory { get; }
 
 
-        public event TypedEventHandler<IConnectionListener<TEndPoint, TConnection>, IConnection<TEndPoint>> NewConnection;
+        public event TypedEventHandler<IConnectionListener, IConnection> NewConnection;
 
-        event TypedEventHandler<IConnectionListener, IConnection> IConnectionListener.NewConnection
-        {
-            add => NewConnection += value;
-            remove => NewConnection -= value;
-        }
-
-        protected virtual void OnNewConnection(TConnection connection)
+        protected virtual void OnNewConnection(IConnection connection)
         {
             NewConnection?.Invoke(this, connection);
         }

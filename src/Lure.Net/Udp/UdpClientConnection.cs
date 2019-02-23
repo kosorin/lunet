@@ -1,6 +1,4 @@
-﻿using Lure.Net.Data;
-
-namespace Lure.Net.Udp
+﻿namespace Lure.Net.Udp
 {
     public class UdpClientConnection : UdpConnection
     {
@@ -33,17 +31,17 @@ namespace Lure.Net.Udp
         }
 
 
-        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte channelId, NetDataReader reader)
+        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte[] data, int offset, int length)
         {
             if (RemoteEndPoint.Equals(remoteEndPoint))
             {
-                HandleReceivedPacket(channelId, reader);
+                HandleReceivedPacket(data, offset, length);
             }
         }
 
-        internal override void SendPacket(byte channelId, IPacket packet)
+        internal override void HandleSendPacket(ProtocolPacket packet)
         {
-            _socket.SendPacket(RemoteEndPoint, channelId, packet);
+            _socket.SendPacket(RemoteEndPoint, packet.ChannelId, packet.ChannelPacket);
         }
 
 

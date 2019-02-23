@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    public abstract class MessagePacket<TMessage> : Packet
+    public abstract class MessagePacket<TMessage> : ChannelPacket
         where TMessage : Message
     {
         private readonly Func<TMessage> _messageActivator;

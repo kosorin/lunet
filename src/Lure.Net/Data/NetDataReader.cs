@@ -30,6 +30,10 @@ namespace Lure.Net.Data
             _length = length;
         }
 
+        public NetDataReader(INetBuffer buffer) : this(buffer.Data, buffer.Offset, buffer.Length)
+        {
+        }
+
 
         public int Length => _length;
 

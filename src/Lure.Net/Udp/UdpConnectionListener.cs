@@ -1,9 +1,8 @@
-﻿using Lure.Net.Data;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Lure.Net.Udp
 {
-    public class UdpConnectionListener : ConnectionListener<InternetEndPoint, UdpConnection>
+    public class UdpConnectionListener : ConnectionListener
     {
         private readonly UdpSocket _socket;
 
@@ -35,7 +34,7 @@ namespace Lure.Net.Udp
         }
 
 
-        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte channelId, NetDataReader reader)
+        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte[] data, int offset, int length)
         {
             UdpServerConnection connection = null;
             lock (_connectionsLock)
@@ -51,14 +50,14 @@ namespace Lure.Net.Udp
                 }
             }
 
-            connection.HandleReceivedPacket(channelId, reader);
+            connection.HandleReceivedPacket(data, offset, length);
         }
 
-        private void Connection_Disconnected(IConnection<InternetEndPoint> connection)
+        private void Connection_Disconnected(IConnection connection)
         {
             lock (_connectionsLock)
             {
-                _connections.Remove(connection.RemoteEndPoint);
+                _connections.Remove((InternetEndPoint)connection.RemoteEndPoint);
                 connection.Disconnected -= Connection_Disconnected;
             }
         }

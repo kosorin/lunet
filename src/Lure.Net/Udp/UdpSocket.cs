@@ -54,7 +54,7 @@ namespace Lure.Net.Udp
         }
 
 
-        public event PacketReceivedHandler<InternetEndPoint> PacketReceived;
+        public event UdpPacketReceivedHandler PacketReceived;
 
         private SocketAsyncEventArgs CreateReceiveToken()
         {
@@ -68,11 +68,6 @@ namespace Lure.Net.Udp
 
         private void StartReceive()
         {
-            if (_socket == null)
-            {
-                return;
-            }
-
             try
             {
                 if (!_socket.ReceiveFromAsync(_receiveToken))
@@ -85,14 +80,9 @@ namespace Lure.Net.Udp
 
         private void ProcessReceive(SocketAsyncEventArgs token)
         {
-            if (_socket == null)
-            {
-                return;
-            }
-
             if (token.SocketError == SocketError.Success && token.BytesTransferred > 0)
             {
-                ReadPacket(token);
+                PacketReceived?.Invoke(new InternetEndPoint(token.RemoteEndPoint), token.Buffer, token.Offset, token.BytesTransferred);
             }
             else
             {
@@ -102,25 +92,9 @@ namespace Lure.Net.Udp
             StartReceive();
         }
 
-        private void ReadPacket(SocketAsyncEventArgs token)
+
+        public void SendPacket(InternetEndPoint remoteEndPoint, byte channelId, IChannelPacket packet)
         {
-            var data = _protocolProcessor.Read(token.Buffer, token.Offset, token.BytesTransferred);
-            if (data.Reader == null)
-            {
-                return;
-            }
-
-            PacketReceived?.Invoke(new InternetEndPoint(token.RemoteEndPoint), data.ChannelId, data.Reader);
-        }
-
-
-        public void SendPacket(InternetEndPoint remoteEndPoint, byte channelId, IPacket packet)
-        {
-            if (_socket == null)
-            {
-                return;
-            }
-
             var token = _sendTokenPool.Rent();
 
             var writer = (NetDataWriter)token.UserToken;
@@ -152,12 +126,6 @@ namespace Lure.Net.Udp
 
         private void StartSend(SocketAsyncEventArgs token)
         {
-            if (_socket == null)
-            {
-                _sendTokenPool.Return(token);
-                return;
-            }
-
             try
             {
                 if (!_socket.SendToAsync(token))
@@ -176,7 +144,7 @@ namespace Lure.Net.Udp
             _sendTokenPool.Return(token);
         }
 
-        private void WritePacket(NetDataWriter writer, byte channelId, IPacket packet)
+        private void WritePacket(NetDataWriter writer, byte channelId, IChannelPacket packet)
         {
             writer.Reset();
             _protocolProcessor.Write(writer, channelId, packet);

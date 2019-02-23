@@ -75,7 +75,7 @@ namespace Lure.Net.Channels
             SaveIncomingMessages(packet.Messages);
         }
 
-        public override IList<IPacket> CollectOutgoingPackets()
+        public override IList<IChannelPacket> CollectOutgoingPackets()
         {
             var outgoingMessages = CollectOutgoingMessages();
             var outgoingPackets = MessagePacker.Pack(outgoingMessages, Connection.MTU);
@@ -113,7 +113,7 @@ namespace Lure.Net.Channels
                 }
             }
 
-            return outgoingPackets.Cast<IPacket>().ToList();
+            return outgoingPackets.Cast<IChannelPacket>().ToList();
         }
 
         public override IList<byte[]> GetReceivedMessages()

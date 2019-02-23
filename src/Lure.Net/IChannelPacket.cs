@@ -2,10 +2,8 @@
 
 namespace Lure.Net
 {
-    public interface IPacket
+    public interface IChannelPacket
     {
-        int Length { get; }
-
         void DeserializeHeader(NetDataReader reader);
 
         void DeserializeData(NetDataReader reader);
@@ -13,5 +11,7 @@ namespace Lure.Net
         void SerializeHeader(NetDataWriter writer);
 
         void SerializeData(NetDataWriter writer);
+
+        int GetSerializeLength();
     }
 }

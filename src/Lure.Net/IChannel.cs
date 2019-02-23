@@ -12,7 +12,7 @@ namespace Lure.Net
 
         void HandleIncomingPacket(NetDataReader reader);
 
-        IList<IPacket> CollectOutgoingPackets();
+        IList<IChannelPacket> CollectOutgoingPackets();
 
         IList<byte[]> GetReceivedMessages();
 

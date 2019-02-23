@@ -1,17 +1,17 @@
 ﻿using Lure.Net.Data;
-using System;
 
 namespace Lure.Net.Tcp
 {
     public abstract class TcpConnection : Connection<InternetEndPoint>
     {
         private readonly TcpSocket _socket;
+        private readonly TcpStreamParser _streamParser = new TcpStreamParser();
 
         internal TcpConnection(TcpSocket socket, IChannelFactory channelFactory) : base(socket.RemoteEndPoint, channelFactory)
         {
             _socket = socket;
             _socket.Disconnected += Socket_Disconnected;
-            _socket.PacketReceived += Socket_PacketReceived;
+            _socket.DataReceived += Socket_DataReceived;
         }
 
 
@@ -39,14 +39,29 @@ namespace Lure.Net.Tcp
             OnDisconnected();
         }
 
-        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte channelId, NetDataReader reader)
+        private void Socket_DataReceived(NetDataReader reader)
         {
-            HandleReceivedPacket(channelId, reader);
+            try
+            {
+                while (reader.Position < reader.Length)
+                {
+                    if (_streamParser.Next(reader))
+                    {
+                        var buffer = _streamParser.Buffer;
+                        HandleReceivedPacket(buffer.Data, buffer.Offset, buffer.Length);
+                    }
+                }
+            }
+            catch
+            {
+                // TODO: Bad TCP data
+                Disconnect();
+            }
         }
 
-        internal override void SendPacket(byte channelId, IPacket packet)
+        internal override void HandleSendPacket(ProtocolPacket packet)
         {
-            _socket.SendPacket(channelId, packet);
+            _socket.SendPacket(packet.ChannelId, packet.ChannelPacket);
         }
 
 

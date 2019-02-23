@@ -49,6 +49,10 @@ namespace Lure.Net.Data
             _capacity = length;
         }
 
+        public NetDataWriter(INetBuffer buffer) : this(buffer.Data, buffer.Offset, buffer.Length)
+        {
+        }
+
 
         public int Capacity => _capacity;
 

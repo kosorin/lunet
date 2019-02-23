@@ -15,8 +15,6 @@ namespace Lure.Net.Tcp
         private readonly SocketAsyncEventArgs _receiveToken;
         private readonly IObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
-        private readonly TcpStreamParser _receiveStreamParser = new TcpStreamParser();
-
         public TcpSocket(InternetEndPoint remoteEndPoint)
         {
             _socket = new Socket(remoteEndPoint.EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -101,7 +99,7 @@ namespace Lure.Net.Tcp
         }
 
 
-        public event PacketReceivedHandler<InternetEndPoint> PacketReceived;
+        public event TcpDataReceivedHandler DataReceived;
 
         private SocketAsyncEventArgs CreateReceiveToken()
         {
@@ -126,50 +124,22 @@ namespace Lure.Net.Tcp
 
         private void ProcessReceive(SocketAsyncEventArgs token)
         {
-            if (token.SocketError != SocketError.Success || token.BytesTransferred <= 0)
+            if (token.SocketError == SocketError.Success && token.BytesTransferred > 0)
+            {
+                var reader = new NetDataReader(token.Buffer, token.Offset, token.BytesTransferred);
+                DataReceived?.Invoke(reader);
+                StartReceive();
+            }
+            else
             {
                 // TODO: Disconnected or error?
                 Disconnected?.Invoke(this);
                 Close();
-                return;
             }
-
-            try
-            {
-                var reader = new NetDataReader(token.Buffer, token.Offset, token.BytesTransferred);
-                while (reader.Position < reader.Length)
-                {
-                    if (_receiveStreamParser.Next(reader))
-                    {
-                        var buffer = _receiveStreamParser.Buffer;
-                        ReadPacket(buffer.Data, buffer.Offset, buffer.Length);
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                // TODO: Bad TCP data
-                Disconnected?.Invoke(this);
-                Close();
-                return;
-            }
-
-            StartReceive();
-        }
-
-        private void ReadPacket(byte[] data, int offset, int length)
-        {
-            var dataX = _protocolProcessor.Read(data, offset, length);
-            if (dataX.Reader == null)
-            {
-                return;
-            }
-
-            PacketReceived?.Invoke(null, dataX.ChannelId, dataX.Reader);
         }
 
 
-        public void SendPacket(byte channelId, IPacket packet)
+        public void SendPacket(byte channelId, IChannelPacket packet)
         {
             var token = _sendTokenPool.Rent();
 
@@ -219,7 +189,7 @@ namespace Lure.Net.Tcp
             _sendTokenPool.Return(token);
         }
 
-        private void WritePacket(NetDataWriter writer, byte channelId, IPacket packet)
+        private void WritePacket(NetDataWriter writer, byte channelId, IChannelPacket packet)
         {
             writer.Reset();
             writer.WriteUShort(_protocolProcessor.GetTotalLength(packet));

@@ -37,15 +37,15 @@ namespace Lure.Net.Channels
             }
         }
 
-        public override IList<IPacket> CollectOutgoingPackets()
+        public override IList<IChannelPacket> CollectOutgoingPackets()
         {
-            IList<IPacket> outgoingPackets = null;
+            IList<IChannelPacket> outgoingPackets = null;
 
             lock (_outgoingDataQueue)
             {
                 if (_outgoingDataQueue.Count > 0)
                 {
-                    outgoingPackets = new List<IPacket>(_outgoingDataQueue.Count);
+                    outgoingPackets = new List<IChannelPacket>(_outgoingDataQueue.Count);
                     foreach (var data in _outgoingDataQueue)
                     {
                         var packet = _packetActivator();
