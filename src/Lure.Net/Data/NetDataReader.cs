@@ -292,7 +292,7 @@ namespace Lure.Net.Data
         {
             if (_bitPosition == 0)
             {
-                Array.Copy(_data, _position, bytes, 0, bytes.Length);
+                Array.Copy(_data, _offset + _position, bytes, 0, bytes.Length);
                 _position += bytes.Length;
                 return true;
             }
