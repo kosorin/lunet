@@ -5,16 +5,16 @@ using System.Linq;
 
 namespace Lure.Net.Channels
 {
-    public class SimpleChannel : Channel
+    public class RawChannel : Channel
     {
-        private readonly Func<SimplePacket> _packetActivator;
+        private readonly Func<RawPacket> _packetActivator;
 
         private readonly List<byte[]> _outgoingDataQueue = new List<byte[]>();
         private readonly List<byte[]> _incomingDataQueue = new List<byte[]>();
 
-        public SimpleChannel(byte id, IConnection connection) : base(id, connection)
+        public RawChannel(byte id, IConnection connection) : base(id, connection)
         {
-            _packetActivator = ObjectActivatorFactory.Create<SimplePacket>();
+            _packetActivator = ObjectActivatorFactory.Create<RawPacket>();
         }
 
         public override void HandleIncomingPacket(NetDataReader reader)

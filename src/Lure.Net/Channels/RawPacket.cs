@@ -2,7 +2,7 @@
 
 namespace Lure.Net.Channels
 {
-    public class SimplePacket : Packet
+    public class RawPacket : Packet
     {
         public byte[] Data { get; set; }
 

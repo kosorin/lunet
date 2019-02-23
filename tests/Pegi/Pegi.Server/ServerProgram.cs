@@ -20,7 +20,7 @@ namespace Pegi.Server
             var localEndPoint = new InternetEndPoint("127.0.0.1", 45685);
 
             var channelFactory = new DefaultChannelFactory();
-            channelFactory.Add<SimpleChannel>();
+            channelFactory.Add<RawChannel>();
 
             using (var listener = new TcpConnectionListener(localEndPoint, channelFactory))
             {
