@@ -17,5 +17,10 @@ namespace Lure.Net
         public abstract void SerializeHeader(NetDataWriter writer);
 
         public abstract void SerializeData(NetDataWriter writer);
+
+        public int GetSerializeLength()
+        {
+            return Length;
+        }
     }
 }

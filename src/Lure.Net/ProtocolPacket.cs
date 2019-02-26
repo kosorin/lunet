@@ -36,7 +36,7 @@ namespace Lure.Net
             ChannelId = reader.ReadByte();
             //var reader = new NetDataReader(data, offset, length - Crc32Length);
 
-            return (reader.ReadByte(), reader);
+            return false;//            return (reader.ReadByte(), reader);
         }
 
         public void Serialize(NetDataWriter writer)
