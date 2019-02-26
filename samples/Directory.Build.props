@@ -1,6 +1,6 @@
 <Project>
 
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../../'))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\..\src\GlobalSuppressions.cs" Link="GlobalSuppressions.cs" />
+    <Compile Include="..\..\src\GlobalSuppressions.cs" Link="GlobalSuppressions.cs" />
     <Compile Include="..\PegiLogging.cs" Link="PegiLogging.cs" />
   </ItemGroup>
 
@@ -19,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Lure\Lure.csproj" />
-    <ProjectReference Include="..\..\..\src\Lure.Net\Lure.Net.csproj" />
+    <ProjectReference Include="..\..\src\Lure\Lure.csproj" />
+    <ProjectReference Include="..\..\src\Lure.Net\Lure.Net.csproj" />
   </ItemGroup>
 
 </Project>

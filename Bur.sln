@@ -3,17 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pegi.Client", "tests\Pegi\Pegi.Client\Pegi.Client.csproj", "{FE46E88C-3CEA-4BD3-9660-059B00A50A84}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pegi.Client", "samples\Pegi.Client\Pegi.Client.csproj", "{FE46E88C-3CEA-4BD3-9660-059B00A50A84}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net", "src\Lure.Net\Lure.Net.csproj", "{C370D6AE-4EFE-4997-B702-A15729CCD2AA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure", "src\Lure\Lure.csproj", "{E95F8E01-D144-4AFB-894B-712B6AE6FE32}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pegi.Server", "tests\Pegi\Pegi.Server\Pegi.Server.csproj", "{922B6C61-8C68-4699-8F7C-6F571F6A8375}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pegi.Server", "samples\Pegi.Server\Pegi.Server.csproj", "{922B6C61-8C68-4699-8F7C-6F571F6A8375}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{14E2B85C-CE5A-43EE-80DB-315C619746CC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lure.Net.Tests", "tests\Lure.Net.Tests\Lure.Net.Tests.csproj", "{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{34119B4E-FCC1-4E0E-81AC-860874A994B4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -46,8 +48,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{FE46E88C-3CEA-4BD3-9660-059B00A50A84} = {14E2B85C-CE5A-43EE-80DB-315C619746CC}
-		{922B6C61-8C68-4699-8F7C-6F571F6A8375} = {14E2B85C-CE5A-43EE-80DB-315C619746CC}
+		{FE46E88C-3CEA-4BD3-9660-059B00A50A84} = {34119B4E-FCC1-4E0E-81AC-860874A994B4}
+		{922B6C61-8C68-4699-8F7C-6F571F6A8375} = {34119B4E-FCC1-4E0E-81AC-860874A994B4}
 		{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A} = {14E2B85C-CE5A-43EE-80DB-315C619746CC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
