@@ -4,7 +4,7 @@ using System;
 
 namespace Lure.Net.Channels
 {
-    public class ReliableMessage : Message, IComparable<ReliableMessage>
+    public class ReliableMessage : Message
     {
         public long? Timestamp { get; set; }
 
@@ -22,17 +22,6 @@ namespace Lure.Net.Channels
         {
             writer.WriteSeqNo(Seq);
             base.Serialize(writer);
-        }
-
-        /// <summary>
-        /// Compare reliable message.
-        /// </summary>
-        /// <remarks>
-        /// Used for sorting received packets.
-        /// </remarks>
-        int IComparable<ReliableMessage>.CompareTo(ReliableMessage other)
-        {
-            return Seq.CompareTo(other.Seq);
         }
     }
 }
