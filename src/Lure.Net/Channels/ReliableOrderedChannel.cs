@@ -29,8 +29,6 @@ namespace Lure.Net.Channels
 
         public static int AckBufferLength { get; } = 128;
 
-        //private static ILog Log { get; } = LogProvider.For<ReliableOrderedChannel>();
-
 
         public override void HandleIncomingPacket(NetDataReader reader)
         {
@@ -108,8 +106,6 @@ namespace Lure.Net.Channels
                     {
                         message.Timestamp = now;
                     }
-
-                    //Log.Trace("[OUT] PACKET: Messages {Seq} {Messages}", packet.Seq, packet.Messages.Select(x => x.Seq).ToList());
                 }
             }
 
@@ -153,7 +149,6 @@ namespace Lure.Net.Channels
             if (diff == 0)
             {
                 // Already received packet
-                //Log.Trace("[IN] PACKET: Already {Seq}", seq);
                 return false;
             }
             else if (diff > 0)
@@ -163,13 +158,11 @@ namespace Lure.Net.Channels
                 if (diff > _incomingPacketAckBuffer.Capacity)
                 {
                     // Early packet
-                    //Log.Trace("[IN] PACKET: New early {Seq}", seq);
                     _incomingPacketAckBuffer.ClearAll();
                 }
                 else
                 {
                     // New packet
-                    //Log.Trace("[IN] PACKET: New early {Seq}", seq);
                     _incomingPacketAckBuffer.LeftShift(diff);
                     _incomingPacketAckBuffer.Set(diff - 1);
                 }
@@ -181,7 +174,6 @@ namespace Lure.Net.Channels
                 if (diff > _incomingPacketAckBuffer.Capacity)
                 {
                     // Late packet
-                    //Log.Trace("[IN] PACKET: Late {Seq}", seq);
                     return false;
                 }
                 else
@@ -190,13 +182,11 @@ namespace Lure.Net.Channels
                     if (_incomingPacketAckBuffer[ackIndex])
                     {
                         // Already received packet
-                        //Log.Trace("[IN] PACKET: Already {Seq}", seq);
                         return false;
                     }
                     else
                     {
                         // New packet
-                        //Log.Trace("[IN] PACKET: New late {Seq}", seq);
                         _incomingPacketAckBuffer.Set(diff - 1);
                         return true;
                     }
@@ -209,7 +199,6 @@ namespace Lure.Net.Channels
             if (message.Seq == _incomingMessageSeq)
             {
                 // New message
-                //Log.Trace("[IN] MESSAGE: New {Seq}", message.Seq);
                 _incomingMessageSeq++;
                 return true;
             }
@@ -217,21 +206,18 @@ namespace Lure.Net.Channels
             {
                 if (_incomingMessageQueue.ContainsKey(message.Seq))
                 {
-                    // Already received messages
-                    //Log.Trace("[IN] MESSAGE: Already received {Seq}; Expected {ExpectedSeq}", message.Seq, _incomingMessageSeq);
+                    // Already (early) received messages
                     return false;
                 }
                 else
                 {
                     // Early message
-                    //Log.Trace("[IN] MESSAGE: Early {Seq}; Expected {ExpectedSeq}", message.Seq, _incomingMessageSeq);
                     return true;
                 }
             }
             else
             {
-                // Late or already received messages
-                //Log.Trace("[IN] MESSAGE: Late {Seq}; Expected {ExpectedSeq}", message.Seq, _incomingMessageSeq);
+                // Already (late) received messages
                 return false;
             }
         }
