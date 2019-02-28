@@ -7,25 +7,21 @@ namespace Lure.Net.Messages
     [NetMessage(0)]
     public class DebugMessage : NetMessage
     {
-        public int Integer { get; set; }
-
-        public float Float { get; set; }
+        public int Id { get; set; }
 
         public override string ToString()
         {
-            return $"Int: {Integer}; Float: {Float}";
+            return $"ID {Id,6}";
         }
 
         protected override void Deserialize(NetDataReader reader)
         {
-            Integer = reader.ReadInt();
-            Float = reader.ReadFloat();
+            Id = reader.ReadInt();
         }
 
         protected override void Serialize(NetDataWriter writer)
         {
-            writer.WriteInt(Integer);
-            writer.WriteFloat(Float);
+            writer.WriteInt(Id);
         }
     }
 }

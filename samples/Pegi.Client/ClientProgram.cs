@@ -19,7 +19,7 @@ namespace Pegi.Client
             var remoteEndPoint = new InternetEndPoint("127.0.0.1", 45685);
 
             var channelFactory = new DefaultChannelFactory();
-            channelFactory.Add<RawChannel>();
+            channelFactory.Add<ReliableOrderedChannel>();
 
             using (var connection = new UdpClientConnection(remoteEndPoint, channelFactory))
             {
@@ -61,15 +61,14 @@ namespace Pegi.Client
                         time += sendTime;
 
                         var message = NetMessageManager.Create<DebugMessage>();
-                        message.Integer = i;
-                        message.Float = i;
+                        message.Id = i;
 
                         writer.Reset();
                         message.SerializeLib(writer);
                         connection.SendMessage(writer.GetBytes());
 
                         i++;
-                        if (i == 1000)
+                        if (i == 100_000)
                         {
                             break;
                         }

@@ -19,7 +19,7 @@ namespace Pegi.Server
             var localEndPoint = new InternetEndPoint("127.0.0.1", 45685);
 
             var channelFactory = new DefaultChannelFactory();
-            channelFactory.Add<RawChannel>();
+            channelFactory.Add<ReliableOrderedChannel>();
 
             using (var listener = new UdpConnectionListener(localEndPoint, channelFactory))
             {
@@ -51,8 +51,6 @@ namespace Pegi.Server
                             message.DeserializeLib(reader);
                             Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
                             var writer = new NetDataWriter();
-                            testMessage.Integer *= 2;
-                            testMessage.Float *= 2;
                             writer.Reset();
                             message.SerializeLib(writer);
                             connection.SendMessage(writer.GetBytes());
