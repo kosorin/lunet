@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Lure.Extensions
+namespace Lure.Net.Common.Extensions
 {
     public static class ValueTupleExtensions
     {

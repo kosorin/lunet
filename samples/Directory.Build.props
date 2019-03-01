@@ -19,7 +19,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Lure\Lure.csproj" />
     <ProjectReference Include="..\..\src\Lure.Net\Lure.Net.csproj" />
   </ItemGroup>
 

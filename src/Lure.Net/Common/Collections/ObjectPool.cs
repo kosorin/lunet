@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 
-namespace Lure.Collections
+namespace Lure.Net.Common.Collections
 {
     public class ObjectPool<TItem> : IObjectPool<TItem>
         where TItem : class

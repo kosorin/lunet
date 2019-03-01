@@ -1,4 +1,4 @@
-﻿namespace Lure
+﻿namespace Lure.Net.Common
 {
     public delegate void TypedEventHandler<in TSender>(TSender sender);
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Lure.Net.Common;
+using System;
 
 namespace Lure.Net.Channels
 {

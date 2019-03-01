@@ -1,4 +1,6 @@
-﻿namespace Lure.Net
+﻿using Lure.Net.Common;
+
+namespace Lure.Net
 {
     public abstract class ConnectionListener : IConnectionListener
     {

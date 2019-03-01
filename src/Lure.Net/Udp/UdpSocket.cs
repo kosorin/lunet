@@ -1,4 +1,4 @@
-﻿using Lure.Collections;
+﻿using Lure.Net.Common.Collections;
 using Lure.Net.Data;
 using Lure.Net.Extensions;
 using System;

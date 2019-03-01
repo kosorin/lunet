@@ -1,7 +1,7 @@
-﻿using Lure.Extensions;
+﻿using Lure.Net.Common.Extensions;
 using System.Collections.Generic;
 
-namespace Lure.Collections
+namespace Lure.Net.Common.Collections
 {
     public sealed class ArrayEqualityComparer<TElement> : IEqualityComparer<TElement[]>
     {

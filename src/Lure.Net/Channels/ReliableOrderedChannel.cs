@@ -1,6 +1,5 @@
-﻿using Lure.Extensions.NetCore;
+﻿using Lure.Net.Common.Extensions.NetCore;
 using Lure.Net.Data;
-using Lure.Net.Logging;
 using System.Collections.Generic;
 using System.Linq;
 
