@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Lure.Net.Channels
+namespace Lunet.Channels
 {
     public class ReliableMessageTracker
     {

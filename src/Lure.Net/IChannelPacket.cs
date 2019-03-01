@@ -1,6 +1,6 @@
-﻿using Lure.Net.Data;
+﻿using Lunet.Data;
 
-namespace Lure.Net
+namespace Lunet
 {
     public interface IChannelPacket
     {

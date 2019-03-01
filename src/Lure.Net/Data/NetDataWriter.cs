@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace Lure.Net.Data
+namespace Lunet.Data
 {
     public class NetDataWriter : INetBuffer
     {

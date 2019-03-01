@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Lure.Net.Common.Extensions.NetCore
+namespace Lunet.Common.Extensions.NetCore
 {
     public static class DictionaryExtensions
     {

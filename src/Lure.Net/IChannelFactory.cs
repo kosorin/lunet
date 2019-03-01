@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Lure.Net
+namespace Lunet
 {
     public interface IChannelFactory
     {

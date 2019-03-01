@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Lure.Net
+namespace Lunet
 {
     public class NetSerializationException : NetException
     {

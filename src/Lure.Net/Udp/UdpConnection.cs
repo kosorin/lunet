@@ -1,4 +1,4 @@
-﻿namespace Lure.Net.Udp
+﻿namespace Lunet.Udp
 {
     public abstract class UdpConnection : Connection<InternetEndPoint>
     {

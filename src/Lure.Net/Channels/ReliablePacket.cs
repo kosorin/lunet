@@ -1,8 +1,8 @@
-﻿using Lure.Net.Data;
-using Lure.Net.Extensions;
+﻿using Lunet.Data;
+using Lunet.Extensions;
 using System;
 
-namespace Lure.Net.Channels
+namespace Lunet.Channels
 {
     public class ReliablePacket : MessagePacket<ReliableMessage>
     {

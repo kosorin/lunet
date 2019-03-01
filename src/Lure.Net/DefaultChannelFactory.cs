@@ -1,9 +1,9 @@
-﻿using Lure.Net.Common;
+﻿using Lunet.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net
+namespace Lunet
 {
     public class DefaultChannelFactory : IChannelFactory
     {

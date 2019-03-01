@@ -1,7 +1,7 @@
-﻿using Lure.Net.Data;
+﻿using Lunet.Data;
 using System;
 
-namespace Lure.Net.Messages
+namespace Lunet.Messages
 {
     [Obsolete]
     [NetMessage(0)]

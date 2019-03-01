@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace Lure.Net.Common.Extensions
+namespace Lunet.Common.Extensions
 {
     public static class TextExtensions
     {

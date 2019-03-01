@@ -1,7 +1,7 @@
 ﻿using Xunit;
 using Xunit.Abstractions;
 
-namespace Lure.Net.Tests
+namespace Lunet.Tests
 {
     public class SeqNoTest
     {

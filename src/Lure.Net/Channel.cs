@@ -1,7 +1,7 @@
-﻿using Lure.Net.Data;
+﻿using Lunet.Data;
 using System.Collections.Generic;
 
-namespace Lure.Net
+namespace Lunet
 {
     public abstract class Channel : IChannel
     {

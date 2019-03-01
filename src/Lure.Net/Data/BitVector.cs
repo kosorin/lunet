@@ -1,4 +1,4 @@
-﻿using Lure.Net.Common.Collections;
+﻿using Lunet.Common.Collections;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,7 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Lure.Net.Data
+namespace Lunet.Data
 {
     /// <summary>
     /// Fixed size vector of booleans.

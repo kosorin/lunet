@@ -1,7 +1,7 @@
-﻿using Lure.Net.Common.Extensions;
+﻿using Lunet.Common.Extensions;
 using System.Collections.Generic;
 
-namespace Lure.Net.Common.Collections
+namespace Lunet.Common.Collections
 {
     public sealed class ArrayEqualityComparer<TElement> : IEqualityComparer<TElement[]>
     {

@@ -3,7 +3,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Lure.Net.Common
+namespace Lunet.Common
 {
     public static class ObjectActivatorFactory
     {

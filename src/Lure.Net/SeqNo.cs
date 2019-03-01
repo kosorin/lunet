@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Lure.Net
+namespace Lunet
 {
     [DebuggerDisplay("{Value,nq}")]
     public struct SeqNo : IEquatable<SeqNo>, IComparable<SeqNo>

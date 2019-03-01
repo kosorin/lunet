@@ -1,8 +1,8 @@
 ﻿using Force.Crc32;
-using Lure.Net.Data;
+using Lunet.Data;
 using System;
 
-namespace Lure.Net
+namespace Lunet
 {
     public class ProtocolProcessor
     {

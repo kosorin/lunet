@@ -1,10 +1,10 @@
-﻿using Lure.Net.Common;
-using Lure.Net.Common.Extensions;
+﻿using Lunet.Common;
+using Lunet.Common.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net
+namespace Lunet
 {
     public abstract class Connection<TEndPoint> : IConnection<TEndPoint>
         where TEndPoint : IEndPoint

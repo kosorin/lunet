@@ -1,10 +1,10 @@
-﻿using Lure.Net.Common;
+﻿using Lunet.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Lure.Net.Messages
+namespace Lunet.Messages
 {
     [Obsolete]
     public static class NetMessageManager

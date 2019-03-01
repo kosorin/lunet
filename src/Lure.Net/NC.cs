@@ -1,4 +1,4 @@
-﻿namespace Lure.Net
+﻿namespace Lunet
 {
     /// <summary>
     /// Net Constants.

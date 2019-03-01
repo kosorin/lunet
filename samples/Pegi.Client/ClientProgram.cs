@@ -1,9 +1,8 @@
-﻿using Lure;
-using Lure.Net;
-using Lure.Net.Channels;
-using Lure.Net.Data;
-using Lure.Net.Messages;
-using Lure.Net.Udp;
+﻿using Lunet;
+using Lunet.Channels;
+using Lunet.Data;
+using Lunet.Messages;
+using Lunet.Udp;
 using Serilog;
 using System;
 using System.Threading;

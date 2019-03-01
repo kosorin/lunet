@@ -1,4 +1,4 @@
-﻿namespace Lure.Net.Channels
+﻿namespace Lunet.Channels
 {
     public class UnreliableMessage : Message
     {

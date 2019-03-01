@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Lure.Net.Channels
+namespace Lunet.Channels
 {
     public abstract class MessagePacker<TPacket, TMessage> : IMessagePacker<TPacket, TMessage>
         where TPacket : MessagePacket<TMessage>

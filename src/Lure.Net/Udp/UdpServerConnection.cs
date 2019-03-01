@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Lure.Net.Udp
+namespace Lunet.Udp
 {
     internal class UdpServerConnection : UdpConnection
     {

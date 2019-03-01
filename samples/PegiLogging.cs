@@ -1,7 +1,5 @@
-﻿using Lure.Net.Logging;
-using Serilog;
+﻿using Serilog;
 using Serilog.Events;
-using System;
 using System.Reflection;
 
 namespace Pegi

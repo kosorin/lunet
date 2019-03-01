@@ -1,7 +1,7 @@
-﻿using Lure.Net.Common;
+﻿using Lunet.Common;
 using System;
 
-namespace Lure.Net.Channels
+namespace Lunet.Channels
 {
     public abstract class MessageChannel<TPacket, TMessage> : Channel
         where TPacket : MessagePacket<TMessage>

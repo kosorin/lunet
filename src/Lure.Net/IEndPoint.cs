@@ -2,7 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace Lure.Net
+namespace Lunet
 {
     public interface IEndPoint
     {

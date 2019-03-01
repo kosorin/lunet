@@ -1,11 +1,11 @@
-﻿using Lure.Net.Common.Collections;
-using Lure.Net.Data;
-using Lure.Net.Extensions;
+﻿using Lunet.Common.Collections;
+using Lunet.Data;
+using Lunet.Extensions;
 using System;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Lure.Net.Udp
+namespace Lunet.Udp
 {
     internal class UdpSocket : IDisposable
     {

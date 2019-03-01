@@ -1,9 +1,9 @@
-﻿using Lure.Net.Data;
+﻿using Lunet.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net.Channels
+namespace Lunet.Channels
 {
     public class UnreliableChannel : MessageChannel<UnreliablePacket, UnreliableMessage>
     {

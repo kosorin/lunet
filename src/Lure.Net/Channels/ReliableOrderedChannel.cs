@@ -1,9 +1,9 @@
-﻿using Lure.Net.Common.Extensions.NetCore;
-using Lure.Net.Data;
+﻿using Lunet.Common.Extensions.NetCore;
+using Lunet.Data;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net.Channels
+namespace Lunet.Channels
 {
     public class ReliableOrderedChannel : MessageChannel<ReliablePacket, ReliableMessage>
     {

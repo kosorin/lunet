@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Lure.Net.Data
+namespace Lunet.Data
 {
     [StructLayout(LayoutKind.Explicit)]
     internal struct FloatingPointConverter

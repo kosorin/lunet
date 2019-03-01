@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Lure.Net.Udp
+namespace Lunet.Udp
 {
     public class UdpConnectionListener : ConnectionListener
     {

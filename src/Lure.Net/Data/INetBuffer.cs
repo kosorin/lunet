@@ -1,4 +1,4 @@
-﻿namespace Lure.Net.Data
+﻿namespace Lunet.Data
 {
     public interface INetBuffer
     {

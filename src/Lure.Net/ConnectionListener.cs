@@ -1,6 +1,6 @@
-﻿using Lure.Net.Common;
+﻿using Lunet.Common;
 
-namespace Lure.Net
+namespace Lunet
 {
     public abstract class ConnectionListener : IConnectionListener
     {

@@ -1,7 +1,7 @@
-﻿using Lure.Net.Data;
-using Lure.Net.Extensions;
+﻿using Lunet.Data;
+using Lunet.Extensions;
 
-namespace Lure.Net.Channels
+namespace Lunet.Channels
 {
     public abstract class Message
     {

@@ -1,4 +1,4 @@
-﻿namespace Lure.Net
+﻿namespace Lunet
 {
     public enum ConnectionState
     {

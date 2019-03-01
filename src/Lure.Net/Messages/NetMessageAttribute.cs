@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Lure.Net.Messages
+namespace Lunet.Messages
 {
     [Obsolete]
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]

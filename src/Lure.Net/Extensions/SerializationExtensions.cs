@@ -1,6 +1,6 @@
-﻿using Lure.Net.Data;
+﻿using Lunet.Data;
 
-namespace Lure.Net.Extensions
+namespace Lunet.Extensions
 {
     public static class SerializationExtensions
     {

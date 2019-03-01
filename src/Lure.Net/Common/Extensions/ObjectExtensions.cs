@@ -3,7 +3,7 @@
 #pragma warning disable RCS1175 // Unused this parameter.
 #pragma warning disable RCS1212 // Remove redundant assignment.
 
-namespace Lure.Net.Common.Extensions
+namespace Lunet.Common.Extensions
 {
     public static class ObjectExtensions
     {

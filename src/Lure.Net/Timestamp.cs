@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace Lure.Net
+namespace Lunet
 {
     public static class Timestamp
     {

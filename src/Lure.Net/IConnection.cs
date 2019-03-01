@@ -1,7 +1,7 @@
-﻿using Lure.Net.Common;
+﻿using Lunet.Common;
 using System;
 
-namespace Lure.Net
+namespace Lunet
 {
     public interface IConnection : IDisposable
     {

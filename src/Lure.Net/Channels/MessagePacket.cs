@@ -1,9 +1,9 @@
-﻿using Lure.Net.Data;
+﻿using Lunet.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Lure.Net.Channels
+namespace Lunet.Channels
 {
     public abstract class MessagePacket<TMessage> : ChannelPacket
         where TMessage : Message

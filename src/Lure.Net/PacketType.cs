@@ -1,4 +1,4 @@
-﻿namespace Lure.Net.Packets
+﻿namespace Lunet.Packets
 {
     internal enum PacketType : byte
     {
