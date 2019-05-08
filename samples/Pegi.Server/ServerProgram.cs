@@ -2,7 +2,6 @@
 using Lunet.Channels;
 using Lunet.Data;
 using Lunet.Messages;
-using Lunet.Udp;
 using Serilog;
 using System;
 using System.Collections.Concurrent;
@@ -21,7 +20,7 @@ namespace Pegi.Server
             var channelFactory = new DefaultChannelFactory();
             channelFactory.Add<ReliableOrderedChannel>();
 
-            using (var listener = new UdpConnectionListener(localEndPoint, channelFactory))
+            using (var listener = new ConnectionListener(localEndPoint, channelFactory))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
@@ -31,7 +30,7 @@ namespace Pegi.Server
                     resetEvent.Set();
                 };
 
-                var connections = new ConcurrentDictionary<IEndPoint, IConnection>();
+                var connections = new ConcurrentDictionary<InternetEndPoint, Connection>();
 
                 listener.NewConnection += (_, connection) =>
                 {

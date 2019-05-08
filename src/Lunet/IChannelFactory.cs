@@ -4,6 +4,6 @@ namespace Lunet
 {
     public interface IChannelFactory
     {
-        IEnumerable<IChannel> Create(IConnection connection);
+        IEnumerable<IChannel> Create(Connection connection);
     }
 }

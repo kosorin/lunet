@@ -5,7 +5,7 @@ namespace Lunet
 {
     public abstract class Channel : IChannel
     {
-        protected Channel(byte id, IConnection connection)
+        protected Channel(byte id, Connection connection)
         {
             Id = id;
             Connection = connection;
@@ -14,7 +14,7 @@ namespace Lunet
 
         public byte Id { get; }
 
-        public IConnection Connection { get; }
+        public Connection Connection { get; }
 
 
         public abstract void HandleIncomingPacket(NetDataReader reader);

@@ -1,4 +1,4 @@
-﻿namespace Lunet.Packets
+﻿namespace Lunet
 {
     internal enum PacketType : byte
     {

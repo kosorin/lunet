@@ -7,22 +7,22 @@ namespace Lunet
 {
     public class DefaultChannelFactory : IChannelFactory
     {
-        private readonly IDictionary<byte, Func<byte, IConnection, IChannel>> _activators;
+        private readonly IDictionary<byte, Func<byte, Connection, IChannel>> _activators;
 
         public DefaultChannelFactory()
         {
-            _activators = new Dictionary<byte, Func<byte, IConnection, IChannel>>();
+            _activators = new Dictionary<byte, Func<byte, Connection, IChannel>>();
         }
 
         public byte Add<TChannel>() where TChannel : IChannel
         {
             var id = GetNextId();
-            var activator = ObjectActivatorFactory.CreateParameterizedAs<byte, IConnection, TChannel, IChannel>();
+            var activator = ObjectActivatorFactory.CreateParameterizedAs<byte, Connection, TChannel, IChannel>();
             _activators.Add(id, activator);
             return id;
         }
 
-        public byte Add(Func<byte, IConnection, IChannel> activator)
+        public byte Add(Func<byte, Connection, IChannel> activator)
         {
             var id = GetNextId();
             _activators.Add(id, activator);
@@ -34,7 +34,7 @@ namespace Lunet
             _activators.Clear();
         }
 
-        public IEnumerable<IChannel> Create(IConnection connection)
+        public IEnumerable<IChannel> Create(Connection connection)
         {
             return _activators.Select(x => x.Value(x.Key, connection));
         }

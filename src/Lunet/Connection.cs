@@ -6,15 +6,14 @@ using System.Linq;
 
 namespace Lunet
 {
-    public abstract class Connection<TEndPoint> : IConnection<TEndPoint>
-        where TEndPoint : IEndPoint
+    public abstract class Connection : IDisposable
     {
         private volatile ConnectionState _state;
 
         private readonly byte _defaultChannelId;
         private readonly IDictionary<byte, IChannel> _channels;
 
-        protected Connection(TEndPoint remoteEndPoint, IChannelFactory channelFactory)
+        protected Connection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory)
         {
             RemoteEndPoint = remoteEndPoint;
 
@@ -35,12 +34,10 @@ namespace Lunet
             protected set => _state = value;
         }
 
-        public TEndPoint RemoteEndPoint { get; }
-
-        IEndPoint IConnection.RemoteEndPoint => RemoteEndPoint;
+        public InternetEndPoint RemoteEndPoint { get; }
 
 
-        public event TypedEventHandler<IConnection> Disconnected;
+        public event TypedEventHandler<Connection> Disconnected;
 
         public event TypedEventHandler<IChannel, byte[]> MessageReceived;
 

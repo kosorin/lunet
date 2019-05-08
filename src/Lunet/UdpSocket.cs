@@ -2,10 +2,9 @@
 using Lunet.Data;
 using Lunet.Extensions;
 using System;
-using System.Net;
 using System.Net.Sockets;
 
-namespace Lunet.Udp
+namespace Lunet
 {
     internal class UdpSocket : IDisposable
     {
@@ -25,7 +24,7 @@ namespace Lunet.Udp
             _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateSendToken);
         }
 
-        internal UdpSocket(AddressFamily addressFamily) : this(new InternetEndPoint(addressFamily.GetAnyAddress(), IPEndPoint.MinPort))
+        public UdpSocket(IPVersion ipVersion) : this(new InternetEndPoint(ipVersion.ToAddressFamily().GetAnyEndPoint()))
         {
         }
 
@@ -54,7 +53,7 @@ namespace Lunet.Udp
         }
 
 
-        public event UdpPacketReceivedHandler PacketReceived;
+        public event PacketReceivedHandler PacketReceived;
 
         private SocketAsyncEventArgs CreateReceiveToken()
         {

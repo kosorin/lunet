@@ -7,7 +7,7 @@ namespace Lunet
     {
         byte Id { get; }
 
-        IConnection Connection { get; }
+        Connection Connection { get; }
 
 
         void HandleIncomingPacket(NetDataReader reader);

@@ -1,30 +1,81 @@
 ﻿using Lunet.Common;
+using System;
+using System.Collections.Generic;
 
 namespace Lunet
 {
-    public abstract class ConnectionListener : IConnectionListener
+    public class ConnectionListener : IDisposable
     {
-        protected ConnectionListener(IChannelFactory channelFactory)
+        private readonly UdpSocket _socket;
+
+        private readonly Dictionary<InternetEndPoint, ServerConnection> _connections = new Dictionary<InternetEndPoint, ServerConnection>();
+        private readonly object _connectionsLock = new object();
+        private readonly IChannelFactory _channelFactory;
+
+        public ConnectionListener(InternetEndPoint localEndPoint, IChannelFactory channelFactory)
         {
-            ChannelFactory = channelFactory;
+            _socket = new UdpSocket(localEndPoint);
+            _socket.PacketReceived += Socket_PacketReceived;
+            _channelFactory = channelFactory;
         }
 
 
-        protected IChannelFactory ChannelFactory { get; }
+        public event TypedEventHandler<ConnectionListener, Connection> NewConnection;
 
-
-        public event TypedEventHandler<IConnectionListener, IConnection> NewConnection;
-
-        protected virtual void OnNewConnection(IConnection connection)
+        private void OnNewConnection(Connection connection)
         {
             NewConnection?.Invoke(this, connection);
         }
 
 
-        public abstract void Start();
+        public void Start()
+        {
+            _socket.Bind();
+        }
 
-        public abstract void Stop();
+        public void Stop()
+        {
+            lock (_connectionsLock)
+            {
+                foreach (var connection in _connections.Values)
+                {
+                    connection.Disconnect();
+                }
+            }
+            _socket.Close();
+        }
 
+
+        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte[] data, int offset, int length)
+        {
+            ServerConnection connection = null;
+            lock (_connectionsLock)
+            {
+                _connections.TryGetValue(remoteEndPoint, out connection);
+                if (connection == null)
+                {
+                    connection = new ServerConnection(_socket, remoteEndPoint, _channelFactory);
+                    connection.Disconnected += Connection_Disconnected;
+                    _connections.Add(remoteEndPoint, connection);
+
+                    OnNewConnection(connection);
+                }
+            }
+
+            connection.HandleReceivedPacket(data, offset, length);
+        }
+
+        private void Connection_Disconnected(Connection connection)
+        {
+            lock (_connectionsLock)
+            {
+                _connections.Remove(connection.RemoteEndPoint);
+                connection.Disconnected -= Connection_Disconnected;
+            }
+        }
+
+
+        private bool disposed;
 
         public void Dispose()
         {
@@ -33,6 +84,14 @@ namespace Lunet
 
         protected virtual void Dispose(bool disposing)
         {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    Stop();
+                }
+                disposed = true;
+            }
         }
     }
 }

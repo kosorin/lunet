@@ -10,7 +10,7 @@ namespace Lunet.Channels
         private readonly List<UnreliableMessage> _outgoingMessageQueue = new List<UnreliableMessage>();
         private readonly List<UnreliableMessage> _incomingMessageQueue = new List<UnreliableMessage>();
 
-        public UnreliableChannel(byte id, IConnection connection) : base(id, connection)
+        public UnreliableChannel(byte id, Connection connection) : base(id, connection)
         {
         }
 

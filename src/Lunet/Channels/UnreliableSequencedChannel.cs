@@ -15,7 +15,7 @@ namespace Lunet.Channels
         private readonly object _incomingPacketSeqLock = new object();
         private SeqNo _incomingPacketSeq = SeqNo.Zero - 1;
 
-        public UnreliableSequencedChannel(byte id, IConnection connection) : base(id, connection)
+        public UnreliableSequencedChannel(byte id, Connection connection) : base(id, connection)
         {
         }
 

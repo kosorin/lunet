@@ -1,12 +1,12 @@
 ﻿using System;
 
-namespace Lunet.Udp
+namespace Lunet
 {
-    internal class UdpServerConnection : UdpConnection
+    internal class ServerConnection : Connection
     {
         private readonly UdpSocket _socket;
 
-        internal UdpServerConnection(UdpSocket socket, InternetEndPoint remoteEndPoint, IChannelFactory channelFactory) : base(remoteEndPoint, channelFactory)
+        internal ServerConnection(UdpSocket socket, InternetEndPoint remoteEndPoint, IChannelFactory channelFactory) : base(remoteEndPoint, channelFactory)
         {
             _socket = socket;
 
@@ -16,7 +16,7 @@ namespace Lunet.Udp
 
         public override void Connect()
         {
-            throw new InvalidOperationException($"{nameof(UdpServerConnection)} is automatically connected by listener.");
+            throw new InvalidOperationException($"{nameof(ServerConnection)} is automatically connected by listener.");
         }
 
         public override void Disconnect()

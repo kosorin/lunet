@@ -7,7 +7,7 @@ namespace Lunet.Channels
         where TPacket : MessagePacket<TMessage>
         where TMessage : Message
     {
-        protected MessageChannel(byte id, IConnection connection) : base(id, connection)
+        protected MessageChannel(byte id, Connection connection) : base(id, connection)
         {
             MessageActivator = ObjectActivatorFactory.Create<TMessage>();
             PacketActivator = ObjectActivatorFactory.CreateWithValues<Func<TMessage>, TPacket>(MessageActivator);

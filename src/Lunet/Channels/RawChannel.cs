@@ -13,7 +13,7 @@ namespace Lunet.Channels
         private readonly List<byte[]> _outgoingDataQueue = new List<byte[]>();
         private readonly List<byte[]> _incomingDataQueue = new List<byte[]>();
 
-        public RawChannel(byte id, IConnection connection) : base(id, connection)
+        public RawChannel(byte id, Connection connection) : base(id, connection)
         {
             _packetActivator = ObjectActivatorFactory.Create<RawPacket>();
         }

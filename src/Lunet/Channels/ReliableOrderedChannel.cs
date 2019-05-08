@@ -21,7 +21,7 @@ namespace Lunet.Channels
         private SeqNo _incomingReadMessageSeq = SeqNo.Zero;
         private SeqNo _incomingMessageSeq = SeqNo.Zero;
 
-        public ReliableOrderedChannel(byte id, IConnection connection) : base(id, connection)
+        public ReliableOrderedChannel(byte id, Connection connection) : base(id, connection)
         {
         }
 

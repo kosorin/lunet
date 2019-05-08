@@ -1,37 +1,28 @@
 ﻿using System;
-using System.Net;
 using System.Net.Sockets;
+using SystemNet_IPEndPoint = System.Net.IPEndPoint;
+using SystemNet_IPAddresst = System.Net.IPAddress;
 
 namespace Lunet.Extensions
 {
     internal static class AddressFamilyExtensions
     {
-        public static IPEndPoint GetAnyEndPoint(this AddressFamily addressFamily)
+        public static IPVersion ToIPVersion(this AddressFamily addressFamily)
         {
             switch (addressFamily)
             {
-            case AddressFamily.InterNetwork: return new IPEndPoint(IPAddress.Any, IPEndPoint.MinPort);
-            case AddressFamily.InterNetworkV6: return new IPEndPoint(IPAddress.IPv6Any, IPEndPoint.MinPort);
+            case AddressFamily.InterNetwork: return IPVersion.IPv4;
+            case AddressFamily.InterNetworkV6: return IPVersion.IPv6;
             default: throw new ArgumentOutOfRangeException(nameof(addressFamily), $"Address family {addressFamily} is not supported.");
             }
         }
 
-        public static IPAddress GetAnyAddress(this AddressFamily addressFamily)
+        public static SystemNet_IPEndPoint GetAnyEndPoint(this AddressFamily addressFamily)
         {
             switch (addressFamily)
             {
-            case AddressFamily.InterNetwork: return IPAddress.Any;
-            case AddressFamily.InterNetworkV6: return IPAddress.IPv6Any;
-            default: throw new ArgumentOutOfRangeException(nameof(addressFamily), $"Address family {addressFamily} is not supported.");
-            }
-        }
-
-        public static IPAddress GetLoopbackAddress(this AddressFamily addressFamily)
-        {
-            switch (addressFamily)
-            {
-            case AddressFamily.InterNetwork: return IPAddress.Loopback;
-            case AddressFamily.InterNetworkV6: return IPAddress.IPv6Loopback;
+            case AddressFamily.InterNetwork: return new SystemNet_IPEndPoint(SystemNet_IPAddresst.Any, SystemNet_IPEndPoint.MinPort);
+            case AddressFamily.InterNetworkV6: return new SystemNet_IPEndPoint(SystemNet_IPAddresst.IPv6Any, SystemNet_IPEndPoint.MinPort);
             default: throw new ArgumentOutOfRangeException(nameof(addressFamily), $"Address family {addressFamily} is not supported.");
             }
         }

@@ -1,12 +1,12 @@
-﻿namespace Lunet.Udp
+﻿namespace Lunet
 {
-    public class UdpClientConnection : UdpConnection
+    public class ClientConnection : Connection
     {
         private readonly UdpSocket _socket;
 
-        public UdpClientConnection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory) : base(remoteEndPoint, channelFactory)
+        public ClientConnection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory) : base(remoteEndPoint, channelFactory)
         {
-            _socket = new UdpSocket(remoteEndPoint.EndPoint.AddressFamily);
+            _socket = new UdpSocket(remoteEndPoint.IPVersion);
             _socket.PacketReceived += Socket_PacketReceived;
 
             State = ConnectionState.Disconnected;

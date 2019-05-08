@@ -25,23 +25,23 @@ namespace Lunet
         public IChannelPacket ChannelPacket { get; set; }
 
 
-        public bool Deserialize(NetDataReader reader)
-        {
-            var crc32 = Crc32Algorithm.Append(InitialCrc32, reader.Data, reader.Offset, reader.Length);
-            if (crc32 != Crc32Check)
-            {
-                return false;
-            }
+        //public bool Deserialize(NetDataReader reader)
+        //{
+        //    var crc32 = Crc32Algorithm.Append(InitialCrc32, reader.Data, reader.Offset, reader.Length);
+        //    if (crc32 != Crc32Check)
+        //    {
+        //        return false;
+        //    }
 
-            ChannelId = reader.ReadByte();
-            //var reader = new NetDataReader(data, offset, length - Crc32Length);
+        //    ChannelId = reader.ReadByte();
+        //    //var reader = new NetDataReader(data, offset, length - Crc32Length);
 
-            return false;//            return (reader.ReadByte(), reader);
-        }
+        //    return false;//            return (reader.ReadByte(), reader);
+        //}
 
-        public void Serialize(NetDataWriter writer)
-        {
+        //public void Serialize(NetDataWriter writer)
+        //{
 
-        }
+        //}
     }
 }
