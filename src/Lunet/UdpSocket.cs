@@ -167,7 +167,7 @@ namespace Lunet
         }
 
 
-        private bool disposed;
+        private bool _disposed;
 
         public void Dispose()
         {
@@ -176,13 +176,13 @@ namespace Lunet
 
         private void Dispose(bool disposing)
         {
-            if (!disposed)
+            if (!_disposed)
             {
                 if (disposing)
                 {
                     Close();
                 }
-                disposed = true;
+                _disposed = true;
             }
         }
     }
