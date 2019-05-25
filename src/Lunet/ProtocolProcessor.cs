@@ -19,7 +19,7 @@ namespace Lunet
             InitialCrc32 = Crc32Algorithm.Compute(Version.ToByteArray());
         }
 
-        public (byte ChannelId, NetDataReader Reader) Read(byte[] data, int offset, int length)
+        public (byte ChannelId, NetDataReader? Reader) Read(byte[] data, int offset, int length)
         {
             var crc32 = Crc32Algorithm.Append(InitialCrc32, data, offset, length);
             if (crc32 != Crc32Check)

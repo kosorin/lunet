@@ -1,5 +1,4 @@
 ﻿using Lunet.Common;
-using Lunet.Common.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -49,7 +48,7 @@ namespace Lunet
                 return;
             }
 
-            foreach (var (channelId, channel) in _channels)
+            foreach (var channel in _channels.Values)
             {
                 var receivedMessages = channel.GetReceivedMessages();
                 if (receivedMessages?.Count > 0)
@@ -67,7 +66,7 @@ namespace Lunet
                     {
                         HandleSendPacket(new ProtocolPacket
                         {
-                            ChannelId = channelId,
+                            ChannelId = channel.Id,
                             ChannelPacket = packet,
                         });
                     }

@@ -35,11 +35,11 @@ namespace Lunet.Channels
         /// Stops tracking sequenced messages and gets assigned message seqs to packet seq.
         /// May return <c>null</c>.
         /// </summary>
-        public IEnumerable<SeqNo> Clear(SeqNo packetSeq)
+        public IEnumerable<SeqNo>? Clear(SeqNo packetSeq)
         {
             var index = GetIndex(packetSeq);
 
-            var messageSeqs = _messageSeqBuffer[index];
+            IEnumerable<SeqNo>? messageSeqs;
             if (_packetSeqBuffer[index] == packetSeq)
             {
                 messageSeqs = _messageSeqBuffer[index];
@@ -48,7 +48,10 @@ namespace Lunet.Channels
             {
                 messageSeqs = null;
             }
+
+            // TODO: Prověřit nastavování na null, i když předchozí if byl false
             _packetSeqBuffer[index] = null;
+
             return messageSeqs;
         }
 

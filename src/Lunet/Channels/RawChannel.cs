@@ -38,9 +38,9 @@ namespace Lunet.Channels
             }
         }
 
-        public override IList<IChannelPacket> CollectOutgoingPackets()
+        public override IList<IChannelPacket>? CollectOutgoingPackets()
         {
-            IList<IChannelPacket> outgoingPackets = null;
+            IList<IChannelPacket>? outgoingPackets = null;
 
             lock (_outgoingDataQueue)
             {
@@ -60,7 +60,7 @@ namespace Lunet.Channels
             return outgoingPackets;
         }
 
-        public override IList<byte[]> GetReceivedMessages()
+        public override IList<byte[]>? GetReceivedMessages()
         {
             lock (_incomingDataQueue)
             {

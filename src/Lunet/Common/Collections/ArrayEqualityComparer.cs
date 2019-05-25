@@ -1,21 +1,19 @@
-﻿using Lunet.Common.Extensions;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Lunet.Common.Collections
 {
     public sealed class ArrayEqualityComparer<TElement> : IEqualityComparer<TElement[]>
     {
-        private static readonly EqualityComparer<TElement> DefaultElementComparer = EqualityComparer<TElement>.Default;
-
         private readonly IEqualityComparer<TElement> _elementComparer;
 
-        public ArrayEqualityComparer() : this(DefaultElementComparer)
+        public ArrayEqualityComparer() : this(EqualityComparer<TElement>.Default)
         {
         }
 
         public ArrayEqualityComparer(IEqualityComparer<TElement> elementComparer)
         {
-            this._elementComparer = elementComparer;
+            _elementComparer = elementComparer ?? throw new ArgumentNullException(nameof(elementComparer));
         }
 
 
@@ -25,11 +23,7 @@ namespace Lunet.Common.Collections
             {
                 return true;
             }
-            if (x is null)
-            {
-                return false;
-            }
-            if (y is null)
+            if (x is null || y is null)
             {
                 return false;
             }
@@ -37,7 +31,7 @@ namespace Lunet.Common.Collections
             {
                 return false;
             }
-            for (int i = 0; i < x.Length; i++)
+            for (var i = 0; i < x.Length; i++)
             {
                 if (!_elementComparer.Equals(x[i], y[i]))
                 {
@@ -47,16 +41,19 @@ namespace Lunet.Common.Collections
             return true;
         }
 
-        public int GetHashCode(TElement[] obj)
+        public int GetHashCode(TElement[] array)
         {
-            unchecked
+            var hashCode = new HashCode();
+
+            if (array != null)
             {
-                if (obj == null)
+                for (var i = 0; i < array.Length; i++)
                 {
-                    return default;
+                    hashCode.Add(array[i], _elementComparer);
                 }
-                return this.GetHashCodeFromArray(obj, _elementComparer);
             }
+
+            return hashCode.ToHashCode();
         }
     }
 }

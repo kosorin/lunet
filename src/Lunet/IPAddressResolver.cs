@@ -10,9 +10,9 @@ namespace Lunet
         /// Resolves an IP address.
         /// </summary>
         /// <param name="text">IP address or hostname.</param>
-        public static IPAddress Resolve(string text)
+        public static IPAddress? Resolve(string text)
         {
-            if (IPAddress.TryParse(text, out var address))
+            if (IPAddress.TryParse(text, out _))
             {
                 return Dns
                     .GetHostAddresses(text)
@@ -26,9 +26,9 @@ namespace Lunet
         /// </summary>
         /// <param name="text">IP address or hostname.</param>
         /// <param name="addressFamily">Expected address family.</param>
-        public static IPAddress Resolve(string text, AddressFamily addressFamily)
+        public static IPAddress? Resolve(string text, AddressFamily addressFamily)
         {
-            if (IPAddress.TryParse(text, out var address))
+            if (IPAddress.TryParse(text, out _))
             {
                 return Dns
                     .GetHostAddresses(text)

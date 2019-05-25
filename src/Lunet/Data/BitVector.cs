@@ -111,7 +111,7 @@ namespace Lunet.Data
                 throw new NotSupportedException();
             }
 
-            if (source == null)
+            if (source is null)
             {
                 throw new ArgumentNullException(nameof(source));
             }
@@ -317,11 +317,9 @@ namespace Lunet.Data
             for (int i = 0; i < _data.Length; i++)
             {
                 int x = _data[i];
-#pragma warning disable RCS1058 // Use compound assignment.
-                x = x - ((x >> 1) & 0x55555555);
+                x -= ((x >> 1) & 0x55555555);
                 x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
                 x = (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
-#pragma warning restore RCS1058 // Use compound assignment.
                 count += x;
             }
             return count;
@@ -588,10 +586,6 @@ namespace Lunet.Data
             if (ReferenceEquals(this, obj))
             {
                 return true;
-            }
-            if (obj is null)
-            {
-                return false;
             }
             return obj is BitVector other && EqualsCore(other);
         }

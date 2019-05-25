@@ -13,18 +13,5 @@ namespace Lunet.Extensions
         {
             writer.WriteUShort(seq.Value);
         }
-
-        public static byte[] ReadByteArray(this NetDataReader reader)
-        {
-            var length = reader.ReadUShort();
-            var array = reader.ReadBytes(length);
-            return array;
-        }
-
-        public static void WriteByteArray(this NetDataWriter writer, byte[] array)
-        {
-            writer.WriteUShort((ushort)array.Length);
-            writer.WriteBytes(array);
-        }
     }
 }

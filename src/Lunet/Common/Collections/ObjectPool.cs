@@ -6,14 +6,13 @@ namespace Lunet.Common.Collections
     public class ObjectPool<TItem> : IObjectPool<TItem>
         where TItem : class
     {
-        private readonly bool isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
-        private readonly bool isItemPoolable = typeof(IPoolable).IsAssignableFrom(typeof(TItem));
+        private readonly bool _isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
+        private readonly bool _isItemPoolable = typeof(IPoolable).IsAssignableFrom(typeof(TItem));
         private readonly int _capacity;
         private readonly Func<TItem> _activator;
         private readonly ConcurrentQueue<TItem> _objects;
 
         private bool _disposed;
-        private int _activated = 0;
 
         public ObjectPool()
             : this(int.MaxValue)
@@ -26,15 +25,8 @@ namespace Lunet.Common.Collections
         }
 
         private ObjectPool(int capacity)
+            : this(capacity, ObjectActivatorFactory.Create<TItem>())
         {
-            if (capacity <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(capacity), capacity, $"Argument {nameof(capacity)} must be greater than zero.");
-            }
-
-            _capacity = capacity;
-            _activator = ObjectActivatorFactory.Create<TItem>();
-            _objects = new ConcurrentQueue<TItem>();
         }
 
         private ObjectPool(int capacity, Func<TItem> activator)
@@ -53,26 +45,23 @@ namespace Lunet.Common.Collections
             _objects = new ConcurrentQueue<TItem>();
         }
 
-        public event EventHandler<TItem> ItemCreated;
+        public event TypedEventHandler<IObjectPool<TItem>, TItem> ItemCreated;
 
-        public event EventHandler<TItem> ItemRented;
+        public event TypedEventHandler<IObjectPool<TItem>, TItem> ItemRented;
 
-        public event EventHandler<TItem> ItemReturned;
+        public event TypedEventHandler<IObjectPool<TItem>, TItem> ItemReturned;
 
-        public event EventHandler<TItem> ItemDisposed;
+        public event TypedEventHandler<IObjectPool<TItem>, TItem> ItemDisposed;
 
         public TItem Rent()
         {
-            TItem item;
-            if (!_objects.TryDequeue(out item))
+            if (!_objects.TryDequeue(out var item))
             {
                 item = _activator();
                 OnItemCreated(item);
-                _activated++;
             }
 
             OnItemRented(item);
-
             return item;
         }
 
@@ -90,8 +79,8 @@ namespace Lunet.Common.Collections
 
             if (_objects.Count < _capacity)
             {
-                OnItemReturned(item);
                 _objects.Enqueue(item);
+                OnItemReturned(item);
             }
             else
             {
@@ -126,7 +115,7 @@ namespace Lunet.Common.Collections
 
         protected virtual void OnItemRented(TItem item)
         {
-            if (isItemPoolable)
+            if (_isItemPoolable)
             {
                 ((IPoolable)item).OnRent();
             }
@@ -135,7 +124,7 @@ namespace Lunet.Common.Collections
 
         protected virtual void OnItemReturned(TItem item)
         {
-            if (isItemPoolable)
+            if (_isItemPoolable)
             {
                 ((IPoolable)item).OnReturn();
             }
@@ -144,7 +133,7 @@ namespace Lunet.Common.Collections
 
         protected virtual void OnItemDisposed(TItem item)
         {
-            if (isItemDisposable)
+            if (_isItemDisposable)
             {
                 ((IDisposable)item).Dispose();
             }

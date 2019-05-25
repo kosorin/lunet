@@ -12,9 +12,9 @@ namespace Lunet
 
         void HandleIncomingPacket(NetDataReader reader);
 
-        IList<IChannelPacket> CollectOutgoingPackets();
+        IList<IChannelPacket>? CollectOutgoingPackets();
 
-        IList<byte[]> GetReceivedMessages();
+        IList<byte[]>? GetReceivedMessages();
 
         void SendMessage(byte[] data);
     }

@@ -38,7 +38,7 @@ namespace Lunet.Channels
         {
             writer.WriteSeqNo(Seq);
             writer.WriteSeqNo(Ack);
-            writer.WriteBits(AckBuffer);
+            writer.WriteBits(AckBuffer!);
             base.SerializeHeaderCore(writer);
         }
 

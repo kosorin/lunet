@@ -1,5 +1,4 @@
 ﻿using Lunet.Data;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -61,15 +60,11 @@ namespace Lunet.Channels
             }
         }
 
-        public override IList<IChannelPacket> CollectOutgoingPackets()
+        public override IList<IChannelPacket>? CollectOutgoingPackets()
         {
             var outgoingMessages = CollectOutgoingMessages();
-            if (outgoingMessages == null)
-            {
-                return null;
-            }
-
             var outgoingPackets = MessagePacker.Pack(outgoingMessages, Connection.MTU);
+
             if (outgoingPackets == null)
             {
                 return null;
@@ -86,7 +81,7 @@ namespace Lunet.Channels
             return outgoingPackets.Cast<IChannelPacket>().ToList();
         }
 
-        public override IList<byte[]> GetReceivedMessages()
+        public override IList<byte[]>? GetReceivedMessages()
         {
             lock (_incomingMessageQueue)
             {
@@ -107,6 +102,24 @@ namespace Lunet.Channels
         }
 
 
+        protected override IList<UnreliableMessage>? CollectOutgoingMessages()
+        {
+            lock (_outgoingMessageQueue)
+            {
+                if (_outgoingMessageQueue.Count > 0)
+                {
+                    var messages = _outgoingMessageQueue.ToList();
+                    _outgoingMessageQueue.Clear();
+                    return messages;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
+
         private bool AcceptIncomingPacket(SeqNo seq)
         {
             lock (_incomingPacketSeqLock)
@@ -121,23 +134,6 @@ namespace Lunet.Channels
                 {
                     // Late packet
                     return false;
-                }
-            }
-        }
-
-        private List<UnreliableMessage> CollectOutgoingMessages()
-        {
-            lock (_outgoingMessageQueue)
-            {
-                if (_outgoingMessageQueue.Count > 0)
-                {
-                    var messages = _outgoingMessageQueue.ToList();
-                    _outgoingMessageQueue.Clear();
-                    return messages;
-                }
-                else
-                {
-                    return null;
                 }
             }
         }

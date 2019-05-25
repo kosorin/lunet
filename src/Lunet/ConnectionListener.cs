@@ -48,7 +48,8 @@ namespace Lunet
 
         private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte[] data, int offset, int length)
         {
-            ServerConnection connection = null;
+            ServerConnection? connection = null;
+
             lock (_connectionsLock)
             {
                 _connections.TryGetValue(remoteEndPoint, out connection);

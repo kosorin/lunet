@@ -11,10 +11,10 @@ namespace Lunet.Channels
 
         public MessagePacker(Func<TPacket> packetActivator)
         {
-            _packetActivator = packetActivator;
+            _packetActivator = packetActivator ?? throw new ArgumentNullException(nameof(packetActivator));
         }
 
-        public abstract IList<TPacket> Pack(IList<TMessage> messages, int maxPacketSize);
+        public abstract IList<TPacket>? Pack(IList<TMessage>? messages, int maxPacketSize);
 
         protected TPacket CreatePacket()
         {

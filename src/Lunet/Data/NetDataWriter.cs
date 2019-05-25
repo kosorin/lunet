@@ -16,11 +16,14 @@ namespace Lunet.Data
         private int _bitPosition;
         private int _buffer;
 
+#pragma warning disable CS8618 // Non-nullable field is uninitialized.
+
         /// <summary>
         /// Initializes a new instance of the <see cref="NetDataWriter"/> class.
         /// </summary>
         public NetDataWriter()
         {
+            EnsureInitialSize(ResizeData);
         }
 
         /// <summary>
@@ -31,6 +34,8 @@ namespace Lunet.Data
         {
             EnsureInitialSize(capacity);
         }
+
+#pragma warning restore CS8618 // Non-nullable field is uninitialized.
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NetDataWriter"/> class with buffer.
@@ -85,7 +90,7 @@ namespace Lunet.Data
                 return;
             }
 
-            for (int i = 0; i < bytes.Length; i++)
+            for (var i = 0; i < bytes.Length; i++)
             {
                 Write(bytes[i], capacity > NC.BitsPerByte ? NC.BitsPerByte : capacity);
                 capacity -= NC.BitsPerByte;
@@ -106,7 +111,7 @@ namespace Lunet.Data
                 return;
             }
 
-            for (int i = 0; i < bytes.Length; i++)
+            for (var i = 0; i < bytes.Length; i++)
             {
                 Write(bytes[i], NC.BitsPerByte);
             }

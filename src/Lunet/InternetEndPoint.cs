@@ -50,7 +50,7 @@ namespace Lunet
             {
                 return true;
             }
-            if (ReferenceEquals(other, null))
+            if (other is null)
             {
                 return false;
             }
@@ -63,10 +63,6 @@ namespace Lunet
             {
                 return true;
             }
-            if (ReferenceEquals(obj, null))
-            {
-                return false;
-            }
             return obj is InternetEndPoint other && EqualsCore(other);
         }
 
@@ -76,11 +72,7 @@ namespace Lunet
             {
                 return true;
             }
-            if (ReferenceEquals(left, null))
-            {
-                return false;
-            }
-            if (ReferenceEquals(right, null))
+            if (left is null || right is null)
             {
                 return false;
             }

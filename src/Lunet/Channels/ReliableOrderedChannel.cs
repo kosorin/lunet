@@ -1,5 +1,4 @@
-﻿using Lunet.Common.Extensions.NetCore;
-using Lunet.Data;
+﻿using Lunet.Data;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,7 +9,7 @@ namespace Lunet.Channels
         private readonly object _packetLock = new object();
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketAck = SeqNo.Zero - 1;
-        private BitVector _incomingPacketAckBuffer = new BitVector(AckBufferLength);
+        private readonly BitVector _incomingPacketAckBuffer = new BitVector(AckBufferLength);
         private bool _requireAckPacket;
 
         private readonly ReliableMessageTracker _outgoingMessageTracker = new ReliableMessageTracker();
@@ -58,7 +57,7 @@ namespace Lunet.Channels
                     return;
                 }
 
-                AcknowledgeOutgoingPackets(packet.Ack, packet.AckBuffer);
+                AcknowledgeOutgoingPackets(packet.Ack, packet.AckBuffer!);
 
                 // Packets without messages are ack packets
                 // so we send ack only for received packets with messages
@@ -72,7 +71,7 @@ namespace Lunet.Channels
             SaveIncomingMessages(packet.Messages);
         }
 
-        public override IList<IChannelPacket> CollectOutgoingPackets()
+        public override IList<IChannelPacket>? CollectOutgoingPackets()
         {
             var outgoingMessages = CollectOutgoingMessages();
             var outgoingPackets = MessagePacker.Pack(outgoingMessages, Connection.MTU);
@@ -111,7 +110,7 @@ namespace Lunet.Channels
             return outgoingPackets.Cast<IChannelPacket>().ToList();
         }
 
-        public override IList<byte[]> GetReceivedMessages()
+        public override IList<byte[]>? GetReceivedMessages()
         {
             lock (_incomingMessageQueue)
             {
@@ -137,6 +136,27 @@ namespace Lunet.Channels
                 if (!_outgoingMessageQueue.TryAdd(message.Seq, message))
                 {
                     throw new NetException("Message buffer overflow.");
+                }
+            }
+        }
+
+
+        protected override IList<ReliableMessage>? CollectOutgoingMessages()
+        {
+            lock (_outgoingMessageQueue)
+            {
+                if (_outgoingMessageQueue.Count > 0)
+                {
+                    var now = Timestamp.Current;
+                    var retransmissionTimeout = now - Connection.RTT;
+                    return _outgoingMessageQueue.Values
+                        .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value < retransmissionTimeout)
+                        .OrderBy(x => x.Timestamp ?? long.MaxValue)
+                        .ToList();
+                }
+                else
+                {
+                    return null;
                 }
             }
         }
@@ -264,26 +284,6 @@ namespace Lunet.Channels
                     {
                         _incomingMessageQueue[message.Seq] = message;
                     }
-                }
-            }
-        }
-
-        private List<ReliableMessage> CollectOutgoingMessages()
-        {
-            lock (_outgoingMessageQueue)
-            {
-                if (_outgoingMessageQueue.Count > 0)
-                {
-                    var now = Timestamp.Current;
-                    var retransmissionTimeout = now - Connection.RTT;
-                    return _outgoingMessageQueue.Values
-                        .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value < retransmissionTimeout)
-                        .OrderBy(x => x.Timestamp ?? long.MaxValue)
-                        .ToList();
-                }
-                else
-                {
-                    return null;
                 }
             }
         }

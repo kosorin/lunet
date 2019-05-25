@@ -1,5 +1,4 @@
 ﻿using Force.Crc32;
-using Lunet.Data;
 using System;
 
 namespace Lunet

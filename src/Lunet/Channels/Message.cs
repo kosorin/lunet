@@ -1,11 +1,14 @@
 ﻿using Lunet.Data;
-using Lunet.Extensions;
 
 namespace Lunet.Channels
 {
     public abstract class Message
     {
+#pragma warning disable CS8618 // Non-nullable field is uninitialized.
+
         public byte[] Data { get; set; }
+        
+#pragma warning restore CS8618 // Non-nullable field is uninitialized.
 
         public int Length => HeaderLength + DataLength;
 
@@ -15,12 +18,15 @@ namespace Lunet.Channels
 
         public virtual void Deserialize(NetDataReader reader)
         {
-            Data = reader.ReadByteArray();
+            var length = reader.ReadUShort();
+            var data = reader.ReadBytes(length);
+            Data = data;
         }
 
         public virtual void Serialize(NetDataWriter writer)
         {
-            writer.WriteByteArray(Data);
+            writer.WriteUShort((ushort)Data.Length);
+            writer.WriteBytes(Data);
         }
     }
 }

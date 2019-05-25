@@ -11,7 +11,7 @@ namespace Lunet.Channels
         {
         }
 
-        public override IList<TPacket> Pack(IList<TMessage> messages, int maxPacketSize)
+        public override IList<TPacket>? Pack(IList<TMessage>? messages, int maxPacketSize)
         {
             if (messages == null || messages.Count == 0)
             {

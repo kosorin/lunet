@@ -1,5 +1,4 @@
 ﻿using Lunet.Data;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -43,24 +42,15 @@ namespace Lunet.Channels
             }
         }
 
-        public override IList<IChannelPacket> CollectOutgoingPackets()
+        public override IList<IChannelPacket>? CollectOutgoingPackets()
         {
             var outgoingMessages = CollectOutgoingMessages();
-            if (outgoingMessages == null)
-            {
-                return null;
-            }
-
             var outgoingPackets = MessagePacker.Pack(outgoingMessages, Connection.MTU);
-            if (outgoingPackets == null)
-            {
-                return null;
-            }
 
-            return outgoingPackets.Cast<IChannelPacket>().ToList();
+            return outgoingPackets?.Cast<IChannelPacket>().ToList();
         }
 
-        public override IList<byte[]> GetReceivedMessages()
+        public override IList<byte[]>? GetReceivedMessages()
         {
             lock (_incomingMessageQueue)
             {
@@ -81,7 +71,7 @@ namespace Lunet.Channels
         }
 
 
-        private List<UnreliableMessage> CollectOutgoingMessages()
+        protected override IList<UnreliableMessage>? CollectOutgoingMessages()
         {
             lock (_outgoingMessageQueue)
             {

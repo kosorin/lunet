@@ -1,5 +1,6 @@
 ﻿using Lunet.Common;
 using System;
+using System.Collections.Generic;
 
 namespace Lunet.Channels
 {
@@ -20,5 +21,8 @@ namespace Lunet.Channels
         protected Func<TMessage> MessageActivator { get; }
 
         protected IMessagePacker<TPacket, TMessage> MessagePacker { get; }
+
+
+        protected abstract IList<TMessage>? CollectOutgoingMessages();
     }
 }

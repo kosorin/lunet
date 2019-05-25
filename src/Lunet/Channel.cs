@@ -19,9 +19,9 @@ namespace Lunet
 
         public abstract void HandleIncomingPacket(NetDataReader reader);
 
-        public abstract IList<IChannelPacket> CollectOutgoingPackets();
+        public abstract IList<IChannelPacket>? CollectOutgoingPackets();
 
-        public abstract IList<byte[]> GetReceivedMessages();
+        public abstract IList<byte[]>? GetReceivedMessages();
 
         public abstract void SendMessage(byte[] data);
     }

@@ -6,6 +6,10 @@ namespace Lunet
     {
         int Length { get; }
 
+        int HeaderLength { get; }
+
+        int DataLength { get; }
+
         void DeserializeHeader(NetDataReader reader);
 
         void DeserializeData(NetDataReader reader);

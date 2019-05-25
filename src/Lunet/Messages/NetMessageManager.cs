@@ -23,8 +23,7 @@ namespace Lunet.Messages
                 .GetTypes()
                 .Select(x => (Attribute: x.GetCustomAttribute<NetMessageAttribute>(false), Type: x))
                 .Where(x => x.Attribute != null && typeof(NetMessage).IsAssignableFrom(x.Type))
-                .Select(x => (x.Attribute.MessageTypeId, x.Type))
-                .ToList();
+                .ToDictionary(x => x.Attribute.MessageTypeId, x => x.Type);
 
             foreach (var (messageTypeId, type) in messageTypes)
             {
