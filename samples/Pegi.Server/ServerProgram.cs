@@ -1,7 +1,6 @@
 ﻿using Lunet;
 using Lunet.Channels;
-using Lunet.Data;
-using Lunet.Messages;
+using MessagePack;
 using Serilog;
 using System;
 using System.Collections.Concurrent;
@@ -42,18 +41,9 @@ namespace Pegi.Server
                     };
                     connection.MessageReceived += (__, data) =>
                     {
-                        var reader = new NetDataReader(data);
-                        var typeId = reader.ReadUShort();
-                        var message = NetMessageManager.Create(typeId);
-                        if (message != null && message is DebugMessage testMessage)
-                        {
-                            message.DeserializeLib(reader);
-                            Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
-                            var writer = new NetDataWriter();
-                            writer.Reset();
-                            message.SerializeLib(writer);
-                            connection.SendMessage(writer.GetBytes());
-                        }
+                        var message = MessagePackSerializer.Deserialize<DebugMessage>(data);
+                        Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
+                        connection.SendMessage(data);
                     };
                     connections.TryAdd(connection.RemoteEndPoint, connection);
                 };

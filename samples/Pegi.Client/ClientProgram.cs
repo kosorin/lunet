@@ -1,7 +1,6 @@
 ﻿using Lunet;
 using Lunet.Channels;
-using Lunet.Data;
-using Lunet.Messages;
+using MessagePack;
 using Serilog;
 using System;
 using System.Threading;
@@ -32,19 +31,12 @@ namespace Pegi.Client
 
                 connection.MessageReceived += (_, data) =>
                 {
-                    var reader = new NetDataReader(data);
-                    var typeId = reader.ReadUShort();
-                    var message = NetMessageManager.Create(typeId);
-                    if (message != null && message is DebugMessage testMessage)
-                    {
-                        message.DeserializeLib(reader);
-                        Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
-                    }
+                    var message = MessagePackSerializer.Deserialize<DebugMessage>(data);
+                    Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
                 };
 
                 connection.Connect();
 
-                var writer = new NetDataWriter();
                 var updateTime = 30;
                 var sendTime = 30;
                 var time = Timestamp.Current;
@@ -58,12 +50,14 @@ namespace Pegi.Client
                     {
                         time += sendTime;
 
-                        var message = NetMessageManager.Create<DebugMessage>();
-                        message.Id = i;
+                        var message = new DebugMessage
+                        {
+                            Id = i,
+                            Text = $"Zpráva {i}",
+                        };
+                        var messageBytes = MessagePackSerializer.Serialize(message);
 
-                        writer.Reset();
-                        message.SerializeLib(writer);
-                        connection.SendMessage(writer.GetBytes());
+                        connection.SendMessage(messageBytes);
 
                         i++;
                         if (i == 100_000)

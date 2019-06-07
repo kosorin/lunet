@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2036
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28917.181
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pegi.Client", "samples\Pegi.Client\Pegi.Client.csproj", "{FE46E88C-3CEA-4BD3-9660-059B00A50A84}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lunet.Tests", "tests\Lunet.Tests\Lunet.Tests.csproj", "{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{34119B4E-FCC1-4E0E-81AC-860874A994B4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pegi", "samples\Pegi\Pegi.csproj", "{670C4907-A5C9-471D-810F-DD85CFF6F47A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -37,6 +39,10 @@ Global
 		{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{670C4907-A5C9-471D-810F-DD85CFF6F47A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{670C4907-A5C9-471D-810F-DD85CFF6F47A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{670C4907-A5C9-471D-810F-DD85CFF6F47A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{670C4907-A5C9-471D-810F-DD85CFF6F47A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -45,6 +51,7 @@ Global
 		{FE46E88C-3CEA-4BD3-9660-059B00A50A84} = {34119B4E-FCC1-4E0E-81AC-860874A994B4}
 		{922B6C61-8C68-4699-8F7C-6F571F6A8375} = {34119B4E-FCC1-4E0E-81AC-860874A994B4}
 		{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A} = {14E2B85C-CE5A-43EE-80DB-315C619746CC}
+		{670C4907-A5C9-471D-810F-DD85CFF6F47A} = {34119B4E-FCC1-4E0E-81AC-860874A994B4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EBC38A3F-5A0D-4EC1-934A-F55295885EF7}
