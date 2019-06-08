@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace Lunet
 {
     [DebuggerDisplay("{Value,nq}")]
-    public struct SeqNo : IEquatable<SeqNo>, IComparable<SeqNo>
+    public readonly struct SeqNo : IEquatable<SeqNo>, IComparable<SeqNo>
     {
         public const int SizeOf = sizeof(ushort);
 

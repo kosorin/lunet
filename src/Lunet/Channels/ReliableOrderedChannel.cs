@@ -246,12 +246,14 @@ namespace Lunet.Channels
             lock (_outgoingMessageQueue)
             {
                 AcknowledgeOutgoingPacket(ack);
+
+                var currentAck = ack;
                 foreach (var bit in acks.AsBits())
                 {
-                    ack--;
+                    currentAck--;
                     if (bit)
                     {
-                        AcknowledgeOutgoingPacket(ack);
+                        AcknowledgeOutgoingPacket(currentAck);
                     }
                 }
             }
