@@ -1,4 +1,4 @@
-﻿using Force.Crc32;
+﻿using Lunet.Common;
 using Lunet.Data;
 using System;
 
@@ -8,26 +8,21 @@ namespace Lunet
     {
         private static Guid Version { get; } = Guid.Parse("1EDEFE8C-9469-4D68-9F3E-40A4A1971B90");
 
-        private static uint Crc32Check { get; } = 0x2144DF1C;
-
-        private static int Crc32Length { get; } = sizeof(uint);
-
         private static uint InitialCrc32 { get; }
 
         static ProtocolProcessor()
         {
-            InitialCrc32 = Crc32Algorithm.Compute(Version.ToByteArray());
+            InitialCrc32 = Crc32.Compute(Version.ToByteArray());
         }
 
         public (byte ChannelId, NetDataReader? Reader) Read(byte[] data, int offset, int length)
         {
-            var crc32 = Crc32Algorithm.Append(InitialCrc32, data, offset, length);
-            if (crc32 != Crc32Check)
+            if (!Crc32.Check(InitialCrc32, data, offset, length))
             {
                 return (default, null);
             }
 
-            var reader = new NetDataReader(data, offset, length - Crc32Length);
+            var reader = new NetDataReader(data, offset, length - Crc32.HashLength);
 
             return (reader.ReadByte(), reader);
         }
@@ -45,14 +40,14 @@ namespace Lunet
             var length = writer.Length - offset;
 
             // CRC
-            var crc32 = Crc32Algorithm.Append(InitialCrc32, writer.Data, offset, length);
+            var crc32 = Crc32.Append(InitialCrc32, writer.Data, offset, length);
             writer.WriteUInt(crc32);
             writer.Flush();
         }
 
         public ushort GetTotalLength(IChannelPacket packet)
         {
-            return (ushort)(1 + Crc32Length + packet.Length);
+            return (ushort)(1 + Crc32.HashLength + packet.Length);
         }
     }
 }
