@@ -8,6 +8,8 @@ namespace Lunet.Common.Collections
         private readonly IObjectPool<TItem> _pool;
         private readonly TItem _item;
 
+        private bool _disposed;
+
         internal ObjectPoolRef(IObjectPool<TItem> pool, TItem item)
         {
             _pool = pool ?? throw new ArgumentNullException(nameof(pool));
@@ -18,7 +20,14 @@ namespace Lunet.Common.Collections
 
         public void Dispose()
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             _pool.Return(_item);
+
+            _disposed = true;
         }
     }
 }

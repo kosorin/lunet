@@ -31,11 +31,7 @@ namespace Lunet
 
         public void Close()
         {
-            _socket.Close();
-            _socket.Dispose();
-
-            _receiveToken.Dispose();
-            _sendTokenPool.Dispose();
+            Dispose();
         }
 
         public void Bind()
@@ -176,14 +172,20 @@ namespace Lunet
 
         private void Dispose(bool disposing)
         {
-            if (!_disposed)
+            if (_disposed)
             {
-                if (disposing)
-                {
-                    Close();
-                }
-                _disposed = true;
+                return;
             }
+
+            if (disposing)
+            {
+                _socket.Close();
+                _socket.Dispose();
+
+                _receiveToken.Dispose();
+                _sendTokenPool.Dispose();
+            }
+            _disposed = true;
         }
     }
 }

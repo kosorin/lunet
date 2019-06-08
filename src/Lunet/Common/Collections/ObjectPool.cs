@@ -51,7 +51,7 @@ namespace Lunet.Common.Collections
 
         public event TypedEventHandler<IObjectPool<TItem>, TItem> ItemReturned;
 
-        public event TypedEventHandler<IObjectPool<TItem>, TItem> ItemDisposed;
+        public event TypedEventHandler<IObjectPool<TItem>, TItem> ItemDisposing;
 
         public TItem Rent()
         {
@@ -95,17 +95,19 @@ namespace Lunet.Common.Collections
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!_disposed)
+            if (_disposed)
             {
-                if (disposing)
-                {
-                    foreach (var item in _objects)
-                    {
-                        OnItemDisposed(item);
-                    }
-                }
-                _disposed = true;
+                return;
             }
+
+            if (disposing)
+            {
+                foreach (var item in _objects)
+                {
+                    OnItemDisposed(item);
+                }
+            }
+            _disposed = true;
         }
 
         protected virtual void OnItemCreated(TItem item)
@@ -133,11 +135,11 @@ namespace Lunet.Common.Collections
 
         protected virtual void OnItemDisposed(TItem item)
         {
+            ItemDisposing?.Invoke(this, item);
             if (_isItemDisposable)
             {
                 ((IDisposable)item).Dispose();
             }
-            ItemDisposed?.Invoke(this, item);
         }
     }
 }

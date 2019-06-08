@@ -85,14 +85,16 @@ namespace Lunet
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!_disposed)
+            if (_disposed)
             {
-                if (disposing)
-                {
-                    Stop();
-                }
-                _disposed = true;
+                return;
             }
+
+            if (disposing)
+            {
+                Stop();
+            }
+            _disposed = true;
         }
     }
 }

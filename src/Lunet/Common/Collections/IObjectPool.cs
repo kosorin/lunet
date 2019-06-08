@@ -10,7 +10,7 @@ namespace Lunet.Common.Collections
 
         event TypedEventHandler<IObjectPool<TItem>, TItem> ItemReturned;
 
-        event TypedEventHandler<IObjectPool<TItem>, TItem> ItemDisposed;
+        event TypedEventHandler<IObjectPool<TItem>, TItem> ItemDisposing;
 
         TItem Rent();
 
