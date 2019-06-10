@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace Lunet.Common
 {
-    public static class ObjectActivatorFactory
+    internal static class ObjectActivatorFactory
     {
         public static Func<TObject> Create<TObject>()
         {

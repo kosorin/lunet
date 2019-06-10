@@ -3,7 +3,7 @@
 namespace Lunet.Common
 {
     // https://github.com/force-net/Crc32.NET with Span<T> support
-    public static class Crc32
+    internal static class Crc32
     {
         public const uint CheckHash = 0x2144DF1Cu;
 
@@ -11,11 +11,11 @@ namespace Lunet.Common
 
         private const uint Polynomial = 0xEDB88320u;
 
-        private static readonly uint[] _table = new uint[16 * 256];
+        private static readonly uint[] Table = new uint[16 * 256];
 
         static Crc32()
         {
-            var table = _table;
+            var table = Table;
             for (uint i = 0; i < 256; i++)
             {
                 var res = i;
@@ -174,7 +174,7 @@ namespace Lunet.Common
 
             var hash = uint.MaxValue ^ initial;
 
-            var table = _table;
+            var table = Table;
             while (length >= 16)
             {
                 var a = table[(3 * 256) + input[offset + 12]]

@@ -1,5 +1,4 @@
 ﻿using Lunet.Data;
-using Lunet.Extensions;
 
 namespace Lunet.Channels
 {

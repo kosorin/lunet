@@ -251,6 +251,11 @@ namespace Lunet.Data
             return fp.Double;
         }
 
+        public SeqNo ReadSeqNo()
+        {
+            return new SeqNo(ReadUShort());
+        }
+
         private byte Read(int bitCount)
         {
             Debug.Assert(bitCount >= 0 && bitCount <= NC.BitsPerByte);

@@ -252,6 +252,11 @@ namespace Lunet.Data
             Write(fp.Byte7, NC.BitsPerByte);
         }
 
+        public void WriteSeqNo(SeqNo seq)
+        {
+            WriteUShort(seq.Value);
+        }
+
         private void Write(byte value, int bitCount)
         {
             if (bitCount == 0)

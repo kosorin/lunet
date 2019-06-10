@@ -1,7 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System;
 
 namespace Lunet
 {
+    // REFACTOR: Move/rename
     internal static class NetHelper
     {
         /// <summary>
@@ -11,7 +12,10 @@ namespace Lunet
         /// <param name="bytes">Number of bits per element.</param>
         public static int GetElementCapacity(int bits, int bitsPerElement)
         {
-            Debug.Assert(bitsPerElement > 0, $"Argument {nameof(bitsPerElement)} must be greater than 0.");
+            if (bitsPerElement <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bitsPerElement), $"Argument must be greater than 0.");
+            }
 
             return bits > 0
                 ? ((bits - 1) / bitsPerElement) + 1

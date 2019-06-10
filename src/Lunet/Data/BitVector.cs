@@ -1,4 +1,4 @@
-﻿using Lunet.Common.Collections;
+﻿using Lunet.Common;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

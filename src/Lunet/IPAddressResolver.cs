@@ -4,6 +4,7 @@ using System.Net.Sockets;
 
 namespace Lunet
 {
+    // REFACTOR: Move/rename
     internal static class IPAddressResolver
     {
         /// <summary>

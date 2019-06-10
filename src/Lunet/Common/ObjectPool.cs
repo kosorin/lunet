@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
 
-namespace Lunet.Common.Collections
+namespace Lunet.Common
 {
-    public class ObjectPool<TItem> : IObjectPool<TItem>
+    internal class ObjectPool<TItem>
         where TItem : class
     {
         private readonly bool _isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
-        private readonly bool _isItemPoolable = typeof(IPoolable).IsAssignableFrom(typeof(TItem));
         private readonly int _capacity;
         private readonly Func<TItem> _activator;
         private readonly ConcurrentQueue<TItem> _objects;
@@ -45,29 +44,14 @@ namespace Lunet.Common.Collections
             _objects = new ConcurrentQueue<TItem>();
         }
 
-        public event TypedEventHandler<IObjectPool<TItem>, TItem> ItemCreated;
-
-        public event TypedEventHandler<IObjectPool<TItem>, TItem> ItemRented;
-
-        public event TypedEventHandler<IObjectPool<TItem>, TItem> ItemReturned;
-
-        public event TypedEventHandler<IObjectPool<TItem>, TItem> ItemDisposing;
-
         public TItem Rent()
         {
             if (!_objects.TryDequeue(out var item))
             {
                 item = _activator();
-                OnItemCreated(item);
             }
 
-            OnItemRented(item);
             return item;
-        }
-
-        public ObjectPoolRef<TItem> RentRef()
-        {
-            return new ObjectPoolRef<TItem>(this, Rent());
         }
 
         public void Return(TItem item)
@@ -80,11 +64,13 @@ namespace Lunet.Common.Collections
             if (_objects.Count < _capacity)
             {
                 _objects.Enqueue(item);
-                OnItemReturned(item);
             }
             else
             {
-                OnItemDisposed(item);
+                if (_isItemDisposable)
+                {
+                    ((IDisposable)item).Dispose();
+                }
             }
         }
 
@@ -93,7 +79,7 @@ namespace Lunet.Common.Collections
             Dispose(true);
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (_disposed)
             {
@@ -102,44 +88,15 @@ namespace Lunet.Common.Collections
 
             if (disposing)
             {
-                foreach (var item in _objects)
+                if (_isItemDisposable)
                 {
-                    OnItemDisposed(item);
+                    foreach (var item in _objects)
+                    {
+                        ((IDisposable)item).Dispose();
+                    }
                 }
             }
             _disposed = true;
-        }
-
-        protected virtual void OnItemCreated(TItem item)
-        {
-            ItemCreated?.Invoke(this, item);
-        }
-
-        protected virtual void OnItemRented(TItem item)
-        {
-            if (_isItemPoolable)
-            {
-                ((IPoolable)item).OnRent();
-            }
-            ItemRented?.Invoke(this, item);
-        }
-
-        protected virtual void OnItemReturned(TItem item)
-        {
-            if (_isItemPoolable)
-            {
-                ((IPoolable)item).OnReturn();
-            }
-            ItemReturned?.Invoke(this, item);
-        }
-
-        protected virtual void OnItemDisposed(TItem item)
-        {
-            ItemDisposing?.Invoke(this, item);
-            if (_isItemDisposable)
-            {
-                ((IDisposable)item).Dispose();
-            }
         }
     }
 }

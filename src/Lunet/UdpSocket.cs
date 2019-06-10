@@ -1,9 +1,7 @@
 ﻿using Lunet.Common;
-using Lunet.Common.Collections;
 using Lunet.Data;
 using Lunet.Extensions;
 using System;
-using System.Linq;
 using System.Net.Sockets;
 
 namespace Lunet
@@ -15,7 +13,7 @@ namespace Lunet
 
         private readonly Socket _socket;
         private readonly SocketAsyncEventArgs _receiveToken;
-        private readonly IObjectPool<SocketAsyncEventArgs> _sendTokenPool;
+        private readonly ObjectPool<SocketAsyncEventArgs> _sendTokenPool;
 
         public UdpSocket(InternetEndPoint localEndPoint)
         {

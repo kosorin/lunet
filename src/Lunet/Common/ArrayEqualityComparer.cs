@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Lunet.Common.Collections
+namespace Lunet.Common
 {
-    public sealed class ArrayEqualityComparer<TElement> : IEqualityComparer<TElement[]>
+    internal sealed class ArrayEqualityComparer<TElement> : IEqualityComparer<TElement[]>
     {
         private readonly IEqualityComparer<TElement> _elementComparer;
 
