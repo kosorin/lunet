@@ -1,128 +1,183 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Lunet.Data
 {
-    public class NetDataReader : INetBuffer
+    public class NetDataReader : DataBuffer
     {
-        private readonly byte[] _data;
-        private readonly int _offset;
-        private readonly int _length;
-        private int _position;
-        private int _bitPosition;
+        private int _readOffset;
+        private int _readLength;
+        private int _readPosition;
+        private int _readBitPosition;
 
         public NetDataReader(byte[] data)
+            : this(data, 0, data.Length)
         {
-            _data = data;
-            _offset = 0;
-            _length = data.Length;
         }
 
         public NetDataReader(byte[] data, int offset, int length)
+            : base(data, offset, length)
         {
-            if (offset + length > data.Length)
-            {
-                throw new ArgumentOutOfRangeException("Offset + length could not be bigger than data length.");
-            }
-
-            _data = data;
-            _offset = offset;
-            _length = length;
+            Reset();
         }
 
-        public NetDataReader(INetBuffer buffer) : this(buffer.Data, buffer.Offset, buffer.Length)
+        public override int Offset => BufferOffset + _readOffset;
+
+        public override int Length => _readLength;
+
+        public override int Position => _readPosition;
+
+        public void Reset()
         {
+            Reset(0, BufferLength);
         }
 
-
-        public int Length => _length;
-
-        public int Position => _position;
-
-        public int BitLength => _length * NC.BitsPerByte;
-
-        public int BitPosition => (_position * NC.BitsPerByte) + _bitPosition;
-
-        public byte[] Data => _data;
-
-        public int Offset => _offset;
-
-
-        public BitVector ReadBits(int bitLength)
+        public void Reset(int readOffset, int readLength)
         {
-            if (bitLength < 0)
+            if (BufferLength < readOffset)
             {
-                throw new ArgumentOutOfRangeException(nameof(bitLength));
+                throw new ArgumentOutOfRangeException(nameof(readOffset));
             }
-            if (bitLength == 0)
+            if (BufferLength < readOffset + readLength)
             {
-                return new BitVector(bitLength);
+                throw new ArgumentOutOfRangeException(nameof(readLength));
             }
-            EnsureReadSize(bitLength);
 
-            var bytes = new byte[NetHelper.GetElementCapacity(bitLength, NC.BitsPerByte)];
-            for (int i = 0, capacity = bitLength; i < bytes.Length; i++, capacity -= NC.BitsPerByte)
+            _readOffset = readOffset;
+            _readLength = readLength;
+            _readPosition = 0;
+            _readBitPosition = 0;
+        }
+
+        public void Seek(int bitOffset, SeekOrigin origin)
+        {
+            var relativeBitPosition = origin switch
+            {
+                SeekOrigin.Begin => (0 - GetReadBitPosition()) + bitOffset,
+                SeekOrigin.End => (GetReadBitLength() - GetReadBitPosition()) - bitOffset,
+                _ => bitOffset,
+            };
+            ThrowIfNotEnoughData(relativeBitPosition);
+
+            var newBitPosition = GetReadBitPosition() + relativeBitPosition;
+            _readPosition = newBitPosition / NC.BitsPerByte;
+            _readBitPosition = newBitPosition % NC.BitsPerByte;
+        }
+
+        public void SkipBits()
+        {
+            if (_readBitPosition == 0)
+            {
+                return;
+            }
+
+            ThrowIfNotEnoughData(NC.BitsPerByte - _readBitPosition);
+            _readPosition++;
+            _readBitPosition = 0;
+        }
+
+        public void SkipBits(int bitCount)
+        {
+            if (bitCount == 0)
+            {
+                return;
+            }
+
+            ThrowIfNotEnoughData(bitCount);
+            _readBitPosition += bitCount;
+            _readPosition += _readBitPosition / NC.BitsPerByte;
+            _readBitPosition %= NC.BitsPerByte;
+        }
+
+        public void SkipBytes(int count)
+        {
+            if (count == 0)
+            {
+                return;
+            }
+            if (count < 0 || _readPosition + count > _readLength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
+            ThrowIfNotEnoughData(count * NC.BitsPerByte);
+            _readPosition += count;
+        }
+
+        public BitVector ReadBits(int bitCount)
+        {
+            if (bitCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bitCount));
+            }
+            if (bitCount == 0)
+            {
+                return new BitVector(bitCount);
+            }
+
+            ThrowIfNotEnoughData(bitCount);
+            var bytes = new byte[NetHelper.GetElementCapacity(bitCount, NC.BitsPerByte)];
+            for (int i = 0, capacity = bitCount; i < bytes.Length; i++, capacity -= NC.BitsPerByte)
             {
                 bytes[i] = Read(capacity > NC.BitsPerByte ? NC.BitsPerByte : capacity);
             }
-            return new BitVector(bytes, bitLength);
+            return new BitVector(bytes, bitCount);
+        }
+        public byte[] ReadBytes()
+        {
+            return ReadBytes(_readLength - _readPosition);
         }
 
-        public byte[] ReadBytes(int length)
+        public byte[] ReadBytes(int count)
         {
-            if (length < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(length));
-            }
-            if (length == 0)
-            {
-                return new byte[length];
-            }
-            EnsureReadSize(length * NC.BitsPerByte);
-
-            var bytes = new byte[length];
-            if (FastRead(bytes))
-            {
-                return bytes;
-            }
-
-            for (int i = 0; i < length; i++)
-            {
-                bytes[i] = Read(NC.BitsPerByte);
-            }
-            return bytes;
+            return ReadSpan(count).ToArray();
         }
 
-        public byte[] ReadBytesToEnd()
+        public ReadOnlySpan<byte> ReadSpan()
         {
-            if (_bitPosition != 0)
+            return ReadSpan(_readLength - _readPosition);
+        }
+
+        public ReadOnlySpan<byte> ReadSpan(int count)
+        {
+            if (_readBitPosition != 0)
             {
                 throw new InvalidOperationException($"Bit position must be divisible by {NC.BitsPerByte}. Can read only full bytes.");
             }
-            return ReadBytes(_length - _position);
+            if (count < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
+            ThrowIfNotEnoughData(count * NC.BitsPerByte);
+            var span = new ReadOnlySpan<byte>(Data, Offset + Position, count);
+            _readPosition += count;
+            return span;
         }
 
         public bool ReadBit()
         {
-            EnsureReadSize(1);
+            ThrowIfNotEnoughData(1);
             return (Read(1) & NC.One) == NC.One;
         }
 
         public byte ReadByte()
         {
-            EnsureReadSize(NC.BitsPerByte);
+            ThrowIfNotEnoughData(NC.BitsPerByte);
             return Read(NC.BitsPerByte);
         }
 
         public sbyte ReadSByte()
         {
-            EnsureReadSize(NC.BitsPerByte);
+            ThrowIfNotEnoughData(NC.BitsPerByte);
             return (sbyte)Read(NC.BitsPerByte);
         }
 
         public short ReadShort()
         {
-            EnsureReadSize(sizeof(short) * NC.BitsPerByte);
+            ThrowIfNotEnoughData(sizeof(short) * NC.BitsPerByte);
             ushort value = Read(NC.BitsPerByte);
             value |= (ushort)(Read(NC.BitsPerByte) << (1 * NC.BitsPerByte));
             return (short)value;
@@ -130,7 +185,7 @@ namespace Lunet.Data
 
         public ushort ReadUShort()
         {
-            EnsureReadSize(sizeof(ushort) * NC.BitsPerByte);
+            ThrowIfNotEnoughData(sizeof(ushort) * NC.BitsPerByte);
             ushort value = Read(NC.BitsPerByte);
             value |= (ushort)(Read(NC.BitsPerByte) << (1 * NC.BitsPerByte));
             return value;
@@ -138,7 +193,7 @@ namespace Lunet.Data
 
         public int ReadInt()
         {
-            EnsureReadSize(sizeof(int) * NC.BitsPerByte);
+            ThrowIfNotEnoughData(sizeof(int) * NC.BitsPerByte);
             uint value = Read(NC.BitsPerByte);
             value |= ((uint)Read(NC.BitsPerByte) << (1 * NC.BitsPerByte));
             value |= ((uint)Read(NC.BitsPerByte) << (2 * NC.BitsPerByte));
@@ -148,7 +203,7 @@ namespace Lunet.Data
 
         public uint ReadUInt()
         {
-            EnsureReadSize(sizeof(uint) * NC.BitsPerByte);
+            ThrowIfNotEnoughData(sizeof(uint) * NC.BitsPerByte);
             uint value = Read(NC.BitsPerByte);
             value |= ((uint)Read(NC.BitsPerByte) << (1 * NC.BitsPerByte));
             value |= ((uint)Read(NC.BitsPerByte) << (2 * NC.BitsPerByte));
@@ -158,7 +213,7 @@ namespace Lunet.Data
 
         public long ReadLong()
         {
-            EnsureReadSize(sizeof(long) * NC.BitsPerByte);
+            ThrowIfNotEnoughData(sizeof(long) * NC.BitsPerByte);
             ulong value = Read(NC.BitsPerByte);
             value |= ((ulong)Read(NC.BitsPerByte) << (1 * NC.BitsPerByte));
             value |= ((ulong)Read(NC.BitsPerByte) << (2 * NC.BitsPerByte));
@@ -172,7 +227,7 @@ namespace Lunet.Data
 
         public ulong ReadULong()
         {
-            EnsureReadSize(sizeof(ulong) * NC.BitsPerByte);
+            ThrowIfNotEnoughData(sizeof(ulong) * NC.BitsPerByte);
             ulong value = Read(NC.BitsPerByte);
             value |= ((ulong)Read(NC.BitsPerByte) << (1 * NC.BitsPerByte));
             value |= ((ulong)Read(NC.BitsPerByte) << (2 * NC.BitsPerByte));
@@ -196,117 +251,62 @@ namespace Lunet.Data
             return fp.Double;
         }
 
-
-        public void PadBits()
+        private byte Read(int bitCount)
         {
-            if (_bitPosition == 0)
-            {
-                return;
-            }
-
-            EnsureReadSize(NC.BitsPerByte - _bitPosition);
-            _position++;
-            _bitPosition = 0;
-        }
-
-        public void Seek()
-        {
-            _position = 0;
-            _bitPosition = 0;
-        }
-
-        public void Seek(int bitPosition)
-        {
-            if (bitPosition < 0 || bitPosition > BitLength)
-            {
-                throw new ArgumentOutOfRangeException(nameof(bitPosition));
-            }
-            _position = bitPosition / NC.BitsPerByte;
-            _bitPosition = bitPosition % NC.BitsPerByte;
-        }
-
-        public void SkipBits(int count)
-        {
-            if (count == 0)
-            {
-                return;
-            }
-            if (count < 0 || BitPosition + count > BitLength)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count));
-            }
-
-            _bitPosition += count;
-            _position += _bitPosition / NC.BitsPerByte;
-            _bitPosition %= NC.BitsPerByte;
-        }
-
-        public void SkipBytes(int count)
-        {
-            if (count == 0)
-            {
-                return;
-            }
-            if (count < 0 || Position + count > Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count));
-            }
-
-            _position += count;
-        }
-
-
-        private byte Read(int bitLength)
-        {
-            if (bitLength == 0)
-            {
-                return NC.Zero;
-            }
-            Debug.Assert(bitLength >= 0 && bitLength <= NC.BitsPerByte);
-
-            if (_bitPosition == 0 && bitLength == NC.BitsPerByte)
-            {
-                return _data[_offset + _position++];
-            }
+            Debug.Assert(bitCount >= 0 && bitCount <= NC.BitsPerByte);
 
             byte value;
 
-            var inFirst = NC.BitsPerByte - _bitPosition;
-            value = (byte)((_data[_offset + _position] >> _bitPosition) & (NC.Byte >> (NC.BitsPerByte - bitLength)));
-
-            if (inFirst < bitLength)
+            if (bitCount == 0)
             {
-                _position++;
+                value = NC.Zero;
+                return value;
+            }
+            if (_readBitPosition == 0 && bitCount == NC.BitsPerByte)
+            {
+                value = Data[Offset + Position];
+                _readPosition++;
+                return value;
+            }
 
-                var inSecond = bitLength - inFirst;
-                value |= (byte)((_data[_offset + _position] & (NC.Byte >> (NC.BitsPerByte - inSecond))) << inFirst);
+            var bitsFromFirstByte = NC.BitsPerByte - _readBitPosition;
+            value = (byte)((Data[Offset + Position] >> _readBitPosition) & (NC.Byte >> (NC.BitsPerByte - bitCount)));
 
-                _bitPosition = inSecond;
+            if (bitsFromFirstByte < bitCount)
+            {
+                _readPosition++;
+
+                var bitsFromSecondByte = bitCount - bitsFromFirstByte;
+                value |= (byte)((Data[Offset + Position] & (NC.Byte >> (NC.BitsPerByte - bitsFromSecondByte))) << bitsFromFirstByte);
+
+                _readBitPosition = bitsFromSecondByte;
             }
             else
             {
-                _bitPosition += bitLength;
-                _bitPosition %= NC.BitsPerByte;
+                _readBitPosition += bitCount;
+                _readBitPosition %= NC.BitsPerByte;
             }
 
             return value;
         }
 
-        private bool FastRead(byte[] bytes)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int GetReadBitLength()
         {
-            if (_bitPosition == 0)
-            {
-                Array.Copy(_data, _offset + _position, bytes, 0, bytes.Length);
-                _position += bytes.Length;
-                return true;
-            }
-            return false;
+            return _readLength * NC.BitsPerByte;
         }
 
-        private void EnsureReadSize(int bitLength)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int GetReadBitPosition()
         {
-            var actual = BitLength;
-            var required = BitPosition + bitLength;
+            return (_readPosition * NC.BitsPerByte) + _readBitPosition;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ThrowIfNotEnoughData(int bitCount)
+        {
+            var actual = GetReadBitLength();
+            var required = GetReadBitPosition() + bitCount;
             if (actual < required)
             {
                 throw new InvalidOperationException($"Not enough data. Required = {required}, Actual = {actual}.");

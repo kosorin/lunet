@@ -1,4 +1,5 @@
 ﻿using Lunet.Common;
+using Lunet.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -64,7 +65,7 @@ namespace Lunet
                 {
                     foreach (var packet in outgoingPackets)
                     {
-                        HandleSendPacket(new ProtocolPacket
+                        HandleOutgoingPacket(new ProtocolPacket
                         {
                             ChannelId = channel.Id,
                             ChannelPacket = packet,
@@ -101,14 +102,14 @@ namespace Lunet
         }
 
 
-        internal void HandleReceivedPacket(byte[] data, int offset, int length)
+        internal void HandleIncomingPacket(NetDataReader reader)
         {
             if (State != ConnectionState.Connected)
             {
                 return;
             }
 
-            var dataX = new ProtocolProcessor().Read(data, offset, length);
+            var dataX = new ProtocolProcessor().Read(reader);
             if (dataX.Reader == null)
             {
                 return;
@@ -120,7 +121,7 @@ namespace Lunet
             }
         }
 
-        internal abstract void HandleSendPacket(ProtocolPacket packet);
+        internal abstract void HandleOutgoingPacket(ProtocolPacket packet);
 
 
         protected virtual void OnDisconnected()

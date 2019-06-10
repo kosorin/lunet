@@ -1,7 +1,9 @@
-﻿using Lunet.Common.Collections;
+﻿using Lunet.Common;
+using Lunet.Common.Collections;
 using Lunet.Data;
 using Lunet.Extensions;
 using System;
+using System.Linq;
 using System.Net.Sockets;
 
 namespace Lunet
@@ -49,13 +51,16 @@ namespace Lunet
         }
 
 
-        public event PacketReceivedHandler PacketReceived;
+        public event TypedEventHandler<InternetEndPoint, NetDataReader> PacketReceived;
 
         private SocketAsyncEventArgs CreateReceiveToken()
         {
             var buffer = new byte[ushort.MaxValue];
-            var token = new SocketAsyncEventArgs();
-            token.RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint();
+            var token = new SocketAsyncEventArgs
+            {
+                RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint(),
+                UserToken = new NetDataReader(buffer),
+            };
             token.Completed += IO_Completed;
             token.SetBuffer(buffer, 0, buffer.Length);
             return token;
@@ -70,14 +75,21 @@ namespace Lunet
                     ProcessReceive(_receiveToken);
                 }
             }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException)
+            {
+                // Guess it's ok...
+            }
         }
 
         private void ProcessReceive(SocketAsyncEventArgs token)
         {
             if (token.SocketError == SocketError.Success && token.BytesTransferred > 0)
             {
-                PacketReceived?.Invoke(new InternetEndPoint(token.RemoteEndPoint), token.Buffer, token.Offset, token.BytesTransferred);
+                var remoteEndPoint = new InternetEndPoint(token.RemoteEndPoint);
+                var reader = (NetDataReader)token.UserToken;
+                reader.Reset(token.Offset, token.BytesTransferred);
+
+                PacketReceived?.Invoke(remoteEndPoint, reader);
             }
             else
             {

@@ -1,4 +1,5 @@
 ﻿using Lunet.Common;
+using Lunet.Data;
 using System;
 using System.Collections.Generic;
 
@@ -46,7 +47,7 @@ namespace Lunet
         }
 
 
-        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte[] data, int offset, int length)
+        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, NetDataReader reader)
         {
             ServerConnection? connection = null;
 
@@ -63,7 +64,7 @@ namespace Lunet
                 }
             }
 
-            connection.HandleReceivedPacket(data, offset, length);
+            connection.HandleIncomingPacket(reader);
         }
 
         private void Connection_Disconnected(Connection connection)

@@ -1,117 +1,140 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Lunet.Data
 {
-    public class NetDataWriter : INetBuffer
+    public class NetDataWriter : DataBuffer
     {
-        private const int ResizeData = 8;
+        private const int DefaultDataLength = 8;
 
-        private readonly bool _isShared;
-        private readonly int _offset;
-        private byte[] _data;
-        private int _length;
-        private int _capacity;
-        private int _position;
-        private int _bitPosition;
+        private int _writeOffset;
+        private int _writeLength;
+        private int _writePosition;
+        private int _writeBitPosition;
         private int _buffer;
 
-#pragma warning disable CS8618 // Non-nullable field is uninitialized.
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="NetDataWriter"/> class.
-        /// </summary>
         public NetDataWriter()
+            : base(DefaultDataLength)
         {
-            EnsureInitialSize(ResizeData);
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="NetDataWriter"/> class with predefined capacity.
-        /// </summary>
-        /// <param name="capacity">Number of allocated bytes.</param>
-        public NetDataWriter(int capacity)
+        public NetDataWriter(int length)
+            : base(length)
         {
-            EnsureInitialSize(capacity);
+            Reset();
         }
 
-#pragma warning restore CS8618 // Non-nullable field is uninitialized.
+        public NetDataWriter(byte[] data)
+            : this(data, 0, data.Length)
+        {
+        }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="NetDataWriter"/> class with buffer.
-        /// </summary>
         public NetDataWriter(byte[] data, int offset, int length)
+            : base(data, offset, length)
         {
-            if (offset + length > data.Length)
+            Reset();
+        }
+
+        public override int Offset => BufferOffset + _writeOffset;
+
+        public override int Length => _writeLength;
+
+        public override int Position => _writePosition;
+
+        public override byte[] GetBytes()
+        {
+            Flush();
+            return base.GetBytes();
+        }
+
+        public override ReadOnlySpan<byte> GetSpan()
+        {
+            Flush();
+            return base.GetSpan();
+        }
+
+        public void Reset()
+        {
+            Reset(0);
+        }
+
+        public void Reset(int writeOffset)
+        {
+            if (BufferLength < writeOffset)
             {
-                throw new ArgumentOutOfRangeException("Offset + length could not be bigger than data length.");
+                throw new ArgumentOutOfRangeException(nameof(writeOffset));
             }
 
-            _isShared = true;
-
-            _data = data;
-            _offset = offset;
-            _capacity = length;
+            _writeOffset = writeOffset;
+            _writeLength = 0;
+            _writePosition = 0;
+            _writeBitPosition = 0;
+            _buffer = 0;
         }
 
-        public NetDataWriter(INetBuffer buffer) : this(buffer.Data, buffer.Offset, buffer.Length)
+        public void Flush()
         {
+            PadByte();
         }
 
-
-        public int Capacity => _capacity;
-
-        public int Length => _length;
-
-        public int Position => _position;
-
-        public int BitLength => _length * NC.BitsPerByte;
-
-        public int BitPosition => (_position * NC.BitsPerByte) + _bitPosition;
-
-        public byte[] Data => _data;
-
-        public int Offset => _offset;
-
-
-        public void WriteBits(BitVector vector)
+        public void PadByte()
         {
-            var capacity = vector.Capacity;
-            if (capacity == 0)
+            PadByte(false);
+        }
+
+        public void PadByte(bool value)
+        {
+            if (_writeBitPosition == 0)
             {
                 return;
             }
-            EnsureWriteSize(capacity);
+
+            var bitCount = NC.BitsPerByte - _writeBitPosition;
+            EnsureWriteSize(bitCount);
+            Write(value ? NC.Byte : NC.Zero, bitCount);
+        }
+
+        public void WriteBits(BitVector vector)
+        {
+            var bitCount = vector.Capacity;
+            if (bitCount <= 0)
+            {
+                return;
+            }
+
+            EnsureWriteSize(bitCount);
 
             var bytes = vector.ToBytes();
 
-            if (capacity % NC.BitsPerByte == 0 && FastWrite(bytes))
+            if (bitCount % NC.BitsPerByte == 0 && FastWrite(bytes))
             {
                 return;
             }
 
             for (var i = 0; i < bytes.Length; i++)
             {
-                Write(bytes[i], capacity > NC.BitsPerByte ? NC.BitsPerByte : capacity);
-                capacity -= NC.BitsPerByte;
+                Write(bytes[i], bitCount > NC.BitsPerByte ? NC.BitsPerByte : bitCount);
+                bitCount -= NC.BitsPerByte;
             }
         }
 
         public void WriteBytes(byte[] bytes)
         {
-            var bitLength = bytes.Length * NC.BitsPerByte;
-            if (bitLength == 0)
+            var count = bytes.Length;
+            if (count <= 0)
             {
                 return;
             }
-            EnsureWriteSize(bitLength);
+
+            EnsureWriteSize(count * NC.BitsPerByte);
 
             if (FastWrite(bytes))
             {
                 return;
             }
 
-            for (var i = 0; i < bytes.Length; i++)
+            for (var i = 0; i < count; i++)
             {
                 Write(bytes[i], NC.BitsPerByte);
             }
@@ -229,148 +252,85 @@ namespace Lunet.Data
             Write(fp.Byte7, NC.BitsPerByte);
         }
 
-
-        public void PadBits()
+        private void Write(byte value, int bitCount)
         {
-            PadBits(false);
-        }
+            if (bitCount == 0)
+            {
+                return;
+            }
+            Debug.Assert(bitCount >= 0 && bitCount <= NC.BitsPerByte);
 
-        public void PadBits(bool value)
-        {
-            if (_bitPosition == 0)
+            if (FastWrite(value, bitCount))
             {
                 return;
             }
 
-            var bitLength = NC.BitsPerByte - _bitPosition;
-            EnsureWriteSize(bitLength);
-            Write((byte)(value ? NC.Byte : NC.Zero), bitLength);
-        }
+            _buffer |= ((value & (NC.Byte >> (NC.BitsPerByte - bitCount))) << _writeBitPosition);
+            _writeBitPosition += bitCount;
 
-        public void Flush()
-        {
-            PadBits(false);
-        }
-
-        public void Reset()
-        {
-            _length = 0;
-            _position = 0;
-            _bitPosition = 0;
-            _buffer = 0;
-        }
-
-        public byte[] GetBytes(bool flush = true)
-        {
-            if (flush)
+            if (_writeBitPosition >= NC.BitsPerByte)
             {
-                Flush();
-            }
-
-            var bytes = new byte[_length];
-            if (_length > 0)
-            {
-                Array.Copy(_data, _offset, bytes, 0, _length);
-            }
-            return bytes;
-        }
-
-
-        private void Write(byte value, int bitLength)
-        {
-            if (bitLength == 0)
-            {
-                return;
-            }
-            Debug.Assert(bitLength >= 0 && bitLength <= NC.BitsPerByte);
-
-            if (_bitPosition == 0 && bitLength == NC.BitsPerByte)
-            {
-                _data[_offset + _position++] = value;
-                if (_length < _position)
+                Data[Offset + _writePosition++] = (byte)(_buffer & NC.Byte);
+                if (_writeLength < _writePosition)
                 {
-                    _length = _position;
-                }
-                return;
-            }
-
-            _buffer |= ((value & (NC.Byte >> (NC.BitsPerByte - bitLength))) << _bitPosition);
-            _bitPosition += bitLength;
-
-            if (_bitPosition >= NC.BitsPerByte)
-            {
-                _data[_offset + _position++] = (byte)(_buffer & NC.Byte);
-                if (_length < _position)
-                {
-                    _length = _position;
+                    _writeLength = _writePosition;
                 }
                 _buffer >>= NC.BitsPerByte;
-                _bitPosition -= NC.BitsPerByte;
+                _writeBitPosition -= NC.BitsPerByte;
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool FastWrite(byte value, int bitCount)
+        {
+            if (_writeBitPosition != 0 || bitCount != NC.BitsPerByte)
+            {
+                return false;
+            }
+
+            Data[Offset + _writePosition++] = value;
+            if (_writeLength < _writePosition)
+            {
+                _writeLength = _writePosition;
+            }
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool FastWrite(byte[] bytes)
         {
-            if (_bitPosition == 0)
+            if (_writeBitPosition != 0)
             {
-                Array.Copy(bytes, 0, _data, _position, bytes.Length);
-                _position += bytes.Length;
-                if (_length < _position)
-                {
-                    _length = _position;
-                }
-                return true;
+                return false;
             }
-            return false;
+
+            Array.Copy(bytes, 0, Data, Offset + _writePosition, bytes.Length);
+            _writePosition += bytes.Length;
+            if (_writeLength < _writePosition)
+            {
+                _writeLength = _writePosition;
+            }
+            return true;
         }
 
-        private void EnsureWriteSize(int bitLength)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int GetWriteBitLength()
         {
-            var newBitLength = bitLength + _bitPosition + (_position * NC.BitsPerByte);
-            var newLength = NetHelper.GetElementCapacity(newBitLength, NC.BitsPerByte);
-
-            if (_isShared)
-            {
-                if (_capacity < newLength)
-                {
-                    throw new InvalidOperationException();
-                }
-                return;
-            }
-
-            if (_data == null)
-            {
-                _capacity = newLength + ResizeData;
-                _data = new byte[_capacity];
-            }
-            else if (_capacity < newLength)
-            {
-                _capacity = newLength + ResizeData;
-                Array.Resize(ref _data, _capacity);
-            }
+            return _writeLength * NC.BitsPerByte;
         }
 
-        private void EnsureInitialSize(int length)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int GetWriteBitPosition()
         {
-            if (_isShared)
-            {
-                if (_capacity < length)
-                {
-                    throw new InvalidOperationException();
-                }
-                return;
-            }
+            return (_writePosition * NC.BitsPerByte) + _writeBitPosition;
+        }
 
-            if (_data == null)
-            {
-                _capacity = length;
-                _data = new byte[_capacity];
-            }
-            else if (_capacity < length)
-            {
-                _capacity = length;
-                Array.Resize(ref _data, _capacity);
-            }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void EnsureWriteSize(int bitCount)
+        {
+            var newWriteBitLength = GetWriteBitPosition() + bitCount;
+            var newWriteLength = NetHelper.GetElementCapacity(newWriteBitLength, NC.BitsPerByte);
+            EnsureSize(_writeOffset + newWriteLength);
         }
     }
 }

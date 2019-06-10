@@ -18,7 +18,7 @@ namespace Lunet.Channels
 
         public override void DeserializeData(NetDataReader reader)
         {
-            Data = reader.ReadBytesToEnd();
+            Data = reader.ReadBytes();
         }
 
         public override void SerializeHeader(NetDataWriter writer)

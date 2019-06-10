@@ -13,7 +13,7 @@ namespace Pegi
 
         public override string ToString()
         {
-            return $"ID {Id,6}";
+            return $"ID {Id,6} > '{Text}'";
         }
     }
 }

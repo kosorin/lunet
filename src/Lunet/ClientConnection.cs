@@ -1,4 +1,7 @@
-﻿namespace Lunet
+﻿using Lunet.Data;
+using System;
+
+namespace Lunet
 {
     public class ClientConnection : Connection
     {
@@ -31,15 +34,15 @@
         }
 
 
-        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, byte[] data, int offset, int length)
+        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, NetDataReader reader)
         {
-            if (RemoteEndPoint.Equals(remoteEndPoint))
+            if (RemoteEndPoint == remoteEndPoint)
             {
-                HandleReceivedPacket(data, offset, length);
+                HandleIncomingPacket(reader);
             }
         }
 
-        internal override void HandleSendPacket(ProtocolPacket packet)
+        internal override void HandleOutgoingPacket(ProtocolPacket packet)
         {
             _socket.SendPacket(RemoteEndPoint, packet.ChannelId, packet.ChannelPacket);
         }

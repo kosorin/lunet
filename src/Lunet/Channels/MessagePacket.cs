@@ -26,7 +26,7 @@ namespace Lunet.Channels
             try
             {
                 DeserializeHeaderCore(reader);
-                reader.PadBits();
+                reader.SkipBits();
             }
             catch (Exception e)
             {
@@ -56,7 +56,7 @@ namespace Lunet.Channels
             try
             {
                 SerializeHeaderCore(writer);
-                writer.PadBits();
+                writer.PadByte();
             }
             catch (Exception e)
             {
@@ -69,7 +69,7 @@ namespace Lunet.Channels
             try
             {
                 SerializeDataCore(writer);
-                writer.PadBits();
+                writer.PadByte();
             }
             catch (Exception e)
             {

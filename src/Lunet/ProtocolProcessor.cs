@@ -1,6 +1,7 @@
 ﻿using Lunet.Common;
 using Lunet.Data;
 using System;
+using System.Buffers.Binary;
 
 namespace Lunet
 {
@@ -8,28 +9,28 @@ namespace Lunet
     {
         private static Guid Version { get; } = Guid.Parse("1EDEFE8C-9469-4D68-9F3E-40A4A1971B90");
 
-        private static uint InitialCrc32 { get; }
+        private static uint InitialHash { get; }
 
         static ProtocolProcessor()
         {
-            InitialCrc32 = Crc32.Compute(Version.ToByteArray());
+            InitialHash = Crc32.Compute(Version.ToByteArray());
         }
 
-        public (byte ChannelId, NetDataReader? Reader) Read(byte[] data, int offset, int length)
+        public (byte ChannelId, NetDataReader? Reader) Read(NetDataReader reader)
         {
-            if (!Crc32.Check(InitialCrc32, data, offset, length))
+            if (!Crc32.Check(InitialHash, reader.GetSpan()))
             {
                 return (default, null);
             }
 
-            var reader = new NetDataReader(data, offset, length - Crc32.HashLength);
+            reader.Reset(reader.Offset - reader.BufferOffset, reader.Length - Crc32.HashLength);
 
             return (reader.ReadByte(), reader);
         }
 
         public void Write(NetDataWriter writer, byte channelId, IChannelPacket packet)
         {
-            var offset = writer.Length;
+            var offset = writer.Position;
 
             // Packet
             writer.WriteByte(channelId);
@@ -37,11 +38,11 @@ namespace Lunet
             packet.SerializeData(writer);
             writer.Flush();
 
-            var length = writer.Length - offset;
+            var length = writer.Position - offset;
 
-            // CRC
-            var crc32 = Crc32.Append(InitialCrc32, writer.Data, offset, length);
-            writer.WriteUInt(crc32);
+            // Hash
+            var hash = Crc32.Append(InitialHash, writer.Data, writer.Offset + offset, length);
+            writer.WriteUInt(hash);
             writer.Flush();
         }
 
