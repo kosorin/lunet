@@ -60,18 +60,23 @@ namespace Lunet.Data
             Reset(0);
         }
 
-        public void Reset(int writeOffset)
+        public void Reset(int offset)
         {
-            if (DataLength < writeOffset)
+            if (offset < DataOffset || DataOffset + DataLength < offset)
             {
-                throw new ArgumentOutOfRangeException(nameof(writeOffset));
+                throw new ArgumentOutOfRangeException(nameof(offset));
             }
 
-            _writeOffset = writeOffset;
+            _writeOffset = offset - DataOffset;
             _writeLength = 0;
             _writePosition = 0;
             _writeBitPosition = 0;
             _buffer = 0;
+        }
+
+        public void ResetRelative(int left)
+        {
+            Reset(Offset + left);
         }
 
         public void Flush()

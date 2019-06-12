@@ -22,9 +22,10 @@ namespace Lunet
                 return (default, null);
             }
 
-            reader.Reset(reader.Offset - reader.DataOffset, reader.Length - Crc32.HashLength);
+            var channelId = reader.ReadByte();
+            reader.ResetRelative(sizeof(byte), -Crc32.HashLength);
 
-            return (reader.ReadByte(), reader);
+            return (channelId, reader);
         }
 
         public void Write(NetDataWriter writer, byte channelId, IChannelPacket packet)

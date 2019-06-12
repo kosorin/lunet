@@ -31,24 +31,29 @@ namespace Lunet.Data
 
         public void Reset()
         {
-            Reset(0, DataLength);
+            Reset(DataOffset, DataLength);
         }
 
-        public void Reset(int readOffset, int readLength)
+        public void Reset(int offset, int length)
         {
-            if (DataLength < readOffset)
+            if (offset < DataOffset || DataOffset + DataLength < offset)
             {
-                throw new ArgumentOutOfRangeException(nameof(readOffset));
+                throw new ArgumentOutOfRangeException(nameof(offset));
             }
-            if (DataLength < readOffset + readLength)
+            if (length < 0 || DataOffset + DataLength < offset + length)
             {
-                throw new ArgumentOutOfRangeException(nameof(readLength));
+                throw new ArgumentOutOfRangeException(nameof(length));
             }
 
-            _readOffset = readOffset;
-            _readLength = readLength;
+            _readOffset = offset - DataOffset;
+            _readLength = length;
             _readPosition = 0;
             _readBitPosition = 0;
+        }
+
+        public void ResetRelative(int left, int right)
+        {
+            Reset(Offset + left, Length - left + right);
         }
 
         public void Seek(int bitOffset, SeekOrigin origin)
