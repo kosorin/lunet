@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace Lunet.Data
 {
-    public class NetDataReader : DataBuffer
+    public class NetDataReader : NetDataBuffer
     {
         private int _readOffset;
         private int _readLength;
@@ -23,7 +23,7 @@ namespace Lunet.Data
             Reset();
         }
 
-        public override int Offset => BufferOffset + _readOffset;
+        public override int Offset => DataOffset + _readOffset;
 
         public override int Length => _readLength;
 
@@ -31,16 +31,16 @@ namespace Lunet.Data
 
         public void Reset()
         {
-            Reset(0, BufferLength);
+            Reset(0, DataLength);
         }
 
         public void Reset(int readOffset, int readLength)
         {
-            if (BufferLength < readOffset)
+            if (DataLength < readOffset)
             {
                 throw new ArgumentOutOfRangeException(nameof(readOffset));
             }
-            if (BufferLength < readOffset + readLength)
+            if (DataLength < readOffset + readLength)
             {
                 throw new ArgumentOutOfRangeException(nameof(readLength));
             }

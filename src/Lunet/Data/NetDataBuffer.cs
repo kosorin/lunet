@@ -5,13 +5,13 @@ using System.Runtime.InteropServices;
 
 namespace Lunet.Data
 {
-    public abstract class DataBuffer
+    public abstract class NetDataBuffer
     {
         private byte[] _data;
         private readonly int _offset;
         private int _length;
 
-        protected DataBuffer(int length)
+        protected NetDataBuffer(int length)
         {
             if (length < 0)
             {
@@ -25,7 +25,7 @@ namespace Lunet.Data
             _length = length;
         }
 
-        protected DataBuffer(byte[] data, int offset, int length)
+        protected NetDataBuffer(byte[] data, int offset, int length)
         {
             if (offset + length > data.Length)
             {
@@ -43,9 +43,9 @@ namespace Lunet.Data
 
         public byte[] Data => _data;
 
-        public int BufferOffset => _offset;
+        public int DataOffset => _offset;
 
-        public int BufferLength => _length;
+        public int DataLength => _length;
 
         public abstract int Offset { get; }
 

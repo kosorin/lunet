@@ -22,7 +22,7 @@ namespace Lunet
                 return (default, null);
             }
 
-            reader.Reset(reader.Offset - reader.BufferOffset, reader.Length - Crc32.HashLength);
+            reader.Reset(reader.Offset - reader.DataOffset, reader.Length - Crc32.HashLength);
 
             return (reader.ReadByte(), reader);
         }

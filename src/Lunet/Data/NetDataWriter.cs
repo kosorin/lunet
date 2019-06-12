@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace Lunet.Data
 {
-    public class NetDataWriter : DataBuffer
+    public class NetDataWriter : NetDataBuffer
     {
         private const int DefaultDataLength = 8;
 
@@ -36,7 +36,7 @@ namespace Lunet.Data
             Reset();
         }
 
-        public override int Offset => BufferOffset + _writeOffset;
+        public override int Offset => DataOffset + _writeOffset;
 
         public override int Length => _writeLength;
 
@@ -61,7 +61,7 @@ namespace Lunet.Data
 
         public void Reset(int writeOffset)
         {
-            if (BufferLength < writeOffset)
+            if (DataLength < writeOffset)
             {
                 throw new ArgumentOutOfRangeException(nameof(writeOffset));
             }
