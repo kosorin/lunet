@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace Lunet.Data
@@ -76,6 +77,36 @@ namespace Lunet.Data
         public void Flush()
         {
             PadByte();
+        }
+
+        public void Seek(int bitOffset, SeekOrigin origin)
+        {
+            if (_writeBitPosition != 0)
+            {
+                throw new InvalidOperationException();
+            }
+
+            var relativeBitPosition = origin switch
+            {
+                SeekOrigin.Begin => (0 - GetWriteBitPosition()) + bitOffset,
+                SeekOrigin.End => (GetWriteBitLength() - GetWriteBitPosition()) - bitOffset,
+                _ => bitOffset,
+            };
+            EnsureWriteSize(relativeBitPosition);
+
+            var newBitPosition = GetWriteBitPosition() + relativeBitPosition;
+            _writePosition = newBitPosition / NC.BitsPerByte;
+            _writeBitPosition = newBitPosition % NC.BitsPerByte;
+            _buffer = 0;
+
+            if (_writeLength < _writePosition)
+            {
+                _writeLength = _writePosition;
+                if (_writeBitPosition != 0)
+                {
+                    _writeLength++;
+                }
+            }
         }
 
         public void PadByte()
