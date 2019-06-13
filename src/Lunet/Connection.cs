@@ -77,8 +77,6 @@ namespace Lunet
 
         public abstract void Connect();
 
-        public abstract void Disconnect();
-
         public void SendMessage(byte[] data)
         {
             SendMessage(_defaultChannelId, data);
@@ -149,10 +147,6 @@ namespace Lunet
                 return;
             }
 
-            if (disposing)
-            {
-                Disconnect();
-            }
             _disposed = true;
         }
     }

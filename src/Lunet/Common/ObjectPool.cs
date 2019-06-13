@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace Lunet.Common
 {
-    internal class ObjectPool<TItem>
+    internal class ObjectPool<TItem> : IDisposable
         where TItem : class
     {
         private readonly bool _isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
@@ -96,6 +96,7 @@ namespace Lunet.Common
                     }
                 }
             }
+
             _disposed = true;
         }
     }

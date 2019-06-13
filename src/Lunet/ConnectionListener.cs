@@ -29,21 +29,9 @@ namespace Lunet
         }
 
 
-        public void Start()
+        public void Run()
         {
             _socket.Bind();
-        }
-
-        public void Stop()
-        {
-            lock (_connectionsLock)
-            {
-                foreach (var connection in _connections.Values)
-                {
-                    connection.Disconnect();
-                }
-            }
-            _socket.Close();
         }
 
 
@@ -93,8 +81,16 @@ namespace Lunet
 
             if (disposing)
             {
-                Stop();
+                lock (_connectionsLock)
+                {
+                    foreach (var connection in _connections.Values)
+                    {
+                        connection.Dispose();
+                    }
+                }
+                _socket.Dispose();
             }
+
             _disposed = true;
         }
     }

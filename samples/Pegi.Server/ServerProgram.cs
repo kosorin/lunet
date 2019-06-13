@@ -47,7 +47,7 @@ namespace Pegi.Server
                     };
                     connections.TryAdd(connection.RemoteEndPoint, connection);
                 };
-                listener.Start();
+                listener.Run();
 
                 var updateTime = 30;
                 while (!resetEvent.IsSet)
@@ -60,12 +60,8 @@ namespace Pegi.Server
                 }
 
                 Log.Information("Disconnecting...");
-                foreach (var connection in connections.Values)
-                {
-                    connection.Disconnect();
-                }
-                Log.Information("Disconnected");
             }
+            Log.Information("Disconnected");
 
             Thread.Sleep(1000);
         }

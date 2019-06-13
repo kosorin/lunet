@@ -19,12 +19,6 @@ namespace Lunet
             throw new InvalidOperationException($"{nameof(ServerConnection)} is automatically connected by listener.");
         }
 
-        public override void Disconnect()
-        {
-            State = ConnectionState.Disconnected;
-            OnDisconnected();
-        }
-
 
         internal override void HandleOutgoingPacket(ProtocolPacket packet)
         {
@@ -36,14 +30,18 @@ namespace Lunet
 
         protected override void Dispose(bool disposing)
         {
-            if (!_disposed)
+            if (_disposed)
             {
-                if (disposing)
-                {
-                    Disconnect();
-                }
-                _disposed = true;
+                return;
             }
+
+            if (disposing)
+            {
+                State = ConnectionState.Disconnected;
+                OnDisconnected();
+            }
+
+            _disposed = true;
             base.Dispose(disposing);
         }
     }

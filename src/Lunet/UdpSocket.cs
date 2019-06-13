@@ -29,11 +29,6 @@ namespace Lunet
         }
 
 
-        public void Close()
-        {
-            Dispose();
-        }
-
         public void Bind()
         {
             try
@@ -163,10 +158,10 @@ namespace Lunet
             {
             case SocketAsyncOperation.ReceiveFrom:
                 ProcessReceive(token);
-                break;
+                return;
             case SocketAsyncOperation.SendTo:
                 ProcessSend(token);
-                break;
+                return;
             default:
                 throw new InvalidOperationException("Unexpected socket async operation.");
             }
@@ -189,12 +184,12 @@ namespace Lunet
 
             if (disposing)
             {
-                _socket.Close();
                 _socket.Dispose();
 
                 _receiveToken.Dispose();
                 _sendTokenPool.Dispose();
             }
+
             _disposed = true;
         }
     }

@@ -23,15 +23,6 @@ namespace Lunet
             State = ConnectionState.Connected;
         }
 
-        public override void Disconnect()
-        {
-            State = ConnectionState.Disconnecting;
-            _socket.Close();
-
-            State = ConnectionState.Disconnected;
-            OnDisconnected();
-        }
-
 
         private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, NetDataReader reader)
         {
@@ -51,14 +42,21 @@ namespace Lunet
 
         protected override void Dispose(bool disposing)
         {
-            if (!_disposed)
+            if (_disposed)
             {
-                if (disposing)
-                {
-                    Disconnect();
-                }
-                _disposed = true;
+                return;
             }
+
+            if (disposing)
+            {
+                State = ConnectionState.Disconnecting;
+                _socket.Dispose();
+
+                State = ConnectionState.Disconnected;
+                OnDisconnected();
+            }
+
+            _disposed = true;
             base.Dispose(disposing);
         }
     }
