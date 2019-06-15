@@ -8,7 +8,6 @@ namespace Lunet
 {
     internal class UdpSocket : IDisposable
     {
-        private readonly ProtocolProcessor _protocolProcessor = new ProtocolProcessor();
         private readonly InternetEndPoint _localEndPoint;
 
         private readonly Socket _socket;
@@ -47,7 +46,7 @@ namespace Lunet
         }
 
 
-        public event TypedEventHandler<InternetEndPoint, NetDataReader> PacketReceived;
+        public event TypedEventHandler<InternetEndPoint, IncomingProtocolPacket> PacketReceived;
 
         private SocketAsyncEventArgs CreateReceiveToken()
         {
@@ -55,7 +54,7 @@ namespace Lunet
             var token = new SocketAsyncEventArgs
             {
                 RemoteEndPoint = _socket.AddressFamily.GetAnyEndPoint(),
-                UserToken = new NetDataReader(buffer),
+                UserToken = new IncomingProtocolPacket(new NetDataReader(buffer)),
             };
             token.Completed += IO_Completed;
             token.SetBuffer(buffer, 0, buffer.Length);
@@ -82,10 +81,12 @@ namespace Lunet
             if (token.SocketError == SocketError.Success && token.BytesTransferred > 0)
             {
                 var remoteEndPoint = new InternetEndPoint(token.RemoteEndPoint);
-                var reader = (NetDataReader)token.UserToken;
-                reader.Reset(token.Offset, token.BytesTransferred);
+                var packet = (IncomingProtocolPacket)token.UserToken;
 
-                PacketReceived?.Invoke(remoteEndPoint, reader);
+                if (packet.Read(token.Offset, token.BytesTransferred))
+                {
+                    PacketReceived?.Invoke(remoteEndPoint, packet);
+                }
             }
             else
             {
@@ -96,7 +97,7 @@ namespace Lunet
         }
 
 
-        public void SendPacket(InternetEndPoint remoteEndPoint, byte channelId, IChannelPacket packet)
+        public void SendPacket(InternetEndPoint remoteEndPoint, OutgoingProtocolPacket packet)
         {
             if (IsDisposed)
             {
@@ -104,22 +105,21 @@ namespace Lunet
             }
 
             var token = _sendTokenPool.Rent();
-
-            var writer = (NetDataWriter)token.UserToken;
             try
             {
-                WritePacket(writer, channelId, packet);
+                var writer = (NetDataWriter)token.UserToken;
+                packet.Write(writer);
+
+                token.SetBuffer(writer.Data, writer.Offset, writer.Length);
+                token.RemoteEndPoint = remoteEndPoint.EndPoint;
+
+                StartSend(token);
             }
             catch
             {
                 _sendTokenPool.Return(token);
-                return;
+                throw;
             }
-
-            token.SetBuffer(writer.Data, writer.Offset, writer.Length);
-            token.RemoteEndPoint = remoteEndPoint.EndPoint;
-
-            StartSend(token);
         }
 
         private SocketAsyncEventArgs CreateSendToken()
@@ -134,29 +134,17 @@ namespace Lunet
 
         private void StartSend(SocketAsyncEventArgs token)
         {
-            try
+            if (_socket.SendToAsync(token))
             {
-                if (!_socket.SendToAsync(token))
-                {
-                    ProcessSend(token);
-                }
+                return;
             }
-            catch (ObjectDisposedException)
-            {
-                _sendTokenPool.Return(token);
-            }
+
+            ProcessSend(token);
         }
 
         private void ProcessSend(SocketAsyncEventArgs token)
         {
             _sendTokenPool.Return(token);
-        }
-
-        private void WritePacket(NetDataWriter writer, byte channelId, IChannelPacket packet)
-        {
-            writer.Reset();
-            _protocolProcessor.Write(writer, channelId, packet);
-            writer.Flush();
         }
 
 

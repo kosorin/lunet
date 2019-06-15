@@ -24,17 +24,17 @@ namespace Lunet
         }
 
 
-        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, NetDataReader reader)
+        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, IncomingProtocolPacket packet)
         {
             if (RemoteEndPoint == remoteEndPoint)
             {
-                HandleIncomingPacket(reader);
+                HandleIncomingPacket(packet);
             }
         }
 
-        internal override void HandleOutgoingPacket(ProtocolPacket packet)
+        internal override void HandleOutgoingPacket(OutgoingProtocolPacket packet)
         {
-            _socket.SendPacket(RemoteEndPoint, packet.ChannelId, packet.ChannelPacket);
+            _socket.SendPacket(RemoteEndPoint, packet);
         }
 
 

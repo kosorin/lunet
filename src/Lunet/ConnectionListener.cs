@@ -35,7 +35,7 @@ namespace Lunet
         }
 
 
-        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, NetDataReader reader)
+        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, IncomingProtocolPacket packet)
         {
             ServerConnection? connection = null;
 
@@ -52,7 +52,7 @@ namespace Lunet
                 }
             }
 
-            connection.HandleIncomingPacket(reader);
+            connection.HandleIncomingPacket(packet);
         }
 
         private void Connection_Disconnected(Connection connection)

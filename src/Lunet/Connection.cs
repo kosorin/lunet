@@ -3,6 +3,7 @@ using Lunet.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Lunet
 {
@@ -13,6 +14,8 @@ namespace Lunet
         private readonly byte _defaultChannelId;
         private readonly IDictionary<byte, IChannel> _channels;
 
+        private readonly ObjectPool<OutgoingProtocolPacket> _outgoingProtocolPacketPool;
+
         protected Connection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory)
         {
             RemoteEndPoint = remoteEndPoint;
@@ -21,6 +24,8 @@ namespace Lunet
 
             _channels = channelFactory.Create(this).ToDictionary(x => x.Id);
             _defaultChannelId = _channels.Keys.Min();
+
+            _outgoingProtocolPacketPool = new ObjectPool<OutgoingProtocolPacket>();
         }
 
 
@@ -65,11 +70,11 @@ namespace Lunet
                 {
                     foreach (var packet in outgoingPackets)
                     {
-                        HandleOutgoingPacket(new ProtocolPacket
-                        {
-                            ChannelId = channel.Id,
-                            ChannelPacket = packet,
-                        });
+                        var protocolPacket = _outgoingProtocolPacketPool.Rent();
+                        protocolPacket.ChannelId = channel.Id;
+                        protocolPacket.ChannelPacket = packet;
+
+                        HandleOutgoingPacket(protocolPacket);
                     }
                 }
             }
@@ -100,26 +105,20 @@ namespace Lunet
         }
 
 
-        internal void HandleIncomingPacket(NetDataReader reader)
+        internal void HandleIncomingPacket(IncomingProtocolPacket packet)
         {
             if (State != ConnectionState.Connected)
             {
                 return;
             }
 
-            var dataX = new ProtocolProcessor().Read(reader);
-            if (dataX.Reader == null)
+            if (_channels.TryGetValue(packet.ChannelId, out var channel))
             {
-                return;
-            }
-
-            if (_channels.TryGetValue(dataX.ChannelId, out var channel))
-            {
-                channel.HandleIncomingPacket(dataX.Reader);
+                channel.HandleIncomingPacket(packet.Reader);
             }
         }
 
-        internal abstract void HandleOutgoingPacket(ProtocolPacket packet);
+        internal abstract void HandleOutgoingPacket(OutgoingProtocolPacket packet);
 
 
         protected virtual void OnDisconnected()
@@ -145,6 +144,11 @@ namespace Lunet
             if (_disposed)
             {
                 return;
+            }
+
+            if (disposing)
+            {
+                _outgoingProtocolPacketPool.Dispose();
             }
 
             _disposed = true;

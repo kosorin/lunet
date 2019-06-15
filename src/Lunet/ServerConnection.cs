@@ -20,9 +20,9 @@ namespace Lunet
         }
 
 
-        internal override void HandleOutgoingPacket(ProtocolPacket packet)
+        internal override void HandleOutgoingPacket(OutgoingProtocolPacket packet)
         {
-            _socket.SendPacket(RemoteEndPoint, packet.ChannelId, packet.ChannelPacket);
+            _socket.SendPacket(RemoteEndPoint, packet);
         }
 
 

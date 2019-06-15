@@ -39,15 +39,15 @@ namespace Lunet.Channels
             try
             {
                 DeserializeDataCore(reader);
-
-                if (reader.Position != reader.Length)
-                {
-                    throw new NetSerializationException($"Remaining data in a packet ({reader.Length - reader.Position} bytes).");
-                }
             }
             catch (Exception e)
             {
                 throw new NetSerializationException("Could not deserialize packet data.", e);
+            }
+
+            if (reader.Position != reader.Length)
+            {
+                throw new NetSerializationException($"Remaining data in a packet ({reader.Length - reader.Position} bytes).");
             }
         }
 
