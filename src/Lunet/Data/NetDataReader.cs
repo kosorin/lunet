@@ -53,7 +53,7 @@ namespace Lunet.Data
 
         public void ResetRelative(int left, int right)
         {
-            Reset(Offset + left, Length - left + right);
+            Reset(Offset + left, Length - left - right);
         }
 
         public void Seek(int bitOffset, SeekOrigin origin)

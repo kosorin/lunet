@@ -23,7 +23,7 @@ namespace Lunet
             }
 
             var channelId = reader.ReadByte();
-            reader.ResetRelative(sizeof(byte), -Crc32.HashLength);
+            reader.ResetRelative(sizeof(byte), Crc32.HashLength);
 
             return (channelId, reader);
         }
