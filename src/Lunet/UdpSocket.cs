@@ -8,10 +8,10 @@ using System.Threading;
 
 namespace Lunet
 {
-    internal class UdpSocket : IDisposable
+    internal sealed class UdpSocket : IDisposable
     {
         private readonly InternetEndPoint _localEndPoint;
-        private readonly IPEndPoint _anyEndPoint;
+        private readonly IPEndPoint _localAnyIPEndPoint;
 
         private readonly Socket _socket;
 
@@ -21,7 +21,7 @@ namespace Lunet
         public UdpSocket(InternetEndPoint localEndPoint)
         {
             _localEndPoint = localEndPoint;
-            _anyEndPoint = localEndPoint.EndPoint.AddressFamily.GetAnyEndPoint();
+            _localAnyIPEndPoint = localEndPoint.EndPoint.AddressFamily.GetAnyEndPoint();
 
             _socket = new Socket(_localEndPoint.EndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 
@@ -34,9 +34,6 @@ namespace Lunet
         }
 
 
-        public bool IsDisposed => _disposed == 1;
-
-
         public void Bind()
         {
             _socket.Bind(_localEndPoint.EndPoint);
@@ -47,19 +44,6 @@ namespace Lunet
 
         public event TypedEventHandler<InternetEndPoint, IncomingProtocolPacket> PacketReceived;
 
-        private SocketAsyncEventArgs CreateReceiveToken()
-        {
-            var buffer = new byte[ushort.MaxValue];
-            var token = new SocketAsyncEventArgs
-            {
-                RemoteEndPoint = _anyEndPoint,
-                UserToken = new IncomingProtocolPacket(new NetDataReader(buffer)),
-            };
-            token.Completed += IO_Completed;
-            token.SetBuffer(buffer, 0, buffer.Length);
-            return token;
-        }
-
         private void ReceivePacket()
         {
             if (IsDisposed)
@@ -67,7 +51,13 @@ namespace Lunet
                 return;
             }
 
-            StartReceive(_receiveTokenPool.Rent());
+            var token = _receiveTokenPool.Rent();
+            if (token == null)
+            {
+                return;
+            }
+
+            StartReceive(token);
         }
 
         private void StartReceive(SocketAsyncEventArgs token)
@@ -82,7 +72,7 @@ namespace Lunet
             catch (ObjectDisposedException)
             {
                 // It's ok, just return
-                _receiveTokenPool.Return(token);
+                token.Dispose();
                 return;
             }
             catch
@@ -97,6 +87,12 @@ namespace Lunet
         private void ProcessReceive(SocketAsyncEventArgs token)
         {
             ReceivePacket();
+
+            if (IsDisposed)
+            {
+                token.Dispose();
+                return;
+            }
 
             try
             {
@@ -120,6 +116,19 @@ namespace Lunet
             }
         }
 
+        private SocketAsyncEventArgs CreateReceiveToken()
+        {
+            var buffer = new byte[ushort.MaxValue];
+            var token = new SocketAsyncEventArgs
+            {
+                RemoteEndPoint = _localAnyIPEndPoint,
+                UserToken = new IncomingProtocolPacket(new NetDataReader(buffer)),
+            };
+            token.Completed += IO_Completed;
+            token.SetBuffer(buffer, 0, buffer.Length);
+            return token;
+        }
+
 
         public void SendPacket(InternetEndPoint remoteEndPoint, OutgoingProtocolPacket packet)
         {
@@ -129,6 +138,11 @@ namespace Lunet
             }
 
             var token = _sendTokenPool.Rent();
+            if (token == null)
+            {
+                return;
+            }
+
             try
             {
                 var writer = (NetDataWriter)token.UserToken;
@@ -145,16 +159,6 @@ namespace Lunet
             StartSend(token);
         }
 
-        private SocketAsyncEventArgs CreateSendToken()
-        {
-            var token = new SocketAsyncEventArgs
-            {
-                UserToken = new NetDataWriter(),
-            };
-            token.Completed += IO_Completed;
-            return token;
-        }
-
         private void StartSend(SocketAsyncEventArgs token)
         {
             try
@@ -167,7 +171,7 @@ namespace Lunet
             catch (ObjectDisposedException)
             {
                 // It's ok, just return
-                _sendTokenPool.Return(token);
+                token.Dispose();
                 return;
             }
             catch
@@ -181,7 +185,23 @@ namespace Lunet
 
         private void ProcessSend(SocketAsyncEventArgs token)
         {
+            if (IsDisposed)
+            {
+                token.Dispose();
+                return;
+            }
+
             _sendTokenPool.Return(token);
+        }
+
+        private SocketAsyncEventArgs CreateSendToken()
+        {
+            var token = new SocketAsyncEventArgs
+            {
+                UserToken = new NetDataWriter(),
+            };
+            token.Completed += IO_Completed;
+            return token;
         }
 
 
@@ -208,6 +228,8 @@ namespace Lunet
 
 
         private int _disposed;
+
+        public bool IsDisposed => _disposed == 1;
 
         public void Dispose()
         {

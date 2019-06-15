@@ -1,7 +1,7 @@
 ﻿using Lunet.Common;
-using Lunet.Data;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Lunet
 {
@@ -65,16 +65,19 @@ namespace Lunet
         }
 
 
-        private bool _disposed;
+        private int _disposed;
+
+        public virtual bool IsDisposed => _disposed == 1;
 
         public void Dispose()
         {
             Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         protected virtual void Dispose(bool disposing)
         {
-            if (_disposed)
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
             {
                 return;
             }
@@ -90,8 +93,6 @@ namespace Lunet
                 }
                 _socket.Dispose();
             }
-
-            _disposed = true;
         }
     }
 }

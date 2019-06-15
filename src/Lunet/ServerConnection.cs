@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 
 namespace Lunet
 {
@@ -26,11 +27,13 @@ namespace Lunet
         }
 
 
-        private bool _disposed;
+        private int _disposed;
+
+        public override bool IsDisposed => _disposed == 1;
 
         protected override void Dispose(bool disposing)
         {
-            if (_disposed)
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
             {
                 return;
             }
@@ -41,7 +44,6 @@ namespace Lunet
                 OnDisconnected();
             }
 
-            _disposed = true;
             base.Dispose(disposing);
         }
     }

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Lunet.Common
 {
@@ -7,46 +9,33 @@ namespace Lunet.Common
         where TItem : class
     {
         private readonly bool _isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
-        private readonly int _capacity;
         private readonly Func<TItem> _activator;
-        private readonly ConcurrentQueue<TItem> _objects;
-
-        private bool _disposed;
+        private readonly ConcurrentBag<TItem> _objects;
 
         public ObjectPool()
-            : this(int.MaxValue)
+            : this(ObjectActivatorFactory.Create<TItem>())
         {
         }
 
         public ObjectPool(Func<TItem> activator)
-            : this(int.MaxValue, activator)
         {
-        }
-
-        private ObjectPool(int capacity)
-            : this(capacity, ObjectActivatorFactory.Create<TItem>())
-        {
-        }
-
-        private ObjectPool(int capacity, Func<TItem> activator)
-        {
-            if (capacity <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(capacity), capacity, $"Argument {nameof(capacity)} must be greater than zero.");
-            }
             if (activator == null)
             {
                 throw new ArgumentNullException(nameof(activator));
             }
 
-            _capacity = capacity;
             _activator = activator;
-            _objects = new ConcurrentQueue<TItem>();
+            _objects = new ConcurrentBag<TItem>();
         }
 
         public TItem Rent()
         {
-            if (!_objects.TryDequeue(out var item))
+            if (IsDisposed)
+            {
+                return null!;
+            }
+
+            if (!_objects.TryTake(out var item))
             {
                 item = _activator();
             }
@@ -61,27 +50,29 @@ namespace Lunet.Common
                 return;
             }
 
-            if (_objects.Count < _capacity)
+            if (IsDisposed && _isItemDisposable)
             {
-                _objects.Enqueue(item);
+                ((IDisposable)item).Dispose();
+                return;
             }
-            else
-            {
-                if (_isItemDisposable)
-                {
-                    ((IDisposable)item).Dispose();
-                }
-            }
+
+            _objects.Add(item);
         }
+
+
+        private int _disposed;
+
+        public virtual bool IsDisposed => _disposed == 1;
 
         public void Dispose()
         {
             Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        private void Dispose(bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
-            if (_disposed)
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
             {
                 return;
             }
@@ -90,14 +81,12 @@ namespace Lunet.Common
             {
                 if (_isItemDisposable)
                 {
-                    foreach (var item in _objects)
+                    foreach (IDisposable item in _objects)
                     {
-                        ((IDisposable)item).Dispose();
+                        item.Dispose();
                     }
                 }
             }
-
-            _disposed = true;
         }
     }
 }
