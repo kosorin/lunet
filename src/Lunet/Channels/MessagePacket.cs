@@ -26,7 +26,7 @@ namespace Lunet.Channels
             try
             {
                 DeserializeHeaderCore(reader);
-                reader.SkipBits();
+                reader.PadByte();
             }
             catch (Exception e)
             {

@@ -71,7 +71,7 @@ namespace Lunet.Data
             _readBitPosition = newBitPosition % NC.BitsPerByte;
         }
 
-        public void SkipBits()
+        public void PadByte()
         {
             if (_readBitPosition == 0)
             {
