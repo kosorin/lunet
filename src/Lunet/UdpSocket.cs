@@ -29,6 +29,9 @@ namespace Lunet
         }
 
 
+        public bool IsDisposed => _disposed || _disposing;
+
+
         public void Bind()
         {
             try
@@ -61,17 +64,17 @@ namespace Lunet
 
         private void StartReceive()
         {
-            try
+            if (IsDisposed)
             {
-                if (!_socket.ReceiveFromAsync(_receiveToken))
-                {
-                    ProcessReceive(_receiveToken);
-                }
+                return;
             }
-            catch (ObjectDisposedException)
+
+            if (_socket.ReceiveFromAsync(_receiveToken))
             {
-                // Guess it's ok...
+                return;
             }
+
+            ProcessReceive(_receiveToken);
         }
 
         private void ProcessReceive(SocketAsyncEventArgs token)
@@ -95,6 +98,11 @@ namespace Lunet
 
         public void SendPacket(InternetEndPoint remoteEndPoint, byte channelId, IChannelPacket packet)
         {
+            if (IsDisposed)
+            {
+                return;
+            }
+
             var token = _sendTokenPool.Rent();
 
             var writer = (NetDataWriter)token.UserToken;
@@ -154,6 +162,11 @@ namespace Lunet
 
         private void IO_Completed(object sender, SocketAsyncEventArgs token)
         {
+            if (IsDisposed)
+            {
+                return;
+            }
+
             switch (token.LastOperation)
             {
             case SocketAsyncOperation.ReceiveFrom:
@@ -168,6 +181,7 @@ namespace Lunet
         }
 
 
+        private bool _disposing;
         private bool _disposed;
 
         public void Dispose()
@@ -182,6 +196,8 @@ namespace Lunet
                 return;
             }
 
+            _disposing = true;
+
             if (disposing)
             {
                 _socket.Dispose();
@@ -190,6 +206,7 @@ namespace Lunet
                 _sendTokenPool.Dispose();
             }
 
+            _disposing = false;
             _disposed = true;
         }
     }
