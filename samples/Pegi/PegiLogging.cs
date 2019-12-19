@@ -16,10 +16,11 @@ namespace Pegi
         public static void Configure(string name)
         {
             var version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            var outputTemplate = $"{name}: [{{Timestamp:{ShortTimeFormatString}}} {{Level:u3}}] {{Message:lj}}{{NewLine}}{{Exception}}";
+            var outputTemplate = $"{name}: [{{Timestamp:{ShortTimeFormatString}}} {{Level:u3}}] [{{ThreadId}}] {{Message:lj}}{{NewLine}}{{Exception}}";
             var config = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
                 .Enrich.FromLogContext()
+                .Enrich.WithThreadId()
                 .WriteTo.Console(LogEventLevel.Verbose, outputTemplate)
                 .WriteTo.Debug(LogEventLevel.Debug, outputTemplate)
                 ;

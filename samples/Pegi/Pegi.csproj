@@ -4,4 +4,8 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
+  </ItemGroup>
+
 </Project>
