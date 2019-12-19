@@ -32,7 +32,7 @@ namespace Lunet.Common
         {
             if (IsDisposed)
             {
-                return null!;
+                throw new ObjectDisposedException(GetType().FullName);
             }
 
             if (!_objects.TryTake(out var item))
@@ -50,9 +50,13 @@ namespace Lunet.Common
                 return;
             }
 
-            if (IsDisposed && _isItemDisposable)
+            if (IsDisposed)
             {
-                ((IDisposable)item).Dispose();
+                // Throwing ObjectDisposedException is not needed unlike Rent method
+                if (_isItemDisposable)
+                {
+                    ((IDisposable)item).Dispose();
+                }
                 return;
             }
 
@@ -86,6 +90,7 @@ namespace Lunet.Common
                         item.Dispose();
                     }
                 }
+                _objects.Clear();
             }
         }
     }

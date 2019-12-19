@@ -51,9 +51,14 @@ namespace Lunet
                 return;
             }
 
-            var token = _receiveTokenPool.Rent();
-            if (token == null)
+            SocketAsyncEventArgs token;
+            try
             {
+                token = _receiveTokenPool.Rent();
+            }
+            catch (ObjectDisposedException)
+            {
+                // It's ok - we don't want to receive packets anymore
                 return;
             }
 
@@ -71,7 +76,7 @@ namespace Lunet
             }
             catch (ObjectDisposedException)
             {
-                // It's ok, just return
+                // It's ok - we don't want to receive packets anymore
                 token.Dispose();
                 return;
             }
@@ -86,23 +91,31 @@ namespace Lunet
 
         private void ProcessReceive(SocketAsyncEventArgs token)
         {
-            ReceivePacket();
-
             if (IsDisposed)
             {
                 token.Dispose();
                 return;
             }
 
+            ReceivePacket();
+
             try
             {
                 if (token.SocketError == SocketError.Success && token.BytesTransferred > 0)
                 {
+
                     var remoteEndPoint = new InternetEndPoint(token.RemoteEndPoint);
                     var packet = (IncomingProtocolPacket)token.UserToken;
                     if (packet.Read(token.Offset, token.BytesTransferred))
                     {
-                        PacketReceived?.Invoke(remoteEndPoint, packet);
+                        try
+                        {
+                            PacketReceived?.Invoke(remoteEndPoint, packet);
+                        }
+                        catch
+                        {
+                            // What now?
+                        }
                     }
                 }
                 else
@@ -132,17 +145,7 @@ namespace Lunet
 
         public void SendPacket(InternetEndPoint remoteEndPoint, OutgoingProtocolPacket packet)
         {
-            if (IsDisposed)
-            {
-                return;
-            }
-
             var token = _sendTokenPool.Rent();
-            if (token == null)
-            {
-                return;
-            }
-
             try
             {
                 var writer = (NetDataWriter)token.UserToken;
@@ -167,12 +170,6 @@ namespace Lunet
                 {
                     return;
                 }
-            }
-            catch (ObjectDisposedException)
-            {
-                // It's ok, just return
-                token.Dispose();
-                return;
             }
             catch
             {
