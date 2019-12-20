@@ -19,7 +19,10 @@ namespace Lunet.Tests
         {
             var left = (SeqNo)l;
             var right = (SeqNo)r;
-            Assert.Equal(0, left.CompareTo(right));
+
+            var result = left.CompareTo(right);
+
+            Assert.Equal(0, result);
         }
 
         [Theory]
@@ -29,63 +32,78 @@ namespace Lunet.Tests
         {
             var left = (SeqNo)l;
             var right = (SeqNo)r;
-            Assert.NotEqual(0, left.CompareTo(right));
+
+            var result = left.CompareTo(right);
+
+            Assert.NotEqual(0, result);
         }
 
         [Theory]
-        [InlineData(42, 42 + SeqNo.HalfRange - 1)]
-        [InlineData(42, 42 + SeqNo.HalfRange - 2)]
-        [InlineData(42, 42 + 1)]
-        [InlineData(42, 42 - (SeqNo.HalfRange + 1))]
-        [InlineData(42, 42 - (SeqNo.HalfRange + 2))]
+        [InlineData(100, 100 + SeqNo.HalfRange - 1)]
+        [InlineData(100, 100 + SeqNo.HalfRange - 2)]
+        [InlineData(100, 100 + 1)]
+        [InlineData(100, 100 - (SeqNo.HalfRange + 1))]
+        [InlineData(100, 100 - (SeqNo.HalfRange + 2))]
         public void CompareTo_Less(int l, int r)
         {
             var left = (SeqNo)l;
             var right = (SeqNo)r;
-            Assert.True(left.CompareTo(right) < 0);
+
+            var result = left.CompareTo(right);
+
+            Assert.True(result < 0);
         }
 
         [Theory]
-        [InlineData(42, 42 + SeqNo.HalfRange + 2)]
-        [InlineData(42, 42 + SeqNo.HalfRange + 1)]
-        [InlineData(42, 42 + SeqNo.HalfRange + 0)]
-        [InlineData(42, 42 - 1)]
-        [InlineData(42, 42 - (SeqNo.HalfRange - 2))]
-        [InlineData(42, 42 - (SeqNo.HalfRange - 1))]
-        [InlineData(42, 42 - (SeqNo.HalfRange - 0))]
+        [InlineData(100, 100 + SeqNo.HalfRange + 2)]
+        [InlineData(100, 100 + SeqNo.HalfRange + 1)]
+        [InlineData(100, 100 + SeqNo.HalfRange + 0)]
+        [InlineData(100, 100 - 1)]
+        [InlineData(100, 100 - (SeqNo.HalfRange - 2))]
+        [InlineData(100, 100 - (SeqNo.HalfRange - 1))]
+        [InlineData(100, 100 - (SeqNo.HalfRange - 0))]
         public void CompareTo_Greater(int l, int r)
         {
             var left = (SeqNo)l;
             var right = (SeqNo)r;
-            Assert.True(left.CompareTo(right) > 0);
+
+            var result = left.CompareTo(right);
+
+            Assert.True(result > 0);
         }
 
         [Theory]
-        [InlineData(42, 42 + SeqNo.HalfRange - 1)]
-        [InlineData(42, 42 + SeqNo.HalfRange - 2)]
-        [InlineData(42, 42 + 1)]
-        [InlineData(42, 42 - (SeqNo.HalfRange + 1))]
-        [InlineData(42, 42 - (SeqNo.HalfRange + 2))]
+        [InlineData(100, 100 + SeqNo.HalfRange - 1)]
+        [InlineData(100, 100 + SeqNo.HalfRange - 2)]
+        [InlineData(100, 100 + 1)]
+        [InlineData(100, 100 - (SeqNo.HalfRange + 1))]
+        [InlineData(100, 100 - (SeqNo.HalfRange + 2))]
         public void IsGreaterThan_False(int l, int r)
         {
             var left = (SeqNo)l;
             var right = (SeqNo)r;
-            Assert.False(left > right);
+
+            var result = left > right;
+
+            Assert.False(result);
         }
 
         [Theory]
-        [InlineData(42, 42 + SeqNo.HalfRange + 2)]
-        [InlineData(42, 42 + SeqNo.HalfRange + 1)]
-        [InlineData(42, 42 + SeqNo.HalfRange + 0)]
-        [InlineData(42, 42 - 1)]
-        [InlineData(42, 42 - (SeqNo.HalfRange - 2))]
-        [InlineData(42, 42 - (SeqNo.HalfRange - 1))]
-        [InlineData(42, 42 - (SeqNo.HalfRange - 0))]
+        [InlineData(100, 100 + SeqNo.HalfRange + 2)]
+        [InlineData(100, 100 + SeqNo.HalfRange + 1)]
+        [InlineData(100, 100 + SeqNo.HalfRange + 0)]
+        [InlineData(100, 100 - 1)]
+        [InlineData(100, 100 - (SeqNo.HalfRange - 2))]
+        [InlineData(100, 100 - (SeqNo.HalfRange - 1))]
+        [InlineData(100, 100 - (SeqNo.HalfRange - 0))]
         public void IsGreaterThan_True(int l, int r)
         {
             var left = (SeqNo)l;
             var right = (SeqNo)r;
-            Assert.True(left > right);
+
+            var result = left > right;
+
+            Assert.True(result);
         }
     }
 }
