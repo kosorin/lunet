@@ -103,7 +103,6 @@ namespace Lunet
             {
                 if (token.SocketError == SocketError.Success && token.BytesTransferred > 0)
                 {
-
                     var remoteEndPoint = new InternetEndPoint(token.RemoteEndPoint);
                     var packet = (IncomingProtocolPacket)token.UserToken;
                     if (packet.Read(token.Offset, token.BytesTransferred))

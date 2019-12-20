@@ -6,14 +6,9 @@ namespace Lunet
 {
     public abstract class ProtocolPacket
     {
-        static ProtocolPacket()
-        {
-            VersionHash = Crc32.Compute(Version.ToByteArray());
-        }
-
         public static Guid Version { get; } = Guid.Parse("1EDEFE8C-9469-4D68-9F3E-40A4A1971B90");
 
-        protected static uint VersionHash { get; }
+        protected static uint VersionHash { get; } = Crc32.Compute(Version.ToByteArray());
 
 
         public byte ChannelId { get; set; }

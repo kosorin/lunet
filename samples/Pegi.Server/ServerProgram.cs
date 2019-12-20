@@ -34,12 +34,12 @@ namespace Pegi.Server
                 listener.NewConnection += (_, connection) =>
                 {
                     Log.Information("[{ConnectionEndPoint}] New connection", connection.RemoteEndPoint);
-                    connection.Disconnected += (__) =>
+                    connection.Disconnected += (_) =>
                     {
                         Log.Information("[{ConnectionEndPoint}] Disconnected", connection.RemoteEndPoint);
-                        connections.TryRemove(connection.RemoteEndPoint, out var ___);
+                        connections.TryRemove(connection.RemoteEndPoint, out _);
                     };
-                    connection.MessageReceived += (__, data) =>
+                    connection.MessageReceived += (_, data) =>
                     {
                         var message = MessagePackSerializer.Deserialize<DebugMessage>(data);
                         Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
