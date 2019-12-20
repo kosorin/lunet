@@ -47,7 +47,7 @@ namespace Lunet
 
     public class OutgoingProtocolPacket : ProtocolPacket
     {
-        public IChannelPacket ChannelPacket { get; set; }
+        public IChannelPacket? ChannelPacket { get; set; }
 
         public void Write(NetDataWriter writer)
         {

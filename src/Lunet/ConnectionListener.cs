@@ -21,7 +21,7 @@ namespace Lunet
         }
 
 
-        public event TypedEventHandler<ConnectionListener, Connection> NewConnection;
+        public event TypedEventHandler<ConnectionListener, Connection>? NewConnection;
 
         private void OnNewConnection(Connection connection)
         {

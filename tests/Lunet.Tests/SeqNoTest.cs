@@ -1,17 +1,9 @@
 ﻿using Xunit;
-using Xunit.Abstractions;
 
 namespace Lunet.Tests
 {
     public class SeqNoTest
     {
-        private readonly ITestOutputHelper _output;
-
-        public SeqNoTest(ITestOutputHelper output)
-        {
-            _output = output;
-        }
-
         [Theory]
         [InlineData(0, 0)]
         [InlineData(100, 100)]

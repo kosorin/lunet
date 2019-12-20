@@ -42,7 +42,7 @@ namespace Lunet
         }
 
 
-        public event TypedEventHandler<InternetEndPoint, IncomingProtocolPacket> PacketReceived;
+        public event TypedEventHandler<InternetEndPoint, IncomingProtocolPacket>? PacketReceived;
 
         private void ReceivePacket()
         {

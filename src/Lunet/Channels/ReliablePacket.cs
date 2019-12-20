@@ -15,7 +15,7 @@ namespace Lunet.Channels
 
         public SeqNo Ack { get; set; }
 
-        public BitVector AckBuffer { get; set; }
+        public BitVector AckBuffer { get; set; } = BitVector.Empty;
 
         public override int HeaderLength => SeqNo.SizeOf + SeqNo.SizeOf + AckBufferLength;
 

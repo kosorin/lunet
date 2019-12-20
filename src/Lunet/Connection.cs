@@ -41,9 +41,9 @@ namespace Lunet
         public InternetEndPoint RemoteEndPoint { get; }
 
 
-        public event TypedEventHandler<Connection> Disconnected;
+        public event TypedEventHandler<Connection>? Disconnected;
 
-        public event TypedEventHandler<IChannel, byte[]> MessageReceived;
+        public event TypedEventHandler<IChannel, byte[]>? MessageReceived;
 
 
         public void Update()

@@ -13,6 +13,8 @@ namespace Lunet.Data
     /// </summary>
     public sealed class BitVector : IEquatable<BitVector>
     {
+        public static readonly BitVector Empty = new BitVector(0);
+
         private readonly int[] _data;
         private readonly int _capacity;
 
