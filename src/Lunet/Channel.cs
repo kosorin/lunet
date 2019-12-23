@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Lunet
 {
-    public abstract class Channel : IChannel
+    public abstract class Channel : IConnectionChannel
     {
         protected Channel(byte id, Connection connection)
         {
@@ -17,12 +17,13 @@ namespace Lunet
         public Connection Connection { get; }
 
 
-        public abstract void HandleIncomingPacket(NetDataReader reader);
-
-        public abstract IList<IChannelPacket>? CollectOutgoingPackets();
-
         public abstract IList<byte[]>? GetReceivedMessages();
 
         public abstract void SendMessage(byte[] data);
+
+
+        internal abstract void HandleIncomingPacket(NetDataReader reader);
+
+        internal abstract IList<ChannelPacket>? CollectOutgoingPackets();
     }
 }

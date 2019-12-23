@@ -1,5 +1,4 @@
 ﻿using Lunet.Common;
-using Lunet.Data;
 using Lunet.Extensions;
 using System;
 using System.Net;
@@ -10,39 +9,39 @@ namespace Lunet
 {
     internal sealed class UdpSocket : IDisposable
     {
-        private readonly InternetEndPoint _localEndPoint;
-        private readonly IPEndPoint _localAnyIPEndPoint;
+        private readonly IPEndPoint _localEndPoint;
 
         private readonly Socket _socket;
+        private readonly ObjectPool<UdpPacket> _packetPool;
 
-        private readonly ObjectPool<SocketAsyncEventArgs> _receiveTokenPool;
-        private readonly ObjectPool<SocketAsyncEventArgs> _sendTokenPool;
-
-        public UdpSocket(InternetEndPoint localEndPoint)
+        public UdpSocket(IPEndPoint localEndPoint)
         {
             _localEndPoint = localEndPoint;
-            _localAnyIPEndPoint = localEndPoint.EndPoint.AddressFamily.GetAnyEndPoint();
 
-            _socket = new Socket(_localEndPoint.EndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-
-            _receiveTokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateReceiveToken);
-            _sendTokenPool = new ObjectPool<SocketAsyncEventArgs>(CreateSendToken);
+            _socket = new Socket(_localEndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            _packetPool = new ObjectPool<UdpPacket>(CreatePacket, 8);
         }
 
-        public UdpSocket(IPVersion ipVersion) : this(new InternetEndPoint(ipVersion.ToAddressFamily().GetAnyEndPoint()))
+        public UdpSocket(AddressFamily addressFamily) : this(addressFamily.GetAnyEndPoint())
         {
+        }
+
+
+        public UdpPacket RentPacket()
+        {
+            return _packetPool.Rent();
         }
 
 
         public void Bind()
         {
-            _socket.Bind(_localEndPoint.EndPoint);
+            _socket.Bind(_localEndPoint);
 
             ReceivePacket();
         }
 
 
-        public event TypedEventHandler<InternetEndPoint, IncomingProtocolPacket>? PacketReceived;
+        public event TypedEventHandler<UdpSocket, UdpPacket>? PacketReceived;
 
         private void ReceivePacket()
         {
@@ -51,10 +50,10 @@ namespace Lunet
                 return;
             }
 
-            SocketAsyncEventArgs token;
+            UdpPacket packet;
             try
             {
-                token = _receiveTokenPool.Rent();
+                packet = RentPacket();
             }
             catch (ObjectDisposedException)
             {
@@ -62,14 +61,16 @@ namespace Lunet
                 return;
             }
 
-            StartReceive(token);
+            StartReceive(packet);
         }
 
-        private void StartReceive(SocketAsyncEventArgs token)
+        private void StartReceive(UdpPacket packet)
         {
             try
             {
-                if (_socket.ReceiveFromAsync(token))
+                packet.BeginReceive();
+
+                if (_socket.ReceiveFromAsync(packet.Operation))
                 {
                     return;
                 }
@@ -77,23 +78,23 @@ namespace Lunet
             catch (ObjectDisposedException)
             {
                 // It's ok - we don't want to receive packets anymore
-                token.Dispose();
+                packet.Dispose();
                 return;
             }
             catch
             {
-                _receiveTokenPool.Return(token);
+                packet.Return();
                 throw;
             }
 
-            ProcessReceive(token);
+            ProcessReceive(packet);
         }
 
-        private void ProcessReceive(SocketAsyncEventArgs token)
+        private void ProcessReceive(UdpPacket packet)
         {
             if (IsDisposed)
             {
-                token.Dispose();
+                packet.Dispose();
                 return;
             }
 
@@ -101,20 +102,15 @@ namespace Lunet
 
             try
             {
-                if (token.SocketError == SocketError.Success && token.BytesTransferred > 0)
+                if (packet.EndReceive())
                 {
-                    var remoteEndPoint = new InternetEndPoint(token.RemoteEndPoint);
-                    var packet = (IncomingProtocolPacket)token.UserToken;
-                    if (packet.Read(token.Offset, token.BytesTransferred))
+                    try
                     {
-                        try
-                        {
-                            PacketReceived?.Invoke(remoteEndPoint, packet);
-                        }
-                        catch
-                        {
-                            // What now?
-                        }
+                        PacketReceived?.Invoke(this, packet);
+                    }
+                    catch
+                    {
+                        // What now?
                     }
                 }
                 else
@@ -124,101 +120,89 @@ namespace Lunet
             }
             finally
             {
-                _receiveTokenPool.Return(token);
+                packet.Return();
             }
         }
 
-        private SocketAsyncEventArgs CreateReceiveToken()
+
+        public void SendPacket(UdpPacket packet)
         {
-            var buffer = new byte[ushort.MaxValue];
-            var token = new SocketAsyncEventArgs
-            {
-                RemoteEndPoint = _localAnyIPEndPoint,
-                UserToken = new IncomingProtocolPacket(new NetDataReader(buffer)),
-            };
-            token.Completed += IO_Completed;
-            token.SetBuffer(buffer, 0, buffer.Length);
-            return token;
+            StartSend(packet);
         }
 
-
-        public void SendPacket(InternetEndPoint remoteEndPoint, OutgoingProtocolPacket packet)
-        {
-            var token = _sendTokenPool.Rent();
-            try
-            {
-                var writer = (NetDataWriter)token.UserToken;
-                packet.Write(writer);
-                token.SetBuffer(writer.Data, writer.Offset, writer.Length);
-                token.RemoteEndPoint = remoteEndPoint.EndPoint;
-            }
-            catch
-            {
-                _sendTokenPool.Return(token);
-                throw;
-            }
-
-            StartSend(token);
-        }
-
-        private void StartSend(SocketAsyncEventArgs token)
+        private void StartSend(UdpPacket packet)
         {
             try
             {
-                if (_socket.SendToAsync(token))
+                packet.BeginSend();
+
+                if (_socket.SendToAsync(packet.Operation))
                 {
                     return;
                 }
             }
+            catch (ObjectDisposedException)
+            {
+                // It's ok - we don't want to send packets anymore
+                packet.Dispose();
+                return;
+            }
             catch
             {
-                _sendTokenPool.Return(token);
+                packet.Return();
                 throw;
             }
 
-            ProcessSend(token);
+            ProcessSend(packet);
         }
 
-        private void ProcessSend(SocketAsyncEventArgs token)
+        private void ProcessSend(UdpPacket packet)
         {
             if (IsDisposed)
             {
-                token.Dispose();
+                packet.Dispose();
                 return;
             }
 
-            _sendTokenPool.Return(token);
-        }
-
-        private SocketAsyncEventArgs CreateSendToken()
-        {
-            var token = new SocketAsyncEventArgs
+            try
             {
-                UserToken = new NetDataWriter(),
-            };
-            token.Completed += IO_Completed;
-            return token;
+                packet.EndSend();
+            }
+            finally
+            {
+                packet.Return();
+            }
         }
 
 
-        private void IO_Completed(object sender, SocketAsyncEventArgs token)
+        private UdpPacket CreatePacket()
         {
+            var packet = new UdpPacket(_localEndPoint.AddressFamily);
+            packet.Operation.Completed += IO_Completed;
+            return packet;
+        }
+
+
+        private void IO_Completed(object sender, SocketAsyncEventArgs operation)
+        {
+            var packet = (UdpPacket)operation.UserToken;
+
             if (IsDisposed)
             {
-                token.Dispose();
+                packet.Dispose();
                 return;
             }
 
-            switch (token.LastOperation)
+            switch (packet.Operation.LastOperation)
             {
-            case SocketAsyncOperation.ReceiveFrom:
-                ProcessReceive(token);
-                return;
-            case SocketAsyncOperation.SendTo:
-                ProcessSend(token);
-                return;
-            default:
-                throw new InvalidOperationException("Unexpected socket async operation.");
+                case SocketAsyncOperation.ReceiveFrom:
+                    ProcessReceive(packet);
+                    return;
+                case SocketAsyncOperation.SendTo:
+                    ProcessSend(packet);
+                    return;
+                default:
+                    throw new InvalidOperationException("Unexpected socket operation.");
             }
         }
 
@@ -242,9 +226,7 @@ namespace Lunet
             if (disposing)
             {
                 _socket.Dispose();
-
-                _receiveTokenPool.Dispose();
-                _sendTokenPool.Dispose();
+                _packetPool.Dispose();
             }
         }
     }

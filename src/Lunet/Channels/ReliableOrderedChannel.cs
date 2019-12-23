@@ -28,7 +28,38 @@ namespace Lunet.Channels
         public static int AckBufferLength { get; } = 128;
 
 
-        public override void HandleIncomingPacket(NetDataReader reader)
+        public override IList<byte[]>? GetReceivedMessages()
+        {
+            lock (_incomingMessageQueue)
+            {
+                var receivedMessages = new List<byte[]>();
+                while (_incomingMessageQueue.Remove(_incomingReadMessageSeq, out var message))
+                {
+                    receivedMessages.Add(message.Data);
+                    _incomingReadMessageSeq++;
+                }
+                _incomingMessageSeq = _incomingReadMessageSeq;
+                return receivedMessages;
+            }
+        }
+
+        public override void SendMessage(byte[] data)
+        {
+            lock (_outgoingMessageQueue)
+            {
+                var message = MessageActivator();
+                message.Seq = _outgoingMessageSeq++;
+                message.Data = data;
+                message.Timestamp = null;
+                if (!_outgoingMessageQueue.TryAdd(message.Seq, message))
+                {
+                    throw new NetException("Message buffer overflow.");
+                }
+            }
+        }
+
+
+        internal override void HandleIncomingPacket(NetDataReader reader)
         {
             var packet = PacketActivator();
 
@@ -71,10 +102,9 @@ namespace Lunet.Channels
             SaveIncomingMessages(packet.Messages);
         }
 
-        public override IList<IChannelPacket>? CollectOutgoingPackets()
+        internal override IList<ChannelPacket>? CollectOutgoingPackets()
         {
-            var outgoingMessages = CollectOutgoingMessages();
-            var outgoingPackets = MessagePacker.Pack(outgoingMessages, Connection.MTU);
+            var outgoingPackets = PackOutgoingPackets();
 
             lock (_packetLock)
             {
@@ -107,37 +137,7 @@ namespace Lunet.Channels
                 }
             }
 
-            return outgoingPackets.Cast<IChannelPacket>().ToList();
-        }
-
-        public override IList<byte[]>? GetReceivedMessages()
-        {
-            lock (_incomingMessageQueue)
-            {
-                var receivedMessages = new List<byte[]>();
-                while (_incomingMessageQueue.Remove(_incomingReadMessageSeq, out var message))
-                {
-                    receivedMessages.Add(message.Data);
-                    _incomingReadMessageSeq++;
-                }
-                _incomingMessageSeq = _incomingReadMessageSeq;
-                return receivedMessages;
-            }
-        }
-
-        public override void SendMessage(byte[] data)
-        {
-            lock (_outgoingMessageQueue)
-            {
-                var message = MessageActivator();
-                message.Seq = _outgoingMessageSeq++;
-                message.Data = data;
-                message.Timestamp = null;
-                if (!_outgoingMessageQueue.TryAdd(message.Seq, message))
-                {
-                    throw new NetException("Message buffer overflow.");
-                }
-            }
+            return outgoingPackets.Cast<ChannelPacket>().ToList();
         }
 
 

@@ -4,9 +4,7 @@ namespace Lunet.Channels
 {
     public class RawPacket : ChannelPacket
     {
-#pragma warning disable CS8618 // Non-nullable field is uninitialized.
-        public byte[] Data { get; set; }
-#pragma warning restore CS8618 // Non-nullable field is uninitialized.
+        public byte[] Data { get; set; } = System.Array.Empty<byte>();
 
         public override int HeaderLength => 0;
 

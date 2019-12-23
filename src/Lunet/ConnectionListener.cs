@@ -11,13 +11,17 @@ namespace Lunet
 
         private readonly Dictionary<InternetEndPoint, ServerConnection> _connections = new Dictionary<InternetEndPoint, ServerConnection>();
         private readonly object _connectionsLock = new object();
-        private readonly IChannelFactory _channelFactory;
+        private readonly ChannelSettings _channelSettings;
 
-        public ConnectionListener(InternetEndPoint localEndPoint, IChannelFactory channelFactory)
+        public ConnectionListener(InternetEndPoint remoteEndPoint) : this(remoteEndPoint, ChannelSettings.Default)
         {
-            _socket = new UdpSocket(localEndPoint);
+        }
+
+        public ConnectionListener(InternetEndPoint localEndPoint, ChannelSettings channelSettings)
+        {
+            _socket = new UdpSocket(localEndPoint.EndPoint);
             _socket.PacketReceived += Socket_PacketReceived;
-            _channelFactory = channelFactory;
+            _channelSettings = channelSettings;
         }
 
 
@@ -35,19 +39,19 @@ namespace Lunet
         }
 
 
-        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, IncomingProtocolPacket packet)
+        private void Socket_PacketReceived(UdpSocket socket, UdpPacket packet)
         {
             ServerConnection? connection = null;
 
             lock (_connectionsLock)
             {
-                _connections.TryGetValue(remoteEndPoint, out connection);
+                _connections.TryGetValue(packet.RemoteEndPoint, out connection);
                 if (connection == null)
                 {
-                    connection = new ServerConnection(_socket, remoteEndPoint, _channelFactory);
-                    connection.Disconnected += Connection_Disconnected;
-                    _connections.Add(remoteEndPoint, connection);
+                    connection = new ServerConnection(_socket, packet.RemoteEndPoint, _channelSettings);
+                    _connections.Add(packet.RemoteEndPoint, connection);
 
+                    connection.Disconnected += Connection_Disconnected;
                     OnNewConnection(connection);
                 }
             }

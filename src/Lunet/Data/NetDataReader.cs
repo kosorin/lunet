@@ -34,6 +34,11 @@ namespace Lunet.Data
             Reset(DataOffset, DataLength);
         }
 
+        public void Reset(int length)
+        {
+            Reset(0, length);
+        }
+
         public void Reset(int offset, int length)
         {
             if (offset < DataOffset || DataOffset + DataLength < offset)
@@ -130,6 +135,7 @@ namespace Lunet.Data
             }
             return new BitVector(bytes, bitCount);
         }
+
         public byte[] ReadBytes()
         {
             return ReadBytes(_readLength - _readPosition);

@@ -7,7 +7,7 @@ namespace Lunet
     {
         private readonly UdpSocket _socket;
 
-        internal ServerConnection(UdpSocket socket, InternetEndPoint remoteEndPoint, IChannelFactory channelFactory) : base(remoteEndPoint, channelFactory)
+        internal ServerConnection(UdpSocket socket, InternetEndPoint remoteEndPoint, ChannelSettings channelSettings) : base(remoteEndPoint, channelSettings)
         {
             _socket = socket;
 
@@ -21,9 +21,15 @@ namespace Lunet
         }
 
 
-        internal override void HandleOutgoingPacket(OutgoingProtocolPacket packet)
+        internal override void HandleOutgoingPacket(UdpPacket packet)
         {
-            _socket.SendPacket(RemoteEndPoint, packet);
+            packet.RemoteEndPoint = RemoteEndPoint;
+            _socket.SendPacket(packet);
+        }
+
+        private protected override UdpPacket RentPacket()
+        {
+            return _socket.RentPacket();
         }
 
 

@@ -14,7 +14,33 @@ namespace Lunet.Channels
         }
 
 
-        public override void HandleIncomingPacket(NetDataReader reader)
+        public override IList<byte[]>? GetReceivedMessages()
+        {
+            lock (_incomingMessageQueue)
+            {
+                if (_incomingMessageQueue.Count == 0)
+                {
+                    return null;
+                }
+
+                var receivedMessages = _incomingMessageQueue.Select(x => x.Data).ToList();
+                _incomingMessageQueue.Clear();
+                return receivedMessages;
+            }
+        }
+
+        public override void SendMessage(byte[] data)
+        {
+            lock (_outgoingMessageQueue)
+            {
+                var message = MessageActivator();
+                message.Data = data;
+                _outgoingMessageQueue.Add(message);
+            }
+        }
+
+
+        internal override void HandleIncomingPacket(NetDataReader reader)
         {
             var packet = PacketActivator();
 
@@ -42,32 +68,9 @@ namespace Lunet.Channels
             }
         }
 
-        public override IList<IChannelPacket>? CollectOutgoingPackets()
+        internal override IList<ChannelPacket>? CollectOutgoingPackets()
         {
-            var outgoingMessages = CollectOutgoingMessages();
-            var outgoingPackets = MessagePacker.Pack(outgoingMessages, Connection.MTU);
-
-            return outgoingPackets?.Cast<IChannelPacket>().ToList();
-        }
-
-        public override IList<byte[]>? GetReceivedMessages()
-        {
-            lock (_incomingMessageQueue)
-            {
-                var receivedMessages = _incomingMessageQueue.Select(x => x.Data).ToList();
-                _incomingMessageQueue.Clear();
-                return receivedMessages;
-            }
-        }
-
-        public override void SendMessage(byte[] data)
-        {
-            lock (_outgoingMessageQueue)
-            {
-                var message = MessageActivator();
-                message.Data = data;
-                _outgoingMessageQueue.Add(message);
-            }
+            return PackOutgoingPackets()?.Cast<ChannelPacket>().ToList();
         }
 
 
@@ -75,16 +78,14 @@ namespace Lunet.Channels
         {
             lock (_outgoingMessageQueue)
             {
-                if (_outgoingMessageQueue.Count > 0)
-                {
-                    var messages = _outgoingMessageQueue.ToList();
-                    _outgoingMessageQueue.Clear();
-                    return messages;
-                }
-                else
+                if (_outgoingMessageQueue.Count == 0)
                 {
                     return null;
                 }
+
+                var messages = _outgoingMessageQueue.ToList();
+                _outgoingMessageQueue.Clear();
+                return messages;
             }
         }
     }

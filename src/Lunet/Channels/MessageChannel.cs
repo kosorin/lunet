@@ -23,6 +23,14 @@ namespace Lunet.Channels
         protected IMessagePacker<TPacket, TMessage> MessagePacker { get; }
 
 
+        protected IList<TPacket>? PackOutgoingPackets()
+        {
+            var outgoingMessages = CollectOutgoingMessages();
+            var outgoingPackets = MessagePacker.Pack(outgoingMessages, Connection.MTU);
+
+            return outgoingPackets;
+        }
+
         protected abstract IList<TMessage>? CollectOutgoingMessages();
     }
 }

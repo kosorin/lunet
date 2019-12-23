@@ -49,10 +49,16 @@ namespace Lunet.Data
             return base.GetBytes();
         }
 
-        public override ReadOnlySpan<byte> GetSpan()
+        public override ReadOnlySpan<byte> GetReadOnlySpan()
         {
             Flush();
-            return base.GetSpan();
+            return base.GetReadOnlySpan();
+        }
+
+        public override Memory<byte> GetMemory()
+        {
+            Flush();
+            return base.GetMemory();
         }
 
         public void Reset()
@@ -291,6 +297,11 @@ namespace Lunet.Data
         public void WriteSeqNo(SeqNo seq)
         {
             WriteUShort(seq.Value);
+        }
+
+        public void WriteHash(uint hash)
+        {
+            WriteUInt(hash);
         }
 
         private void Write(byte value, int bitCount)

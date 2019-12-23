@@ -1,5 +1,6 @@
 ﻿using Lunet;
 using Lunet.Channels;
+using Lunet.Extensions;
 using MessagePack;
 using Serilog;
 using System;
@@ -16,10 +17,10 @@ namespace Pegi.Server
 
             var localEndPoint = new InternetEndPoint("127.0.0.1", 45685);
 
-            var channelFactory = new DefaultChannelFactory();
-            channelFactory.Add<ReliableOrderedChannel>();
+            var channelSettings = new ChannelSettings();
+            channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new ReliableOrderedChannel(channelId, connection));
 
-            using (var listener = new ConnectionListener(localEndPoint, channelFactory))
+            using (var listener = new ConnectionListener(localEndPoint, channelSettings))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>

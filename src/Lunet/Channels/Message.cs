@@ -1,15 +1,12 @@
 ﻿using Lunet.Data;
+using System;
 
 namespace Lunet.Channels
 {
     public abstract class Message
     {
-#pragma warning disable CS8618 // Non-nullable field is uninitialized.
-
-        public byte[] Data { get; set; }
+        public byte[] Data { get; set; } = Array.Empty<byte>();
         
-#pragma warning restore CS8618 // Non-nullable field is uninitialized.
-
         public int Length => HeaderLength + DataLength;
 
         public virtual int HeaderLength => 0;

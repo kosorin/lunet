@@ -1,7 +1,5 @@
 ﻿using Lunet.Common;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 
 namespace Lunet
@@ -10,21 +8,15 @@ namespace Lunet
     {
         private volatile ConnectionState _state;
 
-        private readonly byte _defaultChannelId;
-        private readonly IDictionary<byte, IChannel> _channels;
+        private readonly ChannelCollection _channels;
 
-        private readonly ObjectPool<OutgoingProtocolPacket> _outgoingProtocolPacketPool;
-
-        protected Connection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory)
+        protected Connection(InternetEndPoint remoteEndPoint, ChannelSettings channelSettings)
         {
             RemoteEndPoint = remoteEndPoint;
 
             State = ConnectionState.Disconnected;
 
-            _channels = channelFactory.Create(this).ToDictionary(x => x.Id);
-            _defaultChannelId = _channels.Keys.Min();
-
-            _outgoingProtocolPacketPool = new ObjectPool<OutgoingProtocolPacket>();
+            _channels = new ChannelCollection(channelSettings);
         }
 
 
@@ -43,7 +35,7 @@ namespace Lunet
 
         public event TypedEventHandler<Connection>? Disconnected;
 
-        public event TypedEventHandler<IChannel, byte[]>? MessageReceived;
+        public event TypedEventHandler<IConnectionChannel, byte[]>? MessageReceived;
 
 
         public void Update()
@@ -53,7 +45,70 @@ namespace Lunet
                 return;
             }
 
-            foreach (var channel in _channels.Values)
+            ProcessChannels();
+        }
+
+        public abstract void Connect();
+
+        public void SendMessage(byte channelId, byte[] data)
+        {
+            if (State != ConnectionState.Connected)
+            {
+                return;
+            }
+
+            var channel = _channels.Get(channelId, this);
+            channel.SendMessage(data);
+        }
+
+
+        internal void HandleIncomingPacket(UdpPacket packet)
+        {
+            if (State != ConnectionState.Connected)
+            {
+                return;
+            }
+
+            var reader = packet.Reader;
+
+            var packetType = (PacketType)reader.ReadByte();
+            switch (packetType)
+            {
+                case PacketType.Channel:
+                    var channelId = reader.ReadByte();
+                    if (_channels.TryGet(channelId, this, out var channel))
+                    {
+                        channel.HandleIncomingPacket(reader);
+                    }
+                    break;
+                case PacketType.System:
+                    break;
+                case PacketType.Fragment:
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        internal abstract void HandleOutgoingPacket(UdpPacket packet);
+
+        private protected abstract UdpPacket RentPacket();
+
+
+        protected virtual void OnDisconnected()
+        {
+            Disconnected?.Invoke(this);
+        }
+
+        protected virtual void OnMessageReceived(IConnectionChannel channel, byte[] data)
+        {
+            MessageReceived?.Invoke(channel, data);
+        }
+
+
+        private void ProcessChannels()
+        {
+            foreach (var channel in _channels)
             {
                 var receivedMessages = channel.GetReceivedMessages();
                 if (receivedMessages?.Count > 0)
@@ -67,67 +122,25 @@ namespace Lunet
                 var outgoingPackets = channel.CollectOutgoingPackets();
                 if (outgoingPackets?.Count > 0)
                 {
-                    foreach (var packet in outgoingPackets)
+                    foreach (var outgoingPacket in outgoingPackets)
                     {
-                        var protocolPacket = _outgoingProtocolPacketPool.Rent();
-                        protocolPacket.ChannelId = channel.Id;
-                        protocolPacket.ChannelPacket = packet;
-
-                        HandleOutgoingPacket(protocolPacket);
+                        SendChannelPacket(channel, outgoingPacket);
                     }
                 }
             }
         }
 
-        public abstract void Connect();
-
-        public void SendMessage(byte[] data)
+        private void SendChannelPacket(Channel channel, ChannelPacket channelPacket)
         {
-            SendMessage(_defaultChannelId, data);
-        }
+            var packet = RentPacket();
+            packet.RemoteEndPoint = RemoteEndPoint;
 
-        public void SendMessage(byte channelId, byte[] data)
-        {
-            if (State != ConnectionState.Connected)
-            {
-                return;
-            }
+            packet.Writer.WriteByte((byte)PacketType.Channel);
+            packet.Writer.WriteByte(channel.Id);
+            channelPacket.SerializeHeader(packet.Writer);
+            channelPacket.SerializeData(packet.Writer);
 
-            if (_channels.TryGetValue(channelId, out var channel))
-            {
-                channel.SendMessage(data);
-            }
-            else
-            {
-                throw new NetException("Unknown channel.");
-            }
-        }
-
-
-        internal void HandleIncomingPacket(IncomingProtocolPacket packet)
-        {
-            if (State != ConnectionState.Connected)
-            {
-                return;
-            }
-
-            if (_channels.TryGetValue(packet.ChannelId, out var channel))
-            {
-                channel.HandleIncomingPacket(packet.Reader);
-            }
-        }
-
-        internal abstract void HandleOutgoingPacket(OutgoingProtocolPacket packet);
-
-
-        protected virtual void OnDisconnected()
-        {
-            Disconnected?.Invoke(this);
-        }
-
-        protected virtual void OnMessageReceived(IChannel channel, byte[] data)
-        {
-            MessageReceived?.Invoke(channel, data);
+            HandleOutgoingPacket(packet);
         }
 
 
@@ -150,7 +163,7 @@ namespace Lunet
 
             if (disposing)
             {
-                _outgoingProtocolPacketPool.Dispose();
+                // Nothing to dispose
             }
         }
     }

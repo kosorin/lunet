@@ -1,5 +1,6 @@
 ﻿using Lunet;
 using Lunet.Channels;
+using Lunet.Extensions;
 using MessagePack;
 using Serilog;
 using System;
@@ -15,10 +16,10 @@ namespace Pegi.Client
 
             var remoteEndPoint = new InternetEndPoint("127.0.0.1", 45685);
 
-            var channelFactory = new DefaultChannelFactory();
-            channelFactory.Add<ReliableOrderedChannel>();
+            var channelSettings = new ChannelSettings();
+            channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new ReliableOrderedChannel(channelId, connection));
 
-            using (var connection = new ClientConnection(remoteEndPoint, channelFactory))
+            using (var connection = new ClientConnection(remoteEndPoint, channelSettings))
             {
                 var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
@@ -27,7 +28,7 @@ namespace Pegi.Client
                     Log.Information("Ctrl+C");
                     resetEvent.Set();
                 };
-                Thread.Sleep(1000);
+                Thread.Sleep(500);
 
                 connection.MessageReceived += (_, data) =>
                 {
@@ -50,19 +51,22 @@ namespace Pegi.Client
                     {
                         time += sendTime;
 
-                        var message = new DebugMessage
+                        for (var n = 0; n < 10; n++)
                         {
-                            Id = i,
-                            Text = $"Zpráva {i}",
-                        };
-                        var messageBytes = MessagePackSerializer.Serialize(message);
+                            var message = new DebugMessage
+                            {
+                                Id = i,
+                                Text = $"Zpráva {i}",
+                            };
+                            var messageBytes = MessagePackSerializer.Serialize(message);
 
-                        connection.SendMessage(messageBytes);
+                            connection.SendMessage(messageBytes);
 
-                        i++;
-                        if (i == 100_000)
-                        {
-                            break;
+                            i++;
+                            if (i == 100_000)
+                            {
+                                break;
+                            }
                         }
                     }
 

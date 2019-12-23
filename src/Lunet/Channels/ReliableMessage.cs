@@ -8,7 +8,7 @@ namespace Lunet.Channels
 
         public SeqNo Seq { get; set; }
 
-        public override int HeaderLength => SeqNo.SizeOf;
+        public override int HeaderLength => SeqNo.SizeOf + base.HeaderLength;
 
         public override void Deserialize(NetDataReader reader)
         {

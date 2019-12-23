@@ -53,14 +53,29 @@ namespace Lunet.Data
 
         public abstract int Position { get; }
 
-        public virtual byte[] GetBytes()
+        public ReadOnlySpan<byte> GetDataReadOnlySpan()
         {
-            return GetSpan().ToArray();
+            return new ReadOnlySpan<byte>(Data, DataOffset, DataLength);
         }
 
-        public virtual ReadOnlySpan<byte> GetSpan()
+        public Memory<byte> GetDataMemory()
+        {
+            return new Memory<byte>(Data, DataOffset, DataLength);
+        }
+
+        public virtual byte[] GetBytes()
+        {
+            return GetReadOnlySpan().ToArray();
+        }
+
+        public virtual ReadOnlySpan<byte> GetReadOnlySpan()
         {
             return new ReadOnlySpan<byte>(Data, Offset, Length);
+        }
+
+        public virtual Memory<byte> GetMemory()
+        {
+            return new Memory<byte>(Data, Offset, Length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

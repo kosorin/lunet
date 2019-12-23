@@ -18,7 +18,31 @@ namespace Lunet.Channels
             _packetActivator = ObjectActivatorFactory.Create<RawPacket>();
         }
 
-        public override void HandleIncomingPacket(NetDataReader reader)
+        public override IList<byte[]>? GetReceivedMessages()
+        {
+            lock (_incomingDataQueue)
+            {
+                if (_incomingDataQueue.Count == 0)
+                {
+                    return null;
+                }
+
+                var receivedMessages = _incomingDataQueue.ToList();
+                _incomingDataQueue.Clear();
+                return receivedMessages;
+            }
+        }
+
+        public override void SendMessage(byte[] data)
+        {
+            lock (_outgoingDataQueue)
+            {
+                _outgoingDataQueue.Add(data);
+            }
+        }
+
+
+        internal override void HandleIncomingPacket(NetDataReader reader)
         {
             var packet = _packetActivator();
 
@@ -38,15 +62,15 @@ namespace Lunet.Channels
             }
         }
 
-        public override IList<IChannelPacket>? CollectOutgoingPackets()
+        internal override IList<ChannelPacket>? CollectOutgoingPackets()
         {
-            IList<IChannelPacket>? outgoingPackets = null;
+            IList<ChannelPacket>? outgoingPackets = null;
 
             lock (_outgoingDataQueue)
             {
                 if (_outgoingDataQueue.Count > 0)
                 {
-                    outgoingPackets = new List<IChannelPacket>(_outgoingDataQueue.Count);
+                    outgoingPackets = new List<ChannelPacket>(_outgoingDataQueue.Count);
                     foreach (var data in _outgoingDataQueue)
                     {
                         var packet = _packetActivator();
@@ -58,24 +82,6 @@ namespace Lunet.Channels
             }
 
             return outgoingPackets;
-        }
-
-        public override IList<byte[]>? GetReceivedMessages()
-        {
-            lock (_incomingDataQueue)
-            {
-                var receivedMessages = _incomingDataQueue.ToList();
-                _incomingDataQueue.Clear();
-                return receivedMessages;
-            }
-        }
-
-        public override void SendMessage(byte[] data)
-        {
-            lock (_outgoingDataQueue)
-            {
-                _outgoingDataQueue.Add(data);
-            }
         }
     }
 }

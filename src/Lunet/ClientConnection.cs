@@ -7,9 +7,13 @@ namespace Lunet
     {
         private readonly UdpSocket _socket;
 
-        public ClientConnection(InternetEndPoint remoteEndPoint, IChannelFactory channelFactory) : base(remoteEndPoint, channelFactory)
+        public ClientConnection(InternetEndPoint remoteEndPoint) : this(remoteEndPoint, ChannelSettings.Default)
         {
-            _socket = new UdpSocket(remoteEndPoint.IPVersion);
+        }
+
+        public ClientConnection(InternetEndPoint remoteEndPoint, ChannelSettings channelSettings) : base(remoteEndPoint, channelSettings)
+        {
+            _socket = new UdpSocket(remoteEndPoint.EndPoint.AddressFamily);
             _socket.PacketReceived += Socket_PacketReceived;
 
             State = ConnectionState.Disconnected;
@@ -25,17 +29,23 @@ namespace Lunet
         }
 
 
-        private void Socket_PacketReceived(InternetEndPoint remoteEndPoint, IncomingProtocolPacket packet)
+        private void Socket_PacketReceived(UdpSocket socket, UdpPacket packet)
         {
-            if (RemoteEndPoint == remoteEndPoint)
+            if (RemoteEndPoint == packet.RemoteEndPoint)
             {
                 HandleIncomingPacket(packet);
             }
         }
 
-        internal override void HandleOutgoingPacket(OutgoingProtocolPacket packet)
+        internal override void HandleOutgoingPacket(UdpPacket packet)
         {
-            _socket.SendPacket(RemoteEndPoint, packet);
+            packet.RemoteEndPoint = RemoteEndPoint;
+            _socket.SendPacket(packet);
+        }
+
+        private protected override UdpPacket RentPacket()
+        {
+            return _socket.RentPacket();
         }
 
 

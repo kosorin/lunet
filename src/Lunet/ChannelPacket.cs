@@ -2,7 +2,7 @@
 
 namespace Lunet
 {
-    public abstract class ChannelPacket : IChannelPacket
+    public abstract class ChannelPacket
     {
         public int Length => HeaderLength + DataLength;
 
@@ -17,10 +17,5 @@ namespace Lunet
         public abstract void SerializeHeader(NetDataWriter writer);
 
         public abstract void SerializeData(NetDataWriter writer);
-
-        public int GetSerializeLength()
-        {
-            return Length;
-        }
     }
 }
