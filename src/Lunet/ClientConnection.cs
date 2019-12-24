@@ -39,7 +39,6 @@ namespace Lunet
 
         internal override void HandleOutgoingPacket(UdpPacket packet)
         {
-            packet.RemoteEndPoint = RemoteEndPoint;
             _socket.SendPacket(packet);
         }
 

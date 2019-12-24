@@ -8,14 +8,12 @@ using System.Threading;
 
 namespace Lunet
 {
-    internal class UdpPacket : IPoolableObject<UdpPacket>, IDisposable
+    internal class UdpPacket : PoolableObject<UdpPacket>
     {
         public static Guid Version { get; } = Guid.Parse("1EDEFE8C-9469-4D68-9F3E-40A4A1971B90");
 
         public static uint VersionHash { get; } = Crc32.Compute(Version.ToByteArray());
 
-
-        private ObjectPool<UdpPacket>? _owner;
 
         private readonly IPEndPoint _receiveRemoteEndPoint;
         private readonly byte[] _buffer;
@@ -24,8 +22,6 @@ namespace Lunet
         {
             _receiveRemoteEndPoint = addressFamily.GetAnyEndPoint();
             _buffer = new byte[ushort.MaxValue];
-
-            RemoteEndPoint = new InternetEndPoint(_receiveRemoteEndPoint);
 
             Reader = new NetDataReader(_buffer);
             Writer = new NetDataWriter(_buffer);
@@ -66,7 +62,6 @@ namespace Lunet
                 Reader.Reset(Operation.BytesTransferred - Crc32.HashLength);
 
                 RemoteEndPoint = new InternetEndPoint(Operation.RemoteEndPoint);
-
                 return true;
             }
             else
@@ -78,9 +73,7 @@ namespace Lunet
         public void BeginSend()
         {
             Writer.Flush();
-
             var hash = Crc32.Append(VersionHash, Writer.GetReadOnlySpan());
-
             Writer.WriteHash(hash);
             Writer.Flush();
 
@@ -99,43 +92,20 @@ namespace Lunet
         }
 
 
-        ObjectPool<UdpPacket>? IPoolableObject<UdpPacket>.Owner
-        {
-            get => _owner;
-            set => _owner = value;
-        }
-
-        public void Return()
-        {
-            if (_owner == null)
-            {
-                throw new InvalidOperationException("Item is not owned by any object pool.");
-            }
-
-            _owner.Return(this);
-        }
-
-        void IPoolableObject<UdpPacket>.OnRent()
+        protected override void OnRent()
         {
             Reader.Reset();
             Writer.Reset();
         }
 
-        void IPoolableObject<UdpPacket>.OnReturn()
+        protected override void OnReturn()
         {
         }
 
 
         private int _disposed;
 
-        public bool IsDisposed => _disposed == 1;
-
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-
-        private void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
             {
@@ -147,6 +117,8 @@ namespace Lunet
                 Operation.UserToken = null;
                 Operation.Dispose();
             }
+
+            base.Dispose(disposing);
         }
     }
 }
