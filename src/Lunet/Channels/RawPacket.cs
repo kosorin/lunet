@@ -6,8 +6,6 @@ namespace Lunet.Channels
     {
         public byte[] Data { get; set; } = System.Array.Empty<byte>();
 
-        public override int HeaderLength => 0;
-
         public override int DataLength => Data.Length;
 
         public override void DeserializeHeader(NetDataReader reader)

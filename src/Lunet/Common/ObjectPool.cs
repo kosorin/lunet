@@ -8,7 +8,7 @@ namespace Lunet.Common
     internal class ObjectPool<TItem> : IDisposable
         where TItem : class, IPoolableObject<TItem>
     {
-        private static ILog Log { get; } = LogProvider.GetLogger(nameof(ObjectPool<TItem>));
+        private static ILog Log { get; } = LogProvider.GetCurrentClassLogger();
 
         private readonly bool _isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
         private readonly Func<TItem> _activator;
@@ -133,7 +133,7 @@ namespace Lunet.Common
 
             if (disposing)
             {
-                Log.Trace("Created={Created}; Rented={Rented}; Returned={Returned}", _created, _rented, _returned);
+                Log.Trace("Disposed object pool of {ItemType} (Created={Created}; Rented={Rented}; Returned={Returned})", typeof(TItem), _created, _rented, _returned);
 
                 if (_isItemDisposable)
                 {

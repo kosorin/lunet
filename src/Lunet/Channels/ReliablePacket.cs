@@ -17,7 +17,7 @@ namespace Lunet.Channels
 
         public BitVector AckBuffer { get; set; } = BitVector.Empty;
 
-        public override int HeaderLength => SeqNo.SizeOf + SeqNo.SizeOf + AckBufferLength;
+        public override int HeaderLength => base.HeaderLength + SeqNo.SizeOf + SeqNo.SizeOf + (AckBufferLength / NC.BitsPerByte);
 
         protected override void DeserializeHeaderCore(NetDataReader reader)
         {

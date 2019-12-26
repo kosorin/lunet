@@ -148,9 +148,8 @@ namespace Lunet.Channels
                 if (_outgoingMessageQueue.Count > 0)
                 {
                     var now = Timestamp.Current;
-                    var retransmissionTimeout = now - Connection.RTT;
                     return _outgoingMessageQueue.Values
-                        .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value < retransmissionTimeout)
+                        .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value + (Connection.RTT * 2.5) < now)
                         .OrderBy(x => x.Timestamp ?? long.MaxValue)
                         .ToList();
                 }

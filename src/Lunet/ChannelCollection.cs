@@ -6,12 +6,12 @@ namespace Lunet
 {
     internal class ChannelCollection : IEnumerable<Channel>
     {
-        private readonly ChannelSettings _settings;
+        private readonly IChannelFactory _factory;
         private readonly Dictionary<byte, Channel> _channels = new Dictionary<byte, Channel>();
 
-        public ChannelCollection(ChannelSettings settings)
+        public ChannelCollection(IChannelFactory factory)
         {
-            _settings = settings;
+            _factory = factory;
         }
 
         public Channel Get(byte channelId, Connection connection)
@@ -31,7 +31,7 @@ namespace Lunet
                 return true;
             }
 
-            if (_settings.TryCreate(channelId, connection, out channel))
+            if (_factory.TryCreate(channelId, connection, out channel))
             {
                 _channels[channelId] = channel;
                 return true;

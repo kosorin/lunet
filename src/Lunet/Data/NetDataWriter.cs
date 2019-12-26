@@ -101,8 +101,15 @@ namespace Lunet.Data
             {
                 SeekOrigin.Begin => (0 - GetWriteBitPosition()) + bitOffset,
                 SeekOrigin.End => (GetWriteBitLength() - GetWriteBitPosition()) - bitOffset,
-                _ => bitOffset,
+                SeekOrigin.Current => bitOffset,
+                _ => throw new ArgumentOutOfRangeException(nameof(origin)),
             };
+
+            if (relativeBitPosition == 0)
+            {
+                return;
+            }
+
             EnsureWriteSize(relativeBitPosition);
 
             var newBitPosition = GetWriteBitPosition() + relativeBitPosition;
@@ -179,6 +186,27 @@ namespace Lunet.Data
             for (var i = 0; i < count; i++)
             {
                 Write(bytes[i], NC.BitsPerByte);
+            }
+        }
+
+        public void WriteSpan(ReadOnlySpan<byte> span)
+        {
+            var count = span.Length;
+            if (count <= 0)
+            {
+                return;
+            }
+
+            EnsureWriteSize(count * NC.BitsPerByte);
+
+            if (FastWrite(span))
+            {
+                return;
+            }
+
+            for (var i = 0; i < count; i++)
+            {
+                Write(span[i], NC.BitsPerByte);
             }
         }
 
@@ -299,7 +327,7 @@ namespace Lunet.Data
             WriteUShort(seq.Value);
         }
 
-        public void WriteHash(uint hash)
+        public void WriteCrc32Hash(uint hash)
         {
             WriteUInt(hash);
         }
@@ -358,6 +386,23 @@ namespace Lunet.Data
 
             Array.Copy(bytes, 0, Data, Offset + _writePosition, bytes.Length);
             _writePosition += bytes.Length;
+            if (_writeLength < _writePosition)
+            {
+                _writeLength = _writePosition;
+            }
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool FastWrite(ReadOnlySpan<byte> span)
+        {
+            if (_writeBitPosition != 0)
+            {
+                return false;
+            }
+
+            span.CopyTo(new Span<byte>(Data, Offset + _writePosition, span.Length));
+            _writePosition += span.Length;
             if (_writeLength < _writePosition)
             {
                 _writeLength = _writePosition;

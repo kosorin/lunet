@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Lunet
 {
-    public class ChannelSettings
+    public class ChannelSettings : IChannelFactory
     {
         public static byte DefaultChannelId { get; } = 0;
 
@@ -23,17 +23,17 @@ namespace Lunet
 
         public bool IsLocked { get; private set; }
 
-        public Channel Create(byte channelId, Connection connection)
+        public void SetChannel(byte channelId, Func<byte, Connection, Channel> activator)
         {
-            if (!TryCreate(channelId, connection, out var channel))
+            if (IsLocked)
             {
-                throw new Exception($"Unknown channel settings '{channelId}'.");
+                throw new InvalidOperationException("Channel settings is locked.");
             }
 
-            return channel;
+            _activators[channelId] = activator;
         }
 
-        public bool TryCreate(byte channelId, Connection connection, out Channel channel)
+        private bool TryCreate(byte channelId, Connection connection, out Channel channel)
         {
             IsLocked = true;
 
@@ -47,14 +47,20 @@ namespace Lunet
             return true;
         }
 
-        public void SetChannel(byte channelId, Func<byte, Connection, Channel> activator)
+
+        Channel IChannelFactory.Create(byte channelId, Connection connection)
         {
-            if (IsLocked)
+            if (!TryCreate(channelId, connection, out var channel))
             {
-                throw new InvalidOperationException("Channel settings is locked.");
+                throw new Exception($"Unknown channel settings '{channelId}'.");
             }
 
-            _activators[channelId] = activator;
+            return channel;
+        }
+
+        bool IChannelFactory.TryCreate(byte channelId, Connection connection, out Channel channel)
+        {
+            return TryCreate(channelId, connection, out channel);
         }
     }
 }

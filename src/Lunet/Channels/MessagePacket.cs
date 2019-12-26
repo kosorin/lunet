@@ -17,8 +17,6 @@ namespace Lunet.Channels
 
         public List<TMessage> Messages { get; } = new List<TMessage>();
 
-        public override int HeaderLength => 0;
-
         public override int DataLength => Messages.Sum(x => x.Length);
 
         public override void DeserializeHeader(NetDataReader reader)

@@ -14,7 +14,7 @@ namespace Pegi.Client
         {
             PegiLogging.Configure("Client");
 
-            var remoteEndPoint = new InternetEndPoint("127.0.0.1", 45685);
+            var remoteEndPoint = new UdpEndPoint("127.0.0.1", 45685);
 
             var channelSettings = new ChannelSettings();
             channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new ReliableOrderedChannel(channelId, connection));
@@ -38,8 +38,8 @@ namespace Pegi.Client
 
                 connection.Connect();
 
-                var updateTime = 30;
-                var sendTime = 30;
+                var updateTime = 100;
+                var sendTime = 500;
                 var time = Timestamp.Current;
                 var i = 0;
                 while (!resetEvent.IsSet && (connection.State == ConnectionState.Connecting || connection.State == ConnectionState.Connected))
@@ -51,7 +51,7 @@ namespace Pegi.Client
                     {
                         time += sendTime;
 
-                        for (var n = 0; n < 10; n++)
+                        for (var n = 0; n < 1; n++)
                         {
                             var message = new DebugMessage
                             {

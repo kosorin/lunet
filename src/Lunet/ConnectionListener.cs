@@ -9,15 +9,15 @@ namespace Lunet
     {
         private readonly UdpSocket _socket;
 
-        private readonly Dictionary<InternetEndPoint, ServerConnection> _connections = new Dictionary<InternetEndPoint, ServerConnection>();
+        private readonly Dictionary<UdpEndPoint, ServerConnection> _connections = new Dictionary<UdpEndPoint, ServerConnection>();
         private readonly object _connectionsLock = new object();
         private readonly ChannelSettings _channelSettings;
 
-        public ConnectionListener(InternetEndPoint remoteEndPoint) : this(remoteEndPoint, ChannelSettings.Default)
+        public ConnectionListener(UdpEndPoint remoteEndPoint) : this(remoteEndPoint, ChannelSettings.Default)
         {
         }
 
-        public ConnectionListener(InternetEndPoint localEndPoint, ChannelSettings channelSettings)
+        public ConnectionListener(UdpEndPoint localEndPoint, ChannelSettings channelSettings)
         {
             _socket = new UdpSocket(localEndPoint.EndPoint);
             _socket.PacketReceived += Socket_PacketReceived;

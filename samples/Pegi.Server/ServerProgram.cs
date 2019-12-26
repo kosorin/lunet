@@ -15,7 +15,7 @@ namespace Pegi.Server
         {
             PegiLogging.Configure("Server");
 
-            var localEndPoint = new InternetEndPoint("127.0.0.1", 45685);
+            var localEndPoint = new UdpEndPoint("127.0.0.1", 45685);
 
             var channelSettings = new ChannelSettings();
             channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new ReliableOrderedChannel(channelId, connection));
@@ -30,7 +30,7 @@ namespace Pegi.Server
                     resetEvent.Set();
                 };
 
-                var connections = new ConcurrentDictionary<InternetEndPoint, Connection>();
+                var connections = new ConcurrentDictionary<UdpEndPoint, Connection>();
 
                 listener.NewConnection += (_, connection) =>
                 {
@@ -50,7 +50,7 @@ namespace Pegi.Server
                 };
                 listener.Run();
 
-                var updateTime = 30;
+                var updateTime = 100;
                 while (!resetEvent.IsSet)
                 {
                     foreach (var connection in connections.Values)

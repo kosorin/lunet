@@ -6,7 +6,7 @@ namespace Lunet
     {
         public int Length => HeaderLength + DataLength;
 
-        public abstract int HeaderLength { get; }
+        public virtual int HeaderLength => sizeof(byte) + sizeof(byte); // PacketType + ChannelId
 
         public abstract int DataLength { get; }
 

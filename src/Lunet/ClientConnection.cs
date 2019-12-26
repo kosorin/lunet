@@ -7,11 +7,11 @@ namespace Lunet
     {
         private readonly UdpSocket _socket;
 
-        public ClientConnection(InternetEndPoint remoteEndPoint) : this(remoteEndPoint, ChannelSettings.Default)
+        public ClientConnection(UdpEndPoint remoteEndPoint) : this(remoteEndPoint, ChannelSettings.Default)
         {
         }
 
-        public ClientConnection(InternetEndPoint remoteEndPoint, ChannelSettings channelSettings) : base(remoteEndPoint, channelSettings)
+        public ClientConnection(UdpEndPoint remoteEndPoint, ChannelSettings channelSettings) : base(remoteEndPoint, channelSettings)
         {
             _socket = new UdpSocket(remoteEndPoint.EndPoint.AddressFamily);
             _socket.PacketReceived += Socket_PacketReceived;
@@ -29,6 +29,19 @@ namespace Lunet
         }
 
 
+        private protected override void SendPacket(UdpPacket packet)
+        {
+            _socket.SendPacket(packet);
+        }
+
+        private protected override UdpPacket RentPacket()
+        {
+            var packet = _socket.RentPacket();
+            packet.RemoteEndPoint = RemoteEndPoint;
+            return packet;
+        }
+
+
         private void Socket_PacketReceived(UdpSocket socket, UdpPacket packet)
         {
             if (RemoteEndPoint == packet.RemoteEndPoint)
@@ -37,20 +50,8 @@ namespace Lunet
             }
         }
 
-        internal override void HandleOutgoingPacket(UdpPacket packet)
-        {
-            _socket.SendPacket(packet);
-        }
-
-        private protected override UdpPacket RentPacket()
-        {
-            return _socket.RentPacket();
-        }
-
 
         private int _disposed;
-
-        public override bool IsDisposed => _disposed == 1;
 
         protected override void Dispose(bool disposing)
         {

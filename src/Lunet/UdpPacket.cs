@@ -1,7 +1,6 @@
 ﻿using Lunet.Common;
 using Lunet.Data;
 using Lunet.Extensions;
-using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -10,11 +9,6 @@ namespace Lunet
 {
     internal class UdpPacket : PoolableObject<UdpPacket>
     {
-        public static Guid Version { get; } = Guid.Parse("1EDEFE8C-9469-4D68-9F3E-40A4A1971B90");
-
-        public static uint VersionHash { get; } = Crc32.Compute(Version.ToByteArray());
-
-
         private readonly IPEndPoint _receiveRemoteEndPoint;
         private readonly byte[] _buffer;
 
@@ -22,6 +16,8 @@ namespace Lunet
         {
             _receiveRemoteEndPoint = addressFamily.GetAnyEndPoint();
             _buffer = new byte[ushort.MaxValue];
+
+            RemoteEndPoint = new UdpEndPoint(_receiveRemoteEndPoint);
 
             Reader = new NetDataReader(_buffer);
             Writer = new NetDataWriter(_buffer);
@@ -33,7 +29,7 @@ namespace Lunet
         }
 
 
-        public InternetEndPoint RemoteEndPoint { get; set; }
+        public UdpEndPoint RemoteEndPoint { get; set; }
 
         public NetDataReader Reader { get; }
 
@@ -42,26 +38,19 @@ namespace Lunet
         public SocketAsyncEventArgs Operation { get; }
 
 
-        public void BeginReceive()
+        internal void BeginReceive()
         {
             Operation.RemoteEndPoint = _receiveRemoteEndPoint;
             Operation.SetBuffer(Reader.GetDataMemory());
         }
 
-        public bool EndReceive()
+        internal bool EndReceive()
         {
             if (IsOperationSuccessful())
             {
                 Reader.Reset(Operation.BytesTransferred);
 
-                if (!Crc32.Check(VersionHash, Reader.GetReadOnlySpan()))
-                {
-                    return false;
-                }
-
-                Reader.Reset(Operation.BytesTransferred - Crc32.HashLength);
-
-                RemoteEndPoint = new InternetEndPoint(Operation.RemoteEndPoint);
+                RemoteEndPoint = new UdpEndPoint(Operation.RemoteEndPoint);
                 return true;
             }
             else
@@ -70,21 +59,19 @@ namespace Lunet
             }
         }
 
-        public void BeginSend()
+        internal void BeginSend()
         {
-            Writer.Flush();
-            var hash = Crc32.Append(VersionHash, Writer.GetReadOnlySpan());
-            Writer.WriteHash(hash);
             Writer.Flush();
 
             Operation.RemoteEndPoint = RemoteEndPoint.EndPoint;
             Operation.SetBuffer(Writer.GetMemory());
         }
 
-        public bool EndSend()
+        internal bool EndSend()
         {
             return IsOperationSuccessful();
         }
+
 
         private bool IsOperationSuccessful()
         {

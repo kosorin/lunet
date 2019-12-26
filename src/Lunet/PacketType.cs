@@ -3,9 +3,8 @@
     internal enum PacketType : byte
     {
         Channel = 0,
-        System = 1,
-        Fragment = 2,
-
-        // Max 8 fields (3 bits)
+        Fragment = 1,
+        Ping = 2,
+        Pong = 3,
     }
 }

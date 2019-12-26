@@ -5,13 +5,13 @@ using SystemNet_IPEndPoint = System.Net.IPEndPoint;
 
 namespace Lunet
 {
-    public class InternetEndPoint : IEquatable<InternetEndPoint>
+    public class UdpEndPoint : IEquatable<UdpEndPoint>
     {
-        internal InternetEndPoint(SystemNet_EndPoint endPoint) : this((SystemNet_IPEndPoint)endPoint)
+        internal UdpEndPoint(SystemNet_EndPoint endPoint) : this((SystemNet_IPEndPoint)endPoint)
         {
         }
 
-        internal InternetEndPoint(SystemNet_IPEndPoint endPoint)
+        internal UdpEndPoint(SystemNet_IPEndPoint endPoint)
         {
             EndPoint = endPoint;
 
@@ -20,7 +20,7 @@ namespace Lunet
             IPVersion = EndPoint.AddressFamily.ToIPVersion();
         }
 
-        public InternetEndPoint(string host, int port, IPVersion ipVersion = IPVersion.IPv4)
+        public UdpEndPoint(string host, int port, IPVersion ipVersion = IPVersion.IPv4)
         {
             var hostAddress = IPAddressResolver.Resolve(host, ipVersion.ToAddressFamily());
             if (hostAddress == null)
@@ -44,7 +44,7 @@ namespace Lunet
         internal SystemNet_IPEndPoint EndPoint { get; }
 
 
-        public bool Equals(InternetEndPoint other)
+        public bool Equals(UdpEndPoint other)
         {
             if (ReferenceEquals(other, this))
             {
@@ -63,10 +63,10 @@ namespace Lunet
             {
                 return true;
             }
-            return obj is InternetEndPoint other && EqualsCore(other);
+            return obj is UdpEndPoint other && EqualsCore(other);
         }
 
-        public static bool operator ==(InternetEndPoint left, InternetEndPoint right)
+        public static bool operator ==(UdpEndPoint left, UdpEndPoint right)
         {
             if (ReferenceEquals(left, right))
             {
@@ -79,12 +79,12 @@ namespace Lunet
             return left.EqualsCore(right);
         }
 
-        public static bool operator !=(InternetEndPoint left, InternetEndPoint right)
+        public static bool operator !=(UdpEndPoint left, UdpEndPoint right)
         {
             return !(left == right);
         }
 
-        protected virtual bool EqualsCore(InternetEndPoint other)
+        protected virtual bool EqualsCore(UdpEndPoint other)
         {
             return EndPoint.Equals(other.EndPoint);
         }
