@@ -17,11 +17,11 @@ namespace Pegi.Client
             var remoteEndPoint = new UdpEndPoint("127.0.0.1", 45685);
 
             var channelSettings = new ChannelSettings();
-            channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new ReliableOrderedChannel(channelId, connection));
+            channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new UnreliableChannel(channelId, connection));
 
             using (var connection = new ClientConnection(remoteEndPoint, channelSettings))
+            using (var resetEvent = new ManualResetEventSlim(false))
             {
-                var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
                 {
                     e.Cancel = true;
@@ -36,15 +36,25 @@ namespace Pegi.Client
                     Log.Information("[{ConnectionEndPoint}] Message: {Message}", connection.RemoteEndPoint, message);
                 };
 
+                Log.Information("Connecting...");
                 connection.Connect();
+                Log.Information("Connected");
 
                 var updateTime = 60;
                 var sendTime = 10;
                 var time = Timestamp.GetCurrent();
                 var i = 0;
-                while (!resetEvent.IsSet && (connection.State == ConnectionState.Connecting || connection.State == ConnectionState.Connected))
+                while (!resetEvent.IsSet && connection.State == ConnectionState.Connected)
                 {
-                    connection.Update();
+                    try
+                    {
+                        connection.Update();
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(e, "Update error");
+                        break;
+                    }
 
                     var now = Timestamp.GetCurrent();
                     if (now - time > sendTime)

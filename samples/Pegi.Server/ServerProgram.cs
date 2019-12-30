@@ -18,11 +18,11 @@ namespace Pegi.Server
             var localEndPoint = new UdpEndPoint("127.0.0.1", 45685);
 
             var channelSettings = new ChannelSettings();
-            channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new ReliableOrderedChannel(channelId, connection));
+            channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new UnreliableChannel(channelId, connection));
 
             using (var listener = new ConnectionListener(localEndPoint, channelSettings))
+            using (var resetEvent = new ManualResetEventSlim(false))
             {
-                var resetEvent = new ManualResetEventSlim(false);
                 Console.CancelKeyPress += (_, e) =>
                 {
                     e.Cancel = true;
@@ -55,7 +55,15 @@ namespace Pegi.Server
                 {
                     foreach (var connection in connections.Values)
                     {
-                        connection.Update();
+                        try
+                        {
+                            connection.Update();
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Error(e, "Update error");
+                            connection.Dispose();
+                        }
                     }
                     Thread.Sleep(1000 / updateTime);
                 }

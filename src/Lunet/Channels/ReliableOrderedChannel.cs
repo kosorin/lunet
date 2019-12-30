@@ -1,4 +1,5 @@
 ﻿using Lunet.Data;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -151,6 +152,12 @@ namespace Lunet.Channels
                 if (_outgoingMessageQueue.Count > 0)
                 {
                     var now = Timestamp.GetCurrent();
+
+                    if (_outgoingMessageQueue.Values.Any(x => x.FirstSendTimestamp.HasValue && x.FirstSendTimestamp.Value + Connection.Timeout < now))
+                    {
+                        throw new Exception("Outgoing reliable message timeout.");
+                    }
+
                     return _outgoingMessageQueue.Values
                         .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value + (Connection.RTT * 2.5) < now)
                         .OrderBy(x => x.Timestamp ?? long.MaxValue)

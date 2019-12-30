@@ -4,7 +4,29 @@ namespace Lunet.Channels
 {
     public class ReliableMessage : Message
     {
-        public long? Timestamp { get; set; }
+        private long? _firstSendTimestamp;
+        private long? _timestamp;
+
+        public long? FirstSendTimestamp => _firstSendTimestamp;
+
+        public long? Timestamp
+        {
+            get => _timestamp;
+            set
+            {
+                _timestamp = value;
+
+                if (_firstSendTimestamp == null)
+                {
+                    _firstSendTimestamp = _timestamp;
+                }
+
+                if (_timestamp == null)
+                {
+                    _firstSendTimestamp = null;
+                }
+            }
+        }
 
         public SeqNo Seq { get; set; }
 

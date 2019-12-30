@@ -6,5 +6,6 @@
         Fragment = 1,
         Ping = 2,
         Pong = 3,
+        KeepAlive = 4,
     }
 }
