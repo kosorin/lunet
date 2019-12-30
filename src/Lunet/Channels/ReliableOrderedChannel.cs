@@ -90,9 +90,12 @@ namespace Lunet.Channels
 
                 AcknowledgeOutgoingPackets(packet.Ack, packet.AckBuffer!);
 
-                // Packets without messages are ack packets
-                // so we send ack only for received packets with messages
-                _requireAckPacket = packet.Messages.Count > 0;
+                if (!_requireAckPacket)
+                {
+                    // Packets without messages are ack packets
+                    // so we send ack only for received packets with messages
+                    _requireAckPacket = packet.Messages.Count > 0;
+                }
             }
 
             if (packet.Messages.Count == 0)
