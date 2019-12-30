@@ -1,4 +1,5 @@
 ﻿using MessagePack;
+using System;
 
 namespace Pegi
 {
@@ -12,7 +13,7 @@ namespace Pegi
         public string Text { get; set; }
 
         [Key(2)]
-        public byte[] Data { get; set; } = new byte[200];
+        public byte[] Data { get; set; } = new byte[new Random().Next(10, 200)];
 
         public override string ToString()
         {

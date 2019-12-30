@@ -50,7 +50,7 @@ namespace Pegi.Server
                 };
                 listener.Run();
 
-                var updateTime = 100;
+                var updateTime = 60;
                 while (!resetEvent.IsSet)
                 {
                     foreach (var connection in connections.Values)

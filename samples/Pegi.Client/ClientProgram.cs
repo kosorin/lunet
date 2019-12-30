@@ -38,20 +38,20 @@ namespace Pegi.Client
 
                 connection.Connect();
 
-                var updateTime = 100;
-                var sendTime = 500;
-                var time = Timestamp.Current;
+                var updateTime = 60;
+                var sendTime = 10;
+                var time = Timestamp.GetCurrent();
                 var i = 0;
                 while (!resetEvent.IsSet && (connection.State == ConnectionState.Connecting || connection.State == ConnectionState.Connected))
                 {
                     connection.Update();
 
-                    var now = Timestamp.Current;
+                    var now = Timestamp.GetCurrent();
                     if (now - time > sendTime)
                     {
                         time += sendTime;
 
-                        for (var n = 0; n < 1; n++)
+                        for (var n = 0; n < 10; n++)
                         {
                             var message = new DebugMessage
                             {
