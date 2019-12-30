@@ -1,5 +1,6 @@
 ﻿using Lunet.Common;
 using Lunet.Data;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -8,6 +9,8 @@ namespace Lunet
     internal class FragmentGroup : PoolableObject<FragmentGroup>
     {
         private readonly Dictionary<byte, Fragment> _fragments = new Dictionary<byte, Fragment>();
+
+        private Dictionary<SeqNo, FragmentGroup>? _container;
 
         public long Timestamp { get; set; }
 
@@ -31,10 +34,21 @@ namespace Lunet
 
         public void WriteTo(NetDataWriter writer)
         {
+            if (!IsComplete)
+            {
+                throw new InvalidOperationException("Fragment group is not complete yet.");
+            }
+
             foreach (var fragment in _fragments.OrderBy(x => x.Key).Select(x => x.Value))
             {
                 fragment.WriteTo(writer);
             }
+        }
+
+        public void AttachTo(Dictionary<SeqNo, FragmentGroup> container)
+        {
+            _container = container;
+            _container.Add(Seq, this);
         }
 
 
@@ -46,6 +60,9 @@ namespace Lunet
 
         private void Clear()
         {
+            _container?.Remove(Seq);
+            _container = null;
+
             foreach (var fragment in _fragments.Values)
             {
                 fragment.Return();

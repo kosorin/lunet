@@ -45,7 +45,7 @@ namespace Lunet
         }
 
 
-        public int MTU => 100;
+        public int MTU => 508;
 
         public int RTT => _rtt;
 
@@ -88,7 +88,6 @@ namespace Lunet
                 foreach (var group in groups)
                 {
                     group.Return();
-                    _fragmentGroups.Remove(group.Seq);
                 }
             }
         }
@@ -175,7 +174,7 @@ namespace Lunet
                 break;
 
             case PacketType.Fragment:
-                ReceiveFragmentPacket(packet.RemoteEndPoint, reader);
+                ReceiveFragmentPacket(reader);
                 break;
 
             case PacketType.Ping:
@@ -291,7 +290,7 @@ namespace Lunet
         }
 
 
-        private void ReceiveFragmentPacket(UdpEndPoint remoteEndPoint, NetDataReader reader)
+        private void ReceiveFragmentPacket(NetDataReader reader)
         {
             UdpPacket? fragmentedPacket = null;
             try
@@ -301,35 +300,16 @@ namespace Lunet
 
                 lock (_fragmentLock)
                 {
-                    if (!_fragmentGroups.TryGetValue(fragmentSeq, out var group))
-                    {
-                        group = _fragmentGroupPool.Rent();
-                        group.Timestamp = Timestamp.GetCurrent();
-                        group.Seq = fragmentSeq;
-                        group.Count = fragmentCount;
-
-                        _fragmentGroups.Add(fragmentSeq, group);
-                    }
+                    var group = GetFragmentGroup(fragmentSeq, fragmentCount);
 
                     var fragmentIndex = reader.ReadByte();
                     if (group.CanAdd(fragmentIndex))
                     {
-                        var fragmentData = reader.ReadSpan();
-
-                        var fragment = _fragmentPool.Rent();
-                        fragment.Set(fragmentIndex, fragmentData);
-
-                        group.Add(fragment);
+                        AddFragment(group, fragmentIndex, reader.ReadSpan());
 
                         if (group.IsComplete)
                         {
-                            fragmentedPacket = RentPacket();
-
-                            fragmentedPacket.RemoteEndPoint = remoteEndPoint;
-                            group.WriteTo(fragmentedPacket.Writer);
-                            fragmentedPacket.Reader.Reset(fragmentedPacket.Writer.Length);
-
-                            group.Return();
+                            fragmentedPacket = UnpackFragmentGroup(group);
                         }
                     }
                 }
@@ -402,6 +382,41 @@ namespace Lunet
         }
 
 
+        private FragmentGroup GetFragmentGroup(SeqNo fragmentSeq, byte fragmentCount)
+        {
+            if (!_fragmentGroups.TryGetValue(fragmentSeq, out var group))
+            {
+                group = _fragmentGroupPool.Rent();
+                group.Timestamp = Timestamp.GetCurrent();
+                group.Seq = fragmentSeq;
+                group.Count = fragmentCount;
+                group.AttachTo(_fragmentGroups);
+            }
+            return group;
+        }
+
+        private UdpPacket UnpackFragmentGroup(FragmentGroup group)
+        {
+            var packet = RentPacket();
+
+            group.WriteTo(packet.Writer);
+            group.Return();
+
+            packet.Reader.Reset(packet.Writer.Length);
+
+            return packet;
+        }
+
+        private void AddFragment(FragmentGroup group, byte fragmentIndex, ReadOnlySpan<byte> fragmentData)
+        {
+            var fragment = _fragmentPool.Rent();
+
+            fragment.Set(fragmentIndex, fragmentData);
+
+            group.Add(fragment);
+        }
+
+
         private int _disposed;
 
         public void Dispose()
@@ -419,8 +434,15 @@ namespace Lunet
 
             if (disposing)
             {
-                _fragmentGroupPool.Dispose();
-                _fragmentPool.Dispose();
+                lock (_fragmentLock)
+                {
+                    _fragmentGroupPool.Dispose();
+                    _fragmentPool.Dispose();
+                    foreach (var group in _fragmentGroups.Values.ToList())
+                    {
+                        group.Return();
+                    }
+                }
             }
         }
     }
