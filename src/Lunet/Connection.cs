@@ -67,7 +67,7 @@ namespace Lunet
         {
             if (State != ConnectionState.Connected)
             {
-                return;
+                throw new InvalidOperationException("Connection is disconnected.");
             }
 
             ProcessFragments();
@@ -144,7 +144,7 @@ namespace Lunet
         {
             if (State != ConnectionState.Connected)
             {
-                return;
+                throw new InvalidOperationException("Connection is disconnected.");
             }
 
             var channel = _channels.Get(channelId, this);
