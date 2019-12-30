@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Lunet.Logging;
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
-using Lunet.Logging;
 
 namespace Lunet.Common
 {
@@ -50,7 +50,7 @@ namespace Lunet.Common
             _activator = activator;
             _objects = new ConcurrentBag<TItem>();
 
-            for (int i = 0; i < initialCapacity; i++)
+            for (var i = 0; i < initialCapacity; i++)
             {
                 _objects.Add(CreateItem());
             }

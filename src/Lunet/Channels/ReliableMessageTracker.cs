@@ -11,7 +11,7 @@ namespace Lunet.Channels
 
         public ReliableMessageTracker()
         {
-            for (int i = 0; i < BufferSize; i++)
+            for (var i = 0; i < BufferSize; i++)
             {
                 _messageSeqBuffer[i] = new List<SeqNo>();
             }

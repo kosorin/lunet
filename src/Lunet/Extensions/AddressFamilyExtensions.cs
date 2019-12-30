@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
-using SystemNet_IPEndPoint = System.Net.IPEndPoint;
 using SystemNet_IPAddresst = System.Net.IPAddress;
+using SystemNet_IPEndPoint = System.Net.IPEndPoint;
 
 namespace Lunet.Extensions
 {

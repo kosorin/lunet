@@ -126,7 +126,7 @@ namespace Lunet.Common
             var ctorParams = ctor.GetParameters();
             var ctorParamExprs = new Expression[ctorParams.Length];
 
-            for (int i = 0; i < ctorParams.Length; i++)
+            for (var i = 0; i < ctorParams.Length; i++)
             {
                 var ctorParamAccessorExpr = Expression.ArrayIndex(activatorParameter, Expression.Constant(i));
                 var ctorParamCastExpr = Expression.Convert(ctorParamAccessorExpr, ctorParams[i].ParameterType);

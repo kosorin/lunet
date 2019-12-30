@@ -170,25 +170,25 @@ namespace Lunet
             var packetType = (PacketType)reader.ReadByte();
             switch (packetType)
             {
-                case PacketType.Channel:
-                    ReceiveChannelPacket(reader);
-                    break;
+            case PacketType.Channel:
+                ReceiveChannelPacket(reader);
+                break;
 
-                case PacketType.Fragment:
-                    ReceiveFragmentPacket(packet.RemoteEndPoint, reader);
-                    break;
+            case PacketType.Fragment:
+                ReceiveFragmentPacket(packet.RemoteEndPoint, reader);
+                break;
 
-                case PacketType.Ping:
-                    ReceivePingPacket(reader);
-                    break;
+            case PacketType.Ping:
+                ReceivePingPacket(reader);
+                break;
 
-                case PacketType.Pong:
-                    ReceivePongPacket(reader);
-                    break;
+            case PacketType.Pong:
+                ReceivePongPacket(reader);
+                break;
 
-                default:
-                    // Ignore not supported packet types
-                    break;
+            default:
+                // Ignore not supported packet types
+                break;
             }
         }
 
@@ -211,7 +211,7 @@ namespace Lunet
                 }
 
                 var data = writer.GetReadOnlySpan();
-                var fragmentCount = (byte)Math.Ceiling(writer.Length / (double)MTU);
+                var fragmentCount = (byte)Math.Ceiling(data.Length / (double)MTU);
 
                 for (byte i = 0; i < fragmentCount; i++)
                 {

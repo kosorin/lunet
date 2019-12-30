@@ -13,6 +13,8 @@ namespace Lunet.Data
     /// </summary>
     public sealed class BitVector : IEquatable<BitVector>
     {
+#pragma warning disable IDE0007 // Use implicit type
+
         public static readonly BitVector Empty = new BitVector(0);
 
         private readonly int[] _data;
@@ -712,5 +714,7 @@ namespace Lunet.Data
         }
 
         #endregion Explicit operators
+
+#pragma warning restore IDE0007 // Use implicit type
     }
 }

@@ -6,7 +6,7 @@ namespace Lunet.Channels
     public abstract class Message
     {
         public byte[] Data { get; set; } = Array.Empty<byte>();
-        
+
         public int Length => HeaderLength + DataLength;
 
         public virtual int HeaderLength => 0;

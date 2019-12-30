@@ -195,14 +195,14 @@ namespace Lunet
 
             switch (packet.Operation.LastOperation)
             {
-                case SocketAsyncOperation.ReceiveFrom:
-                    ProcessReceive(packet);
-                    return;
-                case SocketAsyncOperation.SendTo:
-                    ProcessSend(packet);
-                    return;
-                default:
-                    throw new InvalidOperationException("Unexpected socket operation.");
+            case SocketAsyncOperation.ReceiveFrom:
+                ProcessReceive(packet);
+                return;
+            case SocketAsyncOperation.SendTo:
+                ProcessSend(packet);
+                return;
+            default:
+                throw new InvalidOperationException("Unexpected socket operation.");
             }
         }
 
