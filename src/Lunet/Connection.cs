@@ -293,49 +293,56 @@ namespace Lunet
 
         private void ReceiveFragmentPacket(UdpEndPoint remoteEndPoint, NetDataReader reader)
         {
-            UdpPacket? mergedPacket = null;
-
-            var fragmentSeq = reader.ReadSeqNo();
-            var fragmentCount = reader.ReadByte();
-
-            lock (_fragmentLock)
+            UdpPacket? fragmentedPacket = null;
+            try
             {
-                if (!_fragmentGroups.TryGetValue(fragmentSeq, out var group))
+                var fragmentSeq = reader.ReadSeqNo();
+                var fragmentCount = reader.ReadByte();
+
+                lock (_fragmentLock)
                 {
-                    group = _fragmentGroupPool.Rent();
-                    group.Timestamp = Timestamp.GetCurrent();
-                    group.Seq = fragmentSeq;
-                    group.Count = fragmentCount;
-
-                    _fragmentGroups.Add(fragmentSeq, group);
-                }
-
-                var fragmentIndex = reader.ReadByte();
-                if (group.CanAdd(fragmentIndex))
-                {
-                    var fragmentData = reader.ReadSpan();
-
-                    var fragment = _fragmentPool.Rent();
-                    fragment.Set(fragmentIndex, fragmentData);
-
-                    group.Add(fragment);
-
-                    if (group.IsComplete)
+                    if (!_fragmentGroups.TryGetValue(fragmentSeq, out var group))
                     {
-                        mergedPacket = RentPacket();
+                        group = _fragmentGroupPool.Rent();
+                        group.Timestamp = Timestamp.GetCurrent();
+                        group.Seq = fragmentSeq;
+                        group.Count = fragmentCount;
 
-                        mergedPacket.RemoteEndPoint = remoteEndPoint;
-                        group.WriteTo(mergedPacket.Writer);
-                        mergedPacket.Reader.Reset(mergedPacket.Writer.Length);
+                        _fragmentGroups.Add(fragmentSeq, group);
+                    }
 
-                        group.Return();
+                    var fragmentIndex = reader.ReadByte();
+                    if (group.CanAdd(fragmentIndex))
+                    {
+                        var fragmentData = reader.ReadSpan();
+
+                        var fragment = _fragmentPool.Rent();
+                        fragment.Set(fragmentIndex, fragmentData);
+
+                        group.Add(fragment);
+
+                        if (group.IsComplete)
+                        {
+                            fragmentedPacket = RentPacket();
+
+                            fragmentedPacket.RemoteEndPoint = remoteEndPoint;
+                            group.WriteTo(fragmentedPacket.Writer);
+                            fragmentedPacket.Reader.Reset(fragmentedPacket.Writer.Length);
+
+                            group.Return();
+                        }
                     }
                 }
-            }
 
-            if (mergedPacket != null)
+                // Handle fragmented packet outside lock statement
+                if (fragmentedPacket != null)
+                {
+                    HandleIncomingPacket(fragmentedPacket);
+                }
+            }
+            finally
             {
-                HandleIncomingPacket(mergedPacket);
+                fragmentedPacket?.Return();
             }
         }
 

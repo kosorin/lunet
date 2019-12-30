@@ -78,7 +78,7 @@ namespace Lunet
             catch (ObjectDisposedException)
             {
                 // It's ok - we don't want to receive packets anymore
-                packet.Dispose();
+                packet.Return();
                 return;
             }
             catch
@@ -94,7 +94,7 @@ namespace Lunet
         {
             if (IsDisposed)
             {
-                packet.Dispose();
+                packet.Return();
                 return;
             }
 
@@ -144,7 +144,7 @@ namespace Lunet
             catch (ObjectDisposedException)
             {
                 // It's ok - we don't want to send packets anymore
-                packet.Dispose();
+                packet.Return();
                 return;
             }
             catch
@@ -160,7 +160,7 @@ namespace Lunet
         {
             if (IsDisposed)
             {
-                packet.Dispose();
+                packet.Return();
                 return;
             }
 
@@ -189,7 +189,7 @@ namespace Lunet
 
             if (IsDisposed)
             {
-                packet.Dispose();
+                packet.Return();
                 return;
             }
 
