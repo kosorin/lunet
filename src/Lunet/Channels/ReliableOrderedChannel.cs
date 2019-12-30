@@ -122,7 +122,7 @@ namespace Lunet.Channels
                 }
                 _requireAckPacket = false;
 
-                var now = Timestamp.Current;
+                var now = Timestamp.GetCurrent();
                 foreach (var packet in outgoingPackets)
                 {
                     packet.Seq = _outgoingPacketSeq++;
@@ -147,7 +147,7 @@ namespace Lunet.Channels
             {
                 if (_outgoingMessageQueue.Count > 0)
                 {
-                    var now = Timestamp.Current;
+                    var now = Timestamp.GetCurrent();
                     return _outgoingMessageQueue.Values
                         .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value + (Connection.RTT * 2.5) < now)
                         .OrderBy(x => x.Timestamp ?? long.MaxValue)
@@ -277,7 +277,7 @@ namespace Lunet.Channels
         {
             lock (_incomingMessageQueue)
             {
-                var now = Timestamp.Current;
+                var now = Timestamp.GetCurrent();
                 foreach (var message in messages)
                 {
                     message.Timestamp = now;

@@ -45,7 +45,7 @@ namespace Lunet
         }
 
 
-        public int MTU => 500;
+        public int MTU => 100;
 
         public int RTT => _rtt;
 
@@ -81,7 +81,7 @@ namespace Lunet
         {
             lock (_fragmentLock)
             {
-                var now = Timestamp.Current;
+                var now = Timestamp.GetCurrent();
                 var groups = _fragmentGroups.Values
                     .Where(x => x.Timestamp + _fragmentTimeout < now)
                     .ToList();
@@ -122,10 +122,11 @@ namespace Lunet
             SeqNo? pingSequence = null;
             lock (_pingLock)
             {
-                if (Timestamp.Current > _pingTimestamp + _pingInterval)
+                var now = Timestamp.GetCurrent();
+                if (_pingTimestamp + _pingInterval < now)
                 {
+                    _pingTimestamp = now;
                     _pingSequence++;
-                    _pingTimestamp = Timestamp.Current;
 
                     pingSequence = _pingSequence;
                 }
@@ -302,7 +303,7 @@ namespace Lunet
                 if (!_fragmentGroups.TryGetValue(fragmentSeq, out var group))
                 {
                     group = _fragmentGroupPool.Rent();
-                    group.Timestamp = Timestamp.Current;
+                    group.Timestamp = Timestamp.GetCurrent();
                     group.Seq = fragmentSeq;
                     group.Count = fragmentCount;
 
@@ -378,7 +379,7 @@ namespace Lunet
             {
                 if (_pingSequence == pingSequence)
                 {
-                    _rtt = (int)(Timestamp.Current - _pingTimestamp);
+                    _rtt = (int)(Timestamp.GetCurrent() - _pingTimestamp);
                 }
             }
         }

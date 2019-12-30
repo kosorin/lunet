@@ -5,6 +5,6 @@ namespace Lunet
 {
     public static class Timestamp
     {
-        public static long Current => Stopwatch.GetTimestamp() / TimeSpan.TicksPerMillisecond;
+        public static long GetCurrent() => Stopwatch.GetTimestamp() / TimeSpan.TicksPerMillisecond;
     }
 }
