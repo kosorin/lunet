@@ -21,7 +21,9 @@ namespace Lunet
 
         private readonly Dictionary<byte, Func<byte, Connection, Channel>> _activators = new Dictionary<byte, Func<byte, Connection, Channel>>();
 
+
         public bool IsLocked { get; private set; }
+
 
         public void SetChannel(byte channelId, Func<byte, Connection, Channel> activator)
         {
@@ -31,20 +33,6 @@ namespace Lunet
             }
 
             _activators[channelId] = activator;
-        }
-
-        private bool TryCreate(byte channelId, Connection connection, out Channel channel)
-        {
-            IsLocked = true;
-
-            if (!_activators.TryGetValue(channelId, out var activator))
-            {
-                channel = null!;
-                return false;
-            }
-
-            channel = activator.Invoke(channelId, connection);
-            return true;
         }
 
 
@@ -61,6 +49,20 @@ namespace Lunet
         bool IChannelFactory.TryCreate(byte channelId, Connection connection, out Channel channel)
         {
             return TryCreate(channelId, connection, out channel);
+        }
+
+        private bool TryCreate(byte channelId, Connection connection, out Channel channel)
+        {
+            IsLocked = true;
+
+            if (!_activators.TryGetValue(channelId, out var activator))
+            {
+                channel = null!;
+                return false;
+            }
+
+            channel = activator.Invoke(channelId, connection);
+            return true;
         }
     }
 }

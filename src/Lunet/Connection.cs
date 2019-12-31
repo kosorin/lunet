@@ -30,32 +30,27 @@ namespace Lunet
 
         private readonly object _pingLock = new object();
         private SeqNo _pingSequence;
-        private long _pingTimestamp;
-        private int _rtt;
-
-        private readonly object _keepAliveLock = new object();
-        private long _incomingKeepAliveTimestamp = Timestamp.GetCurrent();
-        private long _outgoingKeepAliveTimestamp = Timestamp.GetCurrent();
+        private long _pingTimestamp = Timestamp.GetCurrent();
+        private long _keepAliveTimestamp = Timestamp.GetCurrent();
+        private int _rtt = 500;
 
         protected Connection(UdpEndPoint remoteEndPoint, ChannelSettings channelSettings)
         {
-            RemoteEndPoint = remoteEndPoint;
+            _channels = new ChannelCollection(channelSettings);
 
             State = ConnectionState.Disconnected;
-
-            _channels = new ChannelCollection(channelSettings);
+            RemoteEndPoint = remoteEndPoint;
         }
 
 
         public int Timeout => 8_000;
 
-        public int MTU => 508;
+        public int PingInterval => 1_000;
 
         public int RTT => _rtt;
 
-        public int PingInterval => 1_000;
+        public int MTU => 508;
 
-        public int KeepAliveInterval => 3_000;
 
         public ConnectionState State
         {
@@ -82,8 +77,6 @@ namespace Lunet
 
             ProcessPing();
 
-            ProcessKeepAlive();
-
             ProcessChannels();
         }
 
@@ -108,6 +101,12 @@ namespace Lunet
             lock (_pingLock)
             {
                 var now = Timestamp.GetCurrent();
+
+                if (_keepAliveTimestamp + Timeout < now)
+                {
+                    throw new Exception("Connection timeout.");
+                }
+
                 if (_pingTimestamp + PingInterval < now)
                 {
                     _pingTimestamp = now;
@@ -119,32 +118,6 @@ namespace Lunet
             if (pingSequence != null)
             {
                 SendPingPacket(pingSequence.Value);
-            }
-        }
-
-        private void ProcessKeepAlive()
-        {
-            var sendKeepAlive = false;
-            lock (_keepAliveLock)
-            {
-                var now = Timestamp.GetCurrent();
-
-                if (_incomingKeepAliveTimestamp + Timeout < now)
-                {
-                    throw new Exception("Connection timeout.");
-                }
-
-                if (_outgoingKeepAliveTimestamp + KeepAliveInterval < now)
-                {
-                    _outgoingKeepAliveTimestamp = now;
-
-                    sendKeepAlive = true;
-                }
-            }
-
-            if (sendKeepAlive)
-            {
-                SendKeepAlivePacket();
             }
         }
 
@@ -220,13 +193,9 @@ namespace Lunet
                 ReceivePongPacket(reader);
                 break;
 
-            case PacketType.KeepAlive:
-                ReceiveKeepAlivePacket(reader);
-                break;
-
             default:
                 // Ignore not supported packet types
-                break;
+                return;
             }
         }
 
@@ -307,15 +276,6 @@ namespace Lunet
         }
 
 
-        private void ReceiveChannelPacket(NetDataReader reader)
-        {
-            var channelId = reader.ReadByte();
-            if (_channels.TryGet(channelId, this, out var channel))
-            {
-                channel.HandleIncomingPacket(reader);
-            }
-        }
-
         private void SendChannelPacket(Channel channel, ChannelPacket channelPacket)
         {
             var packet = RentPacket();
@@ -328,6 +288,28 @@ namespace Lunet
             HandleOutgoingPacket(packet);
         }
 
+        private void ReceiveChannelPacket(NetDataReader reader)
+        {
+            var channelId = reader.ReadByte();
+            if (_channels.TryGet(channelId, this, out var channel))
+            {
+                channel.HandleIncomingPacket(reader);
+            }
+        }
+
+
+        private void SendFragmentPacket(SeqNo fragmentSeq, byte fragmentCount, byte fragmentIndex, ReadOnlySpan<byte> fragmentData)
+        {
+            var packet = RentPacket();
+
+            packet.Writer.WriteByte((byte)PacketType.Fragment);
+            packet.Writer.WriteSeqNo(fragmentSeq);
+            packet.Writer.WriteByte(fragmentCount);
+            packet.Writer.WriteByte(fragmentIndex);
+            packet.Writer.WriteSpan(fragmentData);
+
+            HandleOutgoingFragmentPacket(packet);
+        }
 
         private void ReceiveFragmentPacket(NetDataReader reader)
         {
@@ -365,26 +347,6 @@ namespace Lunet
             }
         }
 
-        private void SendFragmentPacket(SeqNo fragmentSeq, byte fragmentCount, byte fragmentIndex, ReadOnlySpan<byte> fragmentData)
-        {
-            var packet = RentPacket();
-
-            packet.Writer.WriteByte((byte)PacketType.Fragment);
-            packet.Writer.WriteSeqNo(fragmentSeq);
-            packet.Writer.WriteByte(fragmentCount);
-            packet.Writer.WriteByte(fragmentIndex);
-            packet.Writer.WriteSpan(fragmentData);
-
-            HandleOutgoingFragmentPacket(packet);
-        }
-
-
-        private void ReceivePingPacket(NetDataReader reader)
-        {
-            var pingSequence = reader.ReadSeqNo();
-
-            SendPongPacket(pingSequence);
-        }
 
         private void SendPingPacket(SeqNo pingSequence)
         {
@@ -396,19 +358,20 @@ namespace Lunet
             HandleOutgoingPacket(packet);
         }
 
-
-        private void ReceivePongPacket(NetDataReader reader)
+        private void ReceivePingPacket(NetDataReader reader)
         {
-            var pingSequence = reader.ReadSeqNo();
-
             lock (_pingLock)
             {
-                if (_pingSequence == pingSequence)
-                {
-                    _rtt = (int)(Timestamp.GetCurrent() - _pingTimestamp);
-                }
+                var now = Timestamp.GetCurrent();
+
+                _keepAliveTimestamp = now;
             }
+
+            var pingSequence = reader.ReadSeqNo();
+
+            SendPongPacket(pingSequence);
         }
+
 
         private void SendPongPacket(SeqNo pingSequence)
         {
@@ -420,22 +383,21 @@ namespace Lunet
             HandleOutgoingPacket(packet);
         }
 
-
-        private void ReceiveKeepAlivePacket(NetDataReader reader)
+        private void ReceivePongPacket(NetDataReader reader)
         {
-            lock (_keepAliveLock)
+            var pingSequence = reader.ReadSeqNo();
+
+            lock (_pingLock)
             {
-                _incomingKeepAliveTimestamp = Timestamp.GetCurrent();
+                var now = Timestamp.GetCurrent();
+
+                _keepAliveTimestamp = now;
+
+                if (_pingSequence == pingSequence)
+                {
+                    _rtt = (int)(now - _pingTimestamp);
+                }
             }
-        }
-
-        private void SendKeepAlivePacket()
-        {
-            var packet = RentPacket();
-
-            packet.Writer.WriteByte((byte)PacketType.KeepAlive);
-
-            HandleOutgoingPacket(packet);
         }
 
 
