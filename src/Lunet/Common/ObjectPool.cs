@@ -105,10 +105,10 @@ namespace Lunet.Common
 
         private TItem CreateItem()
         {
-            Interlocked.Increment(ref _created);
-
             var item = _activator.Invoke();
             item.Owner = this;
+
+            Interlocked.Increment(ref _created);
 
             return item;
         }
