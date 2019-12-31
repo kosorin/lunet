@@ -11,10 +11,9 @@ namespace Lunet.Data
     /// <summary>
     /// Fixed size vector of booleans.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0007:Use implicit type", Justification = "<Pending>")]
     public sealed class BitVector : IEquatable<BitVector>
     {
-#pragma warning disable IDE0007 // Use implicit type
-
         public static readonly BitVector Empty = new BitVector(0);
 
         private readonly int[] _data;
@@ -265,6 +264,7 @@ namespace Lunet.Data
                 Array.Clear(_data, clearToIndex, lengthToClear);
             }
         }
+
 
         /// <summary>
         /// Rotate all bits to right.
@@ -714,7 +714,5 @@ namespace Lunet.Data
         }
 
         #endregion Explicit operators
-
-#pragma warning restore IDE0007 // Use implicit type
     }
 }

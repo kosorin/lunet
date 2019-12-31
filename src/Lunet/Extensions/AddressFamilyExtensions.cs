@@ -9,22 +9,22 @@ namespace Lunet.Extensions
     {
         public static IPVersion ToIPVersion(this AddressFamily addressFamily)
         {
-            switch (addressFamily)
+            return addressFamily switch
             {
-            case AddressFamily.InterNetwork: return IPVersion.IPv4;
-            case AddressFamily.InterNetworkV6: return IPVersion.IPv6;
-            default: throw new ArgumentOutOfRangeException(nameof(addressFamily), $"Address family {addressFamily} is not supported.");
-            }
+                AddressFamily.InterNetwork => IPVersion.IPv4,
+                AddressFamily.InterNetworkV6 => IPVersion.IPv6,
+                _ => throw new ArgumentOutOfRangeException(nameof(addressFamily), $"Address family {addressFamily} is not supported."),
+            };
         }
 
         public static SystemNet_IPEndPoint GetAnyEndPoint(this AddressFamily addressFamily)
         {
-            switch (addressFamily)
+            return addressFamily switch
             {
-            case AddressFamily.InterNetwork: return new SystemNet_IPEndPoint(SystemNet_IPAddresst.Any, SystemNet_IPEndPoint.MinPort);
-            case AddressFamily.InterNetworkV6: return new SystemNet_IPEndPoint(SystemNet_IPAddresst.IPv6Any, SystemNet_IPEndPoint.MinPort);
-            default: throw new ArgumentOutOfRangeException(nameof(addressFamily), $"Address family {addressFamily} is not supported.");
-            }
+                AddressFamily.InterNetwork => new SystemNet_IPEndPoint(SystemNet_IPAddresst.Any, SystemNet_IPEndPoint.MinPort),
+                AddressFamily.InterNetworkV6 => new SystemNet_IPEndPoint(SystemNet_IPAddresst.IPv6Any, SystemNet_IPEndPoint.MinPort),
+                _ => throw new ArgumentOutOfRangeException(nameof(addressFamily), $"Address family {addressFamily} is not supported."),
+            };
         }
     }
 }

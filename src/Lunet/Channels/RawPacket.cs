@@ -1,10 +1,11 @@
 ﻿using Lunet.Data;
+using System;
 
 namespace Lunet.Channels
 {
     public class RawPacket : ChannelPacket
     {
-        public byte[] Data { get; set; } = System.Array.Empty<byte>();
+        public byte[] Data { get; set; } = Array.Empty<byte>();
 
         public override int DataLength => Data.Length;
 

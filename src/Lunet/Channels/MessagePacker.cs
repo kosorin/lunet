@@ -9,7 +9,7 @@ namespace Lunet.Channels
     {
         private readonly Func<TPacket> _packetActivator;
 
-        public MessagePacker(Func<TPacket> packetActivator)
+        protected MessagePacker(Func<TPacket> packetActivator)
         {
             _packetActivator = packetActivator ?? throw new ArgumentNullException(nameof(packetActivator));
         }

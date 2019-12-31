@@ -7,12 +7,12 @@ namespace Lunet.Extensions
     {
         public static AddressFamily ToAddressFamily(this IPVersion ipVersion)
         {
-            switch (ipVersion)
+            return ipVersion switch
             {
-            case IPVersion.IPv4: return AddressFamily.InterNetwork;
-            case IPVersion.IPv6: return AddressFamily.InterNetworkV6;
-            default: throw new ArgumentOutOfRangeException(nameof(ipVersion), $"IP version {ipVersion} is not supported.");
-            }
+                IPVersion.IPv4 => AddressFamily.InterNetwork,
+                IPVersion.IPv6 => AddressFamily.InterNetworkV6,
+                _ => throw new ArgumentOutOfRangeException(nameof(ipVersion), $"IP version {ipVersion} is not supported."),
+            };
         }
     }
 }
