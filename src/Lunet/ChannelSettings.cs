@@ -15,6 +15,7 @@ namespace Lunet
         {
             var settings = new ChannelSettings();
             settings.SetChannel<ReliableOrderedChannel>(DefaultChannelId);
+            settings.IsLocked = true;
             Default = settings;
         }
 
