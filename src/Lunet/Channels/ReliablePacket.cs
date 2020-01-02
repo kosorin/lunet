@@ -27,29 +27,12 @@ namespace Lunet.Channels
             base.DeserializeHeaderCore(reader);
         }
 
-        protected override void DeserializeDataCore(NetDataReader reader)
-        {
-            base.DeserializeDataCore(reader);
-            Messages.Sort(CompareMessages);
-        }
-
         protected override void SerializeHeaderCore(NetDataWriter writer)
         {
             writer.WriteSeqNo(Seq);
             writer.WriteSeqNo(Ack);
             writer.WriteBits(AckBuffer!);
             base.SerializeHeaderCore(writer);
-        }
-
-        /// <summary>
-        /// Compares reliable messages.
-        /// </summary>
-        /// <remarks>
-        /// Used for sorting received packets.
-        /// </remarks>
-        private static int CompareMessages(ReliableMessage a, ReliableMessage b)
-        {
-            return a.Seq.CompareTo(b.Seq);
         }
     }
 }

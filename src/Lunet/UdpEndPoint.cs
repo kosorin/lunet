@@ -5,6 +5,7 @@ using SystemNet_IPEndPoint = System.Net.IPEndPoint;
 
 namespace Lunet
 {
+    // TODO: new
     public class UdpEndPoint : IEquatable<UdpEndPoint>
     {
         internal UdpEndPoint(SystemNet_EndPoint endPoint) : this((SystemNet_IPEndPoint)endPoint)

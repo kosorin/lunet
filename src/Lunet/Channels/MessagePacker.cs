@@ -14,7 +14,7 @@ namespace Lunet.Channels
             _packetActivator = packetActivator ?? throw new ArgumentNullException(nameof(packetActivator));
         }
 
-        public abstract IList<TPacket>? Pack(IList<TMessage>? messages, int maxPacketSize);
+        public abstract List<TPacket>? Pack(List<TMessage>? messages, int maxPacketSize);
 
         protected TPacket CreatePacket()
         {

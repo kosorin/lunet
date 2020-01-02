@@ -17,13 +17,13 @@ namespace Lunet
         public Connection Connection { get; }
 
 
-        public abstract IList<byte[]>? GetReceivedMessages();
+        public abstract List<byte[]>? GetReceivedMessages();
 
         public abstract void SendMessage(byte[] data);
 
 
         internal abstract void HandleIncomingPacket(NetDataReader reader);
 
-        internal abstract IList<ChannelPacket>? CollectOutgoingPackets();
+        internal abstract List<ChannelPacket>? CollectOutgoingPackets();
     }
 }

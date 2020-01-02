@@ -11,13 +11,14 @@ namespace Lunet.Channels
         {
         }
 
-        public override IList<TPacket>? Pack(IList<TMessage>? messages, int maxPacketSize)
+        public override List<TPacket>? Pack(List<TMessage>? messages, int maxPacketSize)
         {
             if (messages == null || messages.Count == 0)
             {
                 return null;
             }
 
+            // TODO: new
             var packets = new List<TPacket>();
 
             var currentPacket = CreatePacket();

@@ -18,7 +18,7 @@ namespace Lunet
         {
             if (!TryGet(channelId, connection, out var channel))
             {
-                throw new Exception($"Unknown channel '{channelId}'.");
+                throw new Exception($"Unknown channel '" + channelId.ToString() + "'.");
             }
 
             return channel;
@@ -41,14 +41,49 @@ namespace Lunet
             return false;
         }
 
-        public IEnumerator<Channel> GetEnumerator()
+        public Enumerator GetEnumerator()
         {
-            return _channels.Values.GetEnumerator();
+            return new Enumerator(_channels);
+        }
+
+        IEnumerator<Channel> IEnumerable<Channel>.GetEnumerator()
+        {
+            return GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public struct Enumerator : IEnumerator<Channel>
+        {
+            private readonly Dictionary<byte, Channel>.ValueCollection.Enumerator _enumerator;
+
+            public Enumerator(Dictionary<byte, Channel> channels)
+            {
+                _enumerator = channels.Values.GetEnumerator();
+            }
+
+            public Channel Current => _enumerator.Current;
+
+            public bool MoveNext()
+            {
+                return _enumerator.MoveNext();
+            }
+
+            public void Dispose()
+            {
+                _enumerator.Dispose();
+            }
+
+
+            object IEnumerator.Current => Current;
+
+            void IEnumerator.Reset()
+            {
+                ((IEnumerator)_enumerator).Reset();
+            }
         }
     }
 }

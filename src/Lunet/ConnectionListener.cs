@@ -19,6 +19,7 @@ namespace Lunet
 
         public ConnectionListener(UdpEndPoint localEndPoint, ChannelSettings channelSettings)
         {
+            // TODO: new
             _socket = new UdpSocket(localEndPoint.EndPoint);
             _socket.PacketReceived += Socket_PacketReceived;
             _channelSettings = channelSettings;
@@ -48,6 +49,7 @@ namespace Lunet
                 _connections.TryGetValue(packet.RemoteEndPoint, out connection);
                 if (connection == null)
                 {
+                    // TODO: new
                     connection = new ServerConnection(_socket, packet.RemoteEndPoint, _channelSettings);
                     _connections.Add(packet.RemoteEndPoint, connection);
 

@@ -71,6 +71,16 @@ namespace Lunet.Data
         /// <param name="bytes">Source bytes.</param>
         /// <param name="capacity">Number of bits.</param>
         public BitVector(byte[] bytes, int capacity)
+            : this(new ReadOnlySpan<byte>(bytes), capacity)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BitVector"/> class with bytes.
+        /// </summary>
+        /// <param name="bytes">Source bytes.</param>
+        /// <param name="capacity">Number of bits.</param>
+        public BitVector(ReadOnlySpan<byte> bytes, int capacity)
         {
             if (bytes == null)
             {

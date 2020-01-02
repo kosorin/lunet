@@ -1,4 +1,5 @@
-﻿using Lunet.Data;
+﻿using Lunet.Common;
+using Lunet.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,10 +30,11 @@ namespace Lunet.Channels
         public static int AckBufferLength { get; } = 128;
 
 
-        public override IList<byte[]>? GetReceivedMessages()
+        public override List<byte[]>? GetReceivedMessages()
         {
             lock (_incomingMessageQueue)
             {
+                // TODO: new
                 var receivedMessages = new List<byte[]>();
                 while (_incomingMessageQueue.Remove(_incomingReadMessageSeq, out var message))
                 {
@@ -106,7 +108,7 @@ namespace Lunet.Channels
             SaveIncomingMessages(packet.Messages);
         }
 
-        internal override IList<ChannelPacket>? CollectOutgoingPackets()
+        internal override List<ChannelPacket>? CollectOutgoingPackets()
         {
             var outgoingPackets = PackOutgoingPackets();
 
@@ -117,7 +119,8 @@ namespace Lunet.Channels
                     if (_requireAckPacket)
                     {
                         // Send at least one packet with acks
-                        outgoingPackets = new[] { PacketActivator() };
+                        // TODO: new
+                        outgoingPackets = new List<ReliablePacket> { PacketActivator() };
                     }
                     else
                     {
@@ -145,29 +148,41 @@ namespace Lunet.Channels
         }
 
 
-        protected override IList<ReliableMessage>? CollectOutgoingMessages()
+        protected override List<ReliableMessage>? CollectOutgoingMessages()
         {
+            List<ReliableMessage>? outgoingMessages = null;
+
             lock (_outgoingMessageQueue)
             {
                 if (_outgoingMessageQueue.Count > 0)
                 {
                     var now = Timestamp.GetCurrent();
 
-                    if (_outgoingMessageQueue.Values.Any(x => x.FirstSendTimestamp.HasValue && x.FirstSendTimestamp.Value + Connection.Timeout < now))
+                    foreach (var message in _outgoingMessageQueue.Values)
                     {
-                        throw new Exception("Outgoing reliable message timeout.");
-                    }
+                        if (message.FirstActionTimestamp.HasValue && message.FirstActionTimestamp.Value + Connection.Timeout < now)
+                        {
+                            throw new Exception("Outgoing reliable message timeout.");
+                        }
+                        else if (message.Timestamp.HasValue && message.Timestamp.Value + (Connection.RTT * 2.5) >= now)
+                        {
+                            continue;
+                        }
 
-                    return _outgoingMessageQueue.Values
-                        .Where(x => !x.Timestamp.HasValue || x.Timestamp.Value + (Connection.RTT * 2.5) < now)
-                        .OrderBy(x => x.Timestamp ?? long.MaxValue)
-                        .ToList();
+                        if (outgoingMessages == null)
+                        {
+                            outgoingMessages = new List<ReliableMessage>();
+                        }
+                        outgoingMessages.Add(message);
+                    }
                 }
                 else
                 {
                     return null;
                 }
             }
+
+            return outgoingMessages;
         }
 
 
@@ -226,21 +241,30 @@ namespace Lunet.Channels
         {
             if (message.Seq == _incomingMessageSeq)
             {
-                // New message
                 _incomingMessageSeq++;
-                return true;
-            }
-            else if (message.Seq > _incomingMessageSeq)
-            {
-                if (_incomingMessageQueue.ContainsKey(message.Seq))
+
+                if (_incomingMessageQueue.TryAdd(message.Seq, message))
                 {
-                    // Already (early) received messages
-                    return false;
+                    // New message
+                    return true;
                 }
                 else
                 {
+                    // Already received messages
+                    return false;
+                }
+            }
+            else if (message.Seq > _incomingMessageSeq)
+            {
+                if (_incomingMessageQueue.TryAdd(message.Seq, message))
+                {
                     // Early message
                     return true;
+                }
+                else
+                {
+                    // Already (early) received messages
+                    return false;
                 }
             }
             else
@@ -288,12 +312,23 @@ namespace Lunet.Channels
             lock (_incomingMessageQueue)
             {
                 var now = Timestamp.GetCurrent();
-                foreach (var message in messages)
+
+                Span<SeqNo> input = stackalloc SeqNo[messages.Count];
+                Span<SortItem> outputItems = stackalloc SortItem[messages.Count];
+
+                for (var i = 0; i < messages.Count; i++)
                 {
-                    message.Timestamp = now;
+                    input[i] = messages[i].Seq;
+                }
+
+                _incomingMessageSeq.Sort(input, outputItems);
+
+                foreach (var item in outputItems)
+                {
+                    var message = messages[item.Index];
                     if (AcceptIncomingMessage(message))
                     {
-                        _incomingMessageQueue[message.Seq] = message;
+                        message.Timestamp = now;
                     }
                 }
             }

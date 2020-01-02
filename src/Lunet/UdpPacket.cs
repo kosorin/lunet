@@ -50,6 +50,7 @@ namespace Lunet
             {
                 Reader.Reset(Operation.BytesTransferred);
 
+                // TODO: new
                 RemoteEndPoint = new UdpEndPoint(Operation.RemoteEndPoint);
                 return true;
             }

@@ -9,7 +9,7 @@ namespace Lunet
         Connection Connection { get; }
 
 
-        IList<byte[]>? GetReceivedMessages();
+        List<byte[]>? GetReceivedMessages();
 
         void SendMessage(byte[] data);
     }

@@ -15,7 +15,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lunet.Tests", "tests\Lunet.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{34119B4E-FCC1-4E0E-81AC-860874A994B4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pegi", "samples\Pegi\Pegi.csproj", "{670C4907-A5C9-471D-810F-DD85CFF6F47A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pegi", "samples\Pegi\Pegi.csproj", "{670C4907-A5C9-471D-810F-DD85CFF6F47A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lunet.Benchmarks", "tests\Lunet.Benchmarks\Lunet.Benchmarks.csproj", "{F4EAE4C7-1728-427C-95EC-D73C8A948434}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -43,6 +45,10 @@ Global
 		{670C4907-A5C9-471D-810F-DD85CFF6F47A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{670C4907-A5C9-471D-810F-DD85CFF6F47A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{670C4907-A5C9-471D-810F-DD85CFF6F47A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4EAE4C7-1728-427C-95EC-D73C8A948434}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4EAE4C7-1728-427C-95EC-D73C8A948434}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4EAE4C7-1728-427C-95EC-D73C8A948434}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4EAE4C7-1728-427C-95EC-D73C8A948434}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,6 +58,7 @@ Global
 		{922B6C61-8C68-4699-8F7C-6F571F6A8375} = {34119B4E-FCC1-4E0E-81AC-860874A994B4}
 		{2FB8D747-BBDA-43C1-BB72-31076A6D5A7A} = {14E2B85C-CE5A-43EE-80DB-315C619746CC}
 		{670C4907-A5C9-471D-810F-DD85CFF6F47A} = {34119B4E-FCC1-4E0E-81AC-860874A994B4}
+		{F4EAE4C7-1728-427C-95EC-D73C8A948434} = {14E2B85C-CE5A-43EE-80DB-315C619746CC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EBC38A3F-5A0D-4EC1-934A-F55295885EF7}

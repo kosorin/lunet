@@ -13,10 +13,12 @@
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>Lunet.Tests</_Parameter1>
+      <_Parameter1>Lunet.Benchmarks</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Anoprsst" Version="1.1.2" />
     <PackageReference Include="LibLog" Version="5.0.6">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

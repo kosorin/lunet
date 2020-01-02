@@ -85,12 +85,12 @@ namespace Lunet
             lock (_fragmentLock)
             {
                 var now = Timestamp.GetCurrent();
-                var groups = _fragmentGroups.Values
-                    .Where(x => x.Timestamp + Timeout < now)
-                    .ToList();
-                foreach (var group in groups)
+                foreach (var group in _fragmentGroups.Values)
                 {
-                    group.Return();
+                    if (group.Timestamp + Timeout < now)
+                    {
+                        group.Return();
+                    }
                 }
             }
         }

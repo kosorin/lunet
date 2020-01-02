@@ -124,11 +124,11 @@ namespace Lunet.Data
             }
             if (bitCount == 0)
             {
-                return new BitVector(bitCount);
+                return new BitVector(0);
             }
 
             ThrowIfNotEnoughData(bitCount);
-            var bytes = new byte[NetHelper.GetElementCapacity(bitCount, NC.BitsPerByte)];
+            Span<byte> bytes = stackalloc byte[NetHelper.GetElementCapacity(bitCount, NC.BitsPerByte)];
             for (int i = 0, capacity = bitCount; i < bytes.Length; i++, capacity -= NC.BitsPerByte)
             {
                 bytes[i] = Read(capacity > NC.BitsPerByte ? NC.BitsPerByte : capacity);

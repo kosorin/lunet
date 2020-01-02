@@ -14,7 +14,7 @@ namespace Lunet.Channels
         }
 
 
-        public override IList<byte[]>? GetReceivedMessages()
+        public override List<byte[]>? GetReceivedMessages()
         {
             lock (_incomingMessageQueue)
             {
@@ -68,13 +68,13 @@ namespace Lunet.Channels
             }
         }
 
-        internal override IList<ChannelPacket>? CollectOutgoingPackets()
+        internal override List<ChannelPacket>? CollectOutgoingPackets()
         {
             return PackOutgoingPackets()?.Cast<ChannelPacket>().ToList();
         }
 
 
-        protected override IList<UnreliableMessage>? CollectOutgoingMessages()
+        protected override List<UnreliableMessage>? CollectOutgoingMessages()
         {
             lock (_outgoingMessageQueue)
             {

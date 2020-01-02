@@ -18,7 +18,7 @@ namespace Lunet.Channels
             _packetActivator = ObjectActivatorFactory.Create<RawPacket>();
         }
 
-        public override IList<byte[]>? GetReceivedMessages()
+        public override List<byte[]>? GetReceivedMessages()
         {
             lock (_incomingDataQueue)
             {
@@ -62,14 +62,15 @@ namespace Lunet.Channels
             }
         }
 
-        internal override IList<ChannelPacket>? CollectOutgoingPackets()
+        internal override List<ChannelPacket>? CollectOutgoingPackets()
         {
-            IList<ChannelPacket>? outgoingPackets = null;
+            List<ChannelPacket>? outgoingPackets = null;
 
             lock (_outgoingDataQueue)
             {
                 if (_outgoingDataQueue.Count > 0)
                 {
+                    // TODO: new
                     outgoingPackets = new List<ChannelPacket>(_outgoingDataQueue.Count);
                     foreach (var data in _outgoingDataQueue)
                     {

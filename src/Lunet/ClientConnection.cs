@@ -12,6 +12,7 @@ namespace Lunet
 
         public ClientConnection(UdpEndPoint remoteEndPoint, ChannelSettings channelSettings) : base(remoteEndPoint, channelSettings)
         {
+            // TODO: new
             _socket = new UdpSocket(remoteEndPoint.EndPoint.AddressFamily);
             _socket.PacketReceived += Socket_PacketReceived;
 

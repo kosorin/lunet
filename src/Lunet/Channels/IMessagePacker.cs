@@ -6,6 +6,6 @@ namespace Lunet.Channels
         where TPacket : MessagePacket<TMessage>
         where TMessage : Message
     {
-        IList<TPacket>? Pack(IList<TMessage>? messages, int maxPacketSize);
+        List<TPacket>? Pack(List<TMessage>? messages, int maxPacketSize);
     }
 }

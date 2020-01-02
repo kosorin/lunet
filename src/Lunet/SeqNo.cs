@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Anoprsst;
+using Lunet.Common;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -28,6 +30,21 @@ namespace Lunet
         public static SeqNo Zero { get; } = new SeqNo(0);
 
         public ushort Value => _value;
+
+        public void Sort(Span<SeqNo> input, Span<SortItem> outputItems)
+        {
+            if (input.Length != outputItems.Length)
+            {
+                throw new InvalidOperationException();
+            }
+
+            for (var i = 0; i < outputItems.Length; i++)
+            {
+                outputItems[i] = new SortItem(i, GetDifference(input[i].Value, Value));
+            }
+
+            outputItems.WithOrder(new Ordering()).Sort();
+        }
 
         public int CompareTo(SeqNo other)
         {
@@ -145,5 +162,13 @@ namespace Lunet
         }
 
         #endregion Static methods
+
+        private struct Ordering : IOrdering<SortItem>
+        {
+            public bool LessThan(SortItem a, SortItem b)
+            {
+                return a.Value < b.Value;
+            }
+        }
     }
 }
