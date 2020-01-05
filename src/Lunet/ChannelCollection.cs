@@ -58,9 +58,9 @@ namespace Lunet
 
         public struct Enumerator : IEnumerator<Channel>
         {
-            private readonly Dictionary<byte, Channel>.ValueCollection.Enumerator _enumerator;
+            private Dictionary<byte, Channel>.ValueCollection.Enumerator _enumerator;
 
-            public Enumerator(Dictionary<byte, Channel> channels)
+            internal Enumerator(Dictionary<byte, Channel> channels)
             {
                 _enumerator = channels.Values.GetEnumerator();
             }
