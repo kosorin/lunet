@@ -63,7 +63,7 @@ namespace Lunet
 
         public event TypedEventHandler<Connection>? Disconnected;
 
-        public event TypedEventHandler<IConnectionChannel, byte[]>? MessageReceived;
+        public event TypedEventHandler<Channel, byte[]>? MessageReceived;
 
 
         public void Update()
@@ -270,7 +270,7 @@ namespace Lunet
             Disconnected?.Invoke(this);
         }
 
-        protected virtual void OnMessageReceived(IConnectionChannel channel, byte[] data)
+        protected virtual void OnMessageReceived(Channel channel, byte[] data)
         {
             MessageReceived?.Invoke(channel, data);
         }

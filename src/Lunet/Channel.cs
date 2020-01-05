@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Lunet
 {
-    public abstract class Channel : IConnectionChannel
+    public abstract class Channel
     {
         protected Channel(byte id, Connection connection)
         {
