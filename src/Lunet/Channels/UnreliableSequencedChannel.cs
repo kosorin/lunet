@@ -110,7 +110,7 @@ namespace Lunet.Channels
             {
                 foreach (var packet in outgoingPackets)
                 {
-                    packet.Seq = _outgoingPacketSeq++;
+                    OnOutgoingPacket(packet);
                 }
             }
 
@@ -150,6 +150,12 @@ namespace Lunet.Channels
                     return false;
                 }
             }
+        }
+
+
+        private void OnOutgoingPacket(UnreliableSequencedPacket packet)
+        {
+            packet.Seq = _outgoingPacketSeq++;
         }
     }
 }
