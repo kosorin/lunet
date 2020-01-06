@@ -184,7 +184,7 @@ namespace Lunet.Data
                 return;
             }
 
-            var lengthToClear = _data.Length;
+            int lengthToClear;
             if (count < _capacity)
             {
                 lengthToClear = count / NC.BitsPerInt;
@@ -211,6 +211,10 @@ namespace Lunet.Data
                         _data[lastIndex] = _data[fromIndex] << shiftCount;
                     }
                 }
+            }
+            else
+            {
+                lengthToClear = _data.Length;
             }
 
             if (lengthToClear > 0)

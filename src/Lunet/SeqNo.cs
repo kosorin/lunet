@@ -15,6 +15,9 @@ namespace Lunet
 
         public const int HalfRange = Range / 2;
 
+        public static readonly SeqNo Zero = new SeqNo(0);
+
+
         private readonly ushort _value;
 
         public SeqNo(ushort value)
@@ -26,8 +29,6 @@ namespace Lunet
         {
             _value = (ushort)(value % Range);
         }
-
-        public static SeqNo Zero { get; } = new SeqNo(0);
 
         public ushort Value => _value;
 
