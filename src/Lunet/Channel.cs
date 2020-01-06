@@ -1,4 +1,5 @@
 ﻿using Lunet.Data;
+using System;
 using System.Collections.Generic;
 
 namespace Lunet
@@ -25,5 +26,15 @@ namespace Lunet
         internal abstract void HandleIncomingPacket(NetDataReader reader);
 
         internal abstract List<ChannelPacket>? CollectOutgoingPackets();
+    }
+
+    public abstract class Channel<TPacket> : Channel
+        where TPacket : ChannelPacket
+    {
+        protected Channel(byte id, Connection connection) : base(id, connection)
+        {
+        }
+
+        protected abstract Func<TPacket> PacketActivator { get; }
     }
 }

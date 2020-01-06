@@ -1,27 +1,19 @@
-﻿using Lunet.Common;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Lunet.Channels
 {
-    public abstract class MessageChannel<TPacket, TMessage> : Channel
+    public abstract class MessageChannel<TPacket, TMessage> : Channel<TPacket>
         where TPacket : MessagePacket<TMessage>
         where TMessage : Message
     {
         protected MessageChannel(byte id, Connection connection) : base(id, connection)
         {
-            MessageActivator = ObjectActivatorFactory.Create<TMessage>();
-            PacketActivator = ObjectActivatorFactory.CreateWithValues<Func<TMessage>, TPacket>(MessageActivator);
-            MessagePacker = new DefaultMessagePacker<TPacket, TMessage>(PacketActivator);
         }
 
+        protected abstract Func<TMessage> MessageActivator { get; }
 
-        protected Func<TPacket> PacketActivator { get; }
-
-        protected Func<TMessage> MessageActivator { get; }
-
-        protected IMessagePacker<TPacket, TMessage> MessagePacker { get; }
-
+        protected abstract IMessagePacker<TPacket, TMessage> MessagePacker { get; }
 
         protected List<TPacket>? PackOutgoingPackets()
         {

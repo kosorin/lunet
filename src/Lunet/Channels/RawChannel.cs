@@ -6,17 +6,18 @@ using System.Linq;
 
 namespace Lunet.Channels
 {
-    public class RawChannel : Channel
+    public class RawChannel : Channel<RawPacket>
     {
-        private readonly Func<RawPacket> _packetActivator;
-
         private readonly List<byte[]> _outgoingDataQueue = new List<byte[]>();
         private readonly List<byte[]> _incomingDataQueue = new List<byte[]>();
 
         public RawChannel(byte id, Connection connection) : base(id, connection)
         {
-            _packetActivator = ObjectActivatorFactory.Create<RawPacket>();
+            PacketActivator = ObjectActivatorFactory.Create<RawPacket>();
         }
+
+        protected override Func<RawPacket> PacketActivator { get; }
+
 
         public override List<byte[]>? GetReceivedMessages()
         {
@@ -44,7 +45,7 @@ namespace Lunet.Channels
 
         internal override void HandleIncomingPacket(NetDataReader reader)
         {
-            var packet = _packetActivator();
+            var packet = PacketActivator();
 
             try
             {
@@ -74,7 +75,7 @@ namespace Lunet.Channels
                     outgoingPackets = new List<ChannelPacket>(_outgoingDataQueue.Count);
                     foreach (var data in _outgoingDataQueue)
                     {
-                        var packet = _packetActivator();
+                        var packet = PacketActivator();
                         packet.Data = data;
                         outgoingPackets.Add(packet);
                     }

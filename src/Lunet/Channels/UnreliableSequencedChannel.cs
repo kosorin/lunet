@@ -1,4 +1,6 @@
-﻿using Lunet.Data;
+﻿using Lunet.Common;
+using Lunet.Data;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -16,7 +18,16 @@ namespace Lunet.Channels
 
         public UnreliableSequencedChannel(byte id, Connection connection) : base(id, connection)
         {
+            MessageActivator = ObjectActivatorFactory.Create<UnreliableMessage>();
+            PacketActivator = ObjectActivatorFactory.CreateWithValues<Func<UnreliableMessage>, UnreliableSequencedPacket>(MessageActivator);
+            MessagePacker = new UnreliableMessagePacker<UnreliableSequencedPacket, UnreliableMessage>(PacketActivator);
         }
+
+        protected override Func<UnreliableSequencedPacket> PacketActivator { get; }
+
+        protected override Func<UnreliableMessage> MessageActivator { get; }
+
+        protected override IMessagePacker<UnreliableSequencedPacket, UnreliableMessage> MessagePacker { get; }
 
 
         public override List<byte[]>? GetReceivedMessages()

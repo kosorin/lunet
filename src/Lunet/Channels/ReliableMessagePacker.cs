@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 namespace Lunet.Channels
 {
-    public class DefaultMessagePacker<TPacket, TMessage> : MessagePacker<TPacket, TMessage>
+    public class ReliableMessagePacker<TPacket, TMessage> : MessagePacker<TPacket, TMessage>
         where TPacket : MessagePacket<TMessage>
-        where TMessage : Message
+        where TMessage : ReliableMessage
     {
-        public DefaultMessagePacker(Func<TPacket> packetActivator) : base(packetActivator)
+        public ReliableMessagePacker(Func<TPacket> packetActivator) : base(packetActivator)
         {
         }
 

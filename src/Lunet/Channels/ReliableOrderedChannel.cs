@@ -1,5 +1,6 @@
 ﻿using Lunet.Common;
 using Lunet.Data;
+using Lunet.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +9,9 @@ namespace Lunet.Channels
 {
     public class ReliableOrderedChannel : MessageChannel<ReliablePacket, ReliableMessage>
     {
+        private static ILog Log { get; } = LogProvider.GetCurrentClassLogger();
+
+
         private readonly object _packetLock = new object();
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
         private SeqNo _incomingPacketAck = SeqNo.Zero - 1;
@@ -24,7 +28,16 @@ namespace Lunet.Channels
 
         public ReliableOrderedChannel(byte id, Connection connection) : base(id, connection)
         {
+            MessageActivator = ObjectActivatorFactory.Create<ReliableMessage>();
+            PacketActivator = ObjectActivatorFactory.CreateWithValues<Func<ReliableMessage>, ReliablePacket>(MessageActivator);
+            MessagePacker = new ReliableMessagePacker<ReliablePacket, ReliableMessage>(PacketActivator);
         }
+
+        protected override Func<ReliablePacket> PacketActivator { get; }
+
+        protected override Func<ReliableMessage> MessageActivator { get; }
+
+        protected override IMessagePacker<ReliablePacket, ReliableMessage> MessagePacker { get; }
 
 
         public static int AckBufferLength { get; } = 128;
