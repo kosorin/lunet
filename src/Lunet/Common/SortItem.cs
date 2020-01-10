@@ -1,6 +1,6 @@
 ﻿namespace Lunet.Common
 {
-    public struct SortItem
+    public readonly struct SortItem
     {
         internal SortItem(int index, int value)
         {
