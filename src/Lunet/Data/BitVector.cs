@@ -378,7 +378,7 @@ namespace Lunet.Data
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            return (_data[index / NC.BitsPerInt] & (NC.One << (index % NC.BitsPerInt))) != 0;
+            return (_data[index / NC.BitsPerInt] & GetBit(index)) != 0;
         }
 
         /// <summary>
@@ -393,11 +393,11 @@ namespace Lunet.Data
 
             if (value)
             {
-                _data[index / NC.BitsPerInt] |= (NC.One << (index % NC.BitsPerInt));
+                _data[index / NC.BitsPerInt] |= GetBit(index);
             }
             else
             {
-                _data[index / NC.BitsPerInt] &= ~(NC.One << (index % NC.BitsPerInt));
+                _data[index / NC.BitsPerInt] &= ~GetBit(index);
             }
         }
 
@@ -559,6 +559,7 @@ namespace Lunet.Data
         {
             return new BitVector(this, offset, count);
         }
+
 
         #region IEquatable
 
@@ -728,5 +729,12 @@ namespace Lunet.Data
         }
 
         #endregion Explicit operators
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetBit(int index)
+        {
+            return NC.One << (index % NC.BitsPerInt);
+        }
     }
 }
