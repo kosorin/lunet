@@ -1,9 +1,11 @@
 <Project>
 
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <PropertyGroup>
+    <LangVersion>8.0</LangVersion>
+  </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\src\GlobalSuppressions.cs" Link="Properties\GlobalSuppressions.cs" />
+    <Compile Include="..\..\src\Lunet\Properties\GlobalSuppressions.cs" Link="Properties\GlobalSuppressions.cs" />
   </ItemGroup>
 
   <ItemGroup>
