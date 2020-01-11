@@ -4,6 +4,7 @@
 
   <ItemGroup>
     <Compile Include="..\GlobalSuppressions.cs" Link="Properties\GlobalSuppressions.cs" />
+    <None Include="..\..\.editorconfig" Link="Properties\.editorconfig" />
   </ItemGroup>
 
 </Project>
