@@ -22,11 +22,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Anoprsst" Version="1.1.2" />
     <PackageReference Include="LibLog" Version="5.0.6">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Anoprsst">
+      <HintPath>..\..\..\anoprsst\src\Anoprsst\bin\Release\netstandard2.1\Anoprsst.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
