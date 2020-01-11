@@ -133,7 +133,7 @@ namespace Lunet.Common
 
             if (disposing)
             {
-                Log.Trace("Disposed object pool of {ItemType} (Created={Created}; Rented={Rented}; Returned={Returned})", typeof(TItem), _created, _rented, _returned);
+                Log.Debug("Disposed object pool of {ItemType} (Created={Created}; Rented={Rented}; Returned={Returned})", typeof(TItem), _created, _rented, _returned);
 
                 if (_isItemDisposable)
                 {
