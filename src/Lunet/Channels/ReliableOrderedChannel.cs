@@ -14,11 +14,12 @@ namespace Lunet.Channels
 
         private readonly object _packetLock = new object();
         private SeqNo _outgoingPacketSeq = SeqNo.Zero;
+        private bool _isFirstIncomingPacketAck = true;
         private SeqNo _incomingPacketAck = SeqNo.Zero - 1;
         private readonly BitVector _incomingPacketAckBuffer = new BitVector(AckBufferLength);
         private bool _requireAckPacket;
 
-        private readonly ReliableMessageTracker _outgoingMessageTracker = new ReliableMessageTracker();
+        private readonly ReliableMessageTracker<ReliableMessage> _outgoingMessageTracker = new ReliableMessageTracker<ReliableMessage>(AckBufferLength * 2);
         private readonly Dictionary<SeqNo, ReliableMessage> _outgoingMessageQueue = new Dictionary<SeqNo, ReliableMessage>();
         private SeqNo _outgoingMessageSeq = SeqNo.Zero;
 
@@ -40,7 +41,7 @@ namespace Lunet.Channels
         protected override IMessagePacker<ReliablePacket, ReliableMessage> MessagePacker { get; }
 
 
-        public static int AckBufferLength { get; } = 128;
+        public static int AckBufferLength { get; } = 32;
 
 
         public override List<byte[]>? GetReceivedMessages()
@@ -49,12 +50,11 @@ namespace Lunet.Channels
             {
                 // TODO: new
                 var receivedMessages = new List<byte[]>();
-                while (_incomingMessageQueue.Remove(_incomingReadMessageSeq, out var message))
+                while (_incomingReadMessageSeq < _incomingMessageSeq && _incomingMessageQueue.Remove(_incomingReadMessageSeq, out var message))
                 {
-                    receivedMessages.Add(message.Data);
                     _incomingReadMessageSeq++;
+                    receivedMessages.Add(message.Data);
                 }
-                _incomingMessageSeq = _incomingReadMessageSeq;
                 return receivedMessages;
             }
         }
@@ -66,7 +66,7 @@ namespace Lunet.Channels
                 var message = MessageActivator();
                 message.Seq = _outgoingMessageSeq++;
                 message.Data = data;
-                message.Timestamp = null;
+                message.SendTimestamp = null;
                 if (!_outgoingMessageQueue.TryAdd(message.Seq, message))
                 {
                     throw new NetException("Message buffer overflow.");
@@ -104,6 +104,7 @@ namespace Lunet.Channels
                     return;
                 }
 
+                Log.Trace($"Received packet: {packet.Seq} => {string.Join(", ", packet.Messages.Select(x => x.Seq))}");
                 AcknowledgeOutgoingPackets(packet.Ack, packet.AckBuffer!);
 
                 if (!_requireAckPacket)
@@ -145,15 +146,7 @@ namespace Lunet.Channels
                 var now = Timestamp.GetCurrent();
                 foreach (var packet in outgoingPackets)
                 {
-                    packet.Seq = _outgoingPacketSeq++;
-                    packet.Ack = _incomingPacketAck;
-                    packet.AckBuffer = _incomingPacketAckBuffer.Clone(0, ReliablePacket.AckBufferLength);
-                    _outgoingMessageTracker.Track(packet.Seq, packet.Messages.Select(x => x.Seq));
-
-                    foreach (var message in packet.Messages)
-                    {
-                        message.Timestamp = now;
-                    }
+                    OnOutgoingPacket(packet, now);
                 }
             }
 
@@ -173,11 +166,11 @@ namespace Lunet.Channels
 
                     foreach (var message in _outgoingMessageQueue.Values)
                     {
-                        if (message.FirstActionTimestamp.HasValue && message.FirstActionTimestamp.Value + Connection.Timeout < now)
+                        if (message.FirstSendTimestamp.HasValue && message.FirstSendTimestamp.Value + Connection.Timeout < now)
                         {
-                            throw new Exception("Outgoing reliable message timeout.");
+                            throw new Exception($"Outgoing reliable message timeout: {message.Seq}");
                         }
-                        else if (message.Timestamp.HasValue && message.Timestamp.Value + (Connection.RTT * 2.5) >= now)
+                        else if (message.SendTimestamp.HasValue && message.SendTimestamp.Value + (Connection.RTT * 2.5) >= now)
                         {
                             continue;
                         }
@@ -201,6 +194,12 @@ namespace Lunet.Channels
 
         private bool AcceptIncomingPacket(SeqNo seq)
         {
+            if (_isFirstIncomingPacketAck)
+            {
+                _incomingPacketAck = seq - 1;
+                _isFirstIncomingPacketAck = false;
+            }
+
             var diff = seq.CompareTo(_incomingPacketAck);
             if (diff == 0)
             {
@@ -211,31 +210,27 @@ namespace Lunet.Channels
             {
                 _incomingPacketAck = seq;
 
-                if (diff > _incomingPacketAckBuffer.Capacity)
-                {
-                    // Early packet
-                    _incomingPacketAckBuffer.ClearAll();
-                }
-                else
+                if (diff < _incomingPacketAckBuffer.Capacity)
                 {
                     // New packet
                     _incomingPacketAckBuffer.LeftShift(diff);
-                    _incomingPacketAckBuffer.Set(diff - 1);
                 }
+                else
+                {
+                    // Early packet but still ok
+                    _incomingPacketAckBuffer.ClearAll();
+                }
+
+                _incomingPacketAckBuffer.Set(0);
+
                 return true;
             }
             else
             {
                 diff *= -1;
-                if (diff > _incomingPacketAckBuffer.Capacity)
+                if (diff < _incomingPacketAckBuffer.Capacity)
                 {
-                    // Late packet
-                    return false;
-                }
-                else
-                {
-                    var ackIndex = diff - 1;
-                    if (_incomingPacketAckBuffer[ackIndex])
+                    if (_incomingPacketAckBuffer[diff])
                     {
                         // Already received packet
                         return false;
@@ -243,79 +238,14 @@ namespace Lunet.Channels
                     else
                     {
                         // New packet
-                        _incomingPacketAckBuffer.Set(diff - 1);
+                        _incomingPacketAckBuffer.Set(diff);
                         return true;
                     }
                 }
-            }
-        }
-
-        private bool AcceptIncomingMessage(ReliableMessage message)
-        {
-            if (message.Seq == _incomingMessageSeq)
-            {
-                _incomingMessageSeq++;
-
-                if (_incomingMessageQueue.TryAdd(message.Seq, message))
-                {
-                    // New message
-                    return true;
-                }
                 else
                 {
-                    // Already received messages
+                    // Late packet
                     return false;
-                }
-            }
-            else if (message.Seq > _incomingMessageSeq)
-            {
-                if (_incomingMessageQueue.TryAdd(message.Seq, message))
-                {
-                    // Early message
-                    return true;
-                }
-                else
-                {
-                    // Already (early) received messages
-                    return false;
-                }
-            }
-            else
-            {
-                // Already (late) received messages
-                return false;
-            }
-        }
-
-        private void AcknowledgeOutgoingPackets(SeqNo ack, BitVector acks)
-        {
-            lock (_outgoingMessageQueue)
-            {
-                AcknowledgeOutgoingPacket(ack);
-
-                var currentAck = ack;
-                foreach (var bit in acks.AsBits())
-                {
-                    currentAck--;
-                    if (bit)
-                    {
-                        AcknowledgeOutgoingPacket(currentAck);
-                    }
-                }
-            }
-        }
-
-        private void AcknowledgeOutgoingPacket(SeqNo ack)
-        {
-            lock (_outgoingMessageQueue)
-            {
-                var messageSeqs = _outgoingMessageTracker.Clear(ack);
-                if (messageSeqs != null)
-                {
-                    foreach (var messageSeq in messageSeqs)
-                    {
-                        _outgoingMessageQueue.Remove(messageSeq);
-                    }
                 }
             }
         }
@@ -333,6 +263,7 @@ namespace Lunet.Channels
                 {
                     input[i] = messages[i].Seq;
                 }
+                var x = input.ToString();
 
                 _incomingMessageSeq.Sort(input, outputItems);
 
@@ -341,10 +272,94 @@ namespace Lunet.Channels
                     var message = messages[item.Index];
                     if (AcceptIncomingMessage(message))
                     {
-                        message.Timestamp = now;
+                        OnIncomingMessage(message, now);
                     }
                 }
             }
+        }
+
+        private bool AcceptIncomingMessage(ReliableMessage message)
+        {
+            if (message.Seq < _incomingMessageSeq)
+            {
+                // Late or already received messages
+                return false;
+            }
+            else if (_incomingMessageQueue.TryAdd(message.Seq, message))
+            {
+                // New or early messages
+                while (_incomingMessageSeq >= _incomingReadMessageSeq && _incomingMessageQueue.ContainsKey(_incomingMessageSeq))
+                {
+                    _incomingMessageSeq++;
+                }
+                return true;
+            }
+            else
+            {
+                // Already received messages
+                return false;
+            }
+        }
+
+        private void AcknowledgeOutgoingPackets(SeqNo ack, BitVector acks)
+        {
+            lock (_outgoingMessageQueue)
+            {
+                var currentAck = ack;
+                foreach (var bit in acks.AsBits())
+                {
+                    if (bit)
+                    {
+                        AcknowledgeOutgoingPacket(currentAck);
+                    }
+                    currentAck--;
+                }
+            }
+        }
+
+        private void AcknowledgeOutgoingPacket(SeqNo ack)
+        {
+            lock (_outgoingMessageQueue)
+            {
+                var messages = _outgoingMessageTracker.Get(ack);
+                if (messages != null)
+                {
+                    Log.Trace($"Acked packet: {ack} => {string.Join(", ", messages.Select(x => x.Seq))}");
+                    foreach (var message in messages)
+                    {
+                        _outgoingMessageQueue.Remove(message.Seq);
+                    }
+                }
+                _outgoingMessageTracker.Clear(ack);
+            }
+        }
+
+
+        private static void OnIncomingMessage(ReliableMessage message, long now)
+        {
+            Log.Trace($"Receive message: {message.Seq}");
+        }
+
+
+        private void OnOutgoingPacket(ReliablePacket packet, long now)
+        {
+            packet.Seq = _outgoingPacketSeq++;
+            packet.Ack = _incomingPacketAck;
+            packet.AckBuffer = _incomingPacketAckBuffer.Clone(0, ReliablePacket.AckBufferLength);
+
+            _outgoingMessageTracker.Track(packet.Seq, packet.Messages);
+
+            Log.Trace($"Sending packet: {packet.Seq} => {string.Join(", ", packet.Messages.Select(x => x.Seq))}");
+            Log.Trace($"Acking packets: {string.Join(", ", packet.AckBuffer.AsBits().Select((x, i) => x ? packet.Ack - i : (SeqNo?)null).Where(x => x != null))}");
+            foreach (var message in packet.Messages)
+            {
+                OnOutgoingMessage(message, now);
+            }
+        }
+
+        private static void OnOutgoingMessage(ReliableMessage message, long now)
+        {
+            message.SendTimestamp = now;
         }
     }
 }

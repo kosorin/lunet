@@ -4,26 +4,26 @@ namespace Lunet.Channels
 {
     public class ReliableMessage : Message
     {
-        private long? _firstActionTimestamp;
-        private long? _timestamp;
+        private long? _firstSendTimestamp;
+        private long? _sendTimestamp;
 
-        public long? FirstActionTimestamp => _firstActionTimestamp;
+        public long? FirstSendTimestamp => _firstSendTimestamp;
 
-        public long? Timestamp
+        public long? SendTimestamp
         {
-            get => _timestamp;
+            get => _sendTimestamp;
             set
             {
-                _timestamp = value;
+                _sendTimestamp = value;
 
-                if (_firstActionTimestamp == null)
+                if (_firstSendTimestamp == null)
                 {
-                    _firstActionTimestamp = _timestamp;
+                    _firstSendTimestamp = _sendTimestamp;
                 }
 
-                if (_timestamp == null)
+                if (_sendTimestamp == null)
                 {
-                    _firstActionTimestamp = null;
+                    _firstSendTimestamp = null;
                 }
             }
         }

@@ -1,63 +1,74 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Lunet.Channels
 {
-    public class ReliableMessageTracker
+    public class ReliableMessageTracker<TMessage>
+        where TMessage : ReliableMessage
     {
-        private const int BufferSize = 1024;
+        private readonly int _bufferSize;
 
-        private readonly SeqNo?[] _packetSeqBuffer = new SeqNo?[BufferSize];
-        private readonly List<SeqNo>[] _messageSeqBuffer = new List<SeqNo>[BufferSize];
+        private readonly SeqNo?[] _packetSeqBuffer;
+        private readonly List<TMessage>[] _messageBuffer;
 
-        public ReliableMessageTracker()
+        public ReliableMessageTracker(int bufferSize)
         {
-            for (var i = 0; i < BufferSize; i++)
+            _bufferSize = bufferSize;
+
+            _packetSeqBuffer = new SeqNo?[_bufferSize];
+            _messageBuffer = new List<TMessage>[_bufferSize];
+            for (var i = 0; i < _bufferSize; i++)
             {
-                _messageSeqBuffer[i] = new List<SeqNo>();
+                _messageBuffer[i] = new List<TMessage>();
             }
         }
 
         /// <summary>
-        /// Tracks sequenced messages.
+        /// Tracks messages.
         /// </summary>
-        public void Track(SeqNo packetSeq, IEnumerable<SeqNo> messageSeqs)
+        public void Track(SeqNo packetSeq, List<TMessage> messageSeqs)
         {
             var index = GetIndex(packetSeq);
 
             _packetSeqBuffer[index] = packetSeq;
 
-            var messageSeqBuffer = _messageSeqBuffer[index];
-            messageSeqBuffer.Clear();
-            messageSeqBuffer.AddRange(messageSeqs);
+            var messages = _messageBuffer[index];
+            messages.Clear();
+            messages.AddRange(messageSeqs);
         }
 
         /// <summary>
-        /// Stops tracking sequenced messages and gets assigned message seqs to packet seq.
-        /// May return <c>null</c>.
+        /// Gets tracked messages for packet seq.
         /// </summary>
-        public IEnumerable<SeqNo>? Clear(SeqNo packetSeq)
+        /// <returns>May return <c>null</c>.</returns>
+        /// <remarks>Do not modify returned list.</remarks>
+        public List<TMessage>? Get(SeqNo packetSeq)
         {
             var index = GetIndex(packetSeq);
 
-            IEnumerable<SeqNo>? messageSeqs;
-            if (_packetSeqBuffer[index] == packetSeq)
-            {
-                messageSeqs = _messageSeqBuffer[index];
-            }
-            else
-            {
-                messageSeqs = null;
-            }
-
-            // TODO: Prověřit nastavování na null, i když předchozí if byl false
-            _packetSeqBuffer[index] = null;
-
-            return messageSeqs;
+            return _packetSeqBuffer[index] == packetSeq
+                ? _messageBuffer[index]
+                : null;
         }
 
-        private static int GetIndex(SeqNo packetSeq)
+        /// <summary>
+        /// Stops tracking messages for packet seq.
+        /// </summary>
+        public void Clear(SeqNo packetSeq)
         {
-            return packetSeq.Value % BufferSize;
+            var index = GetIndex(packetSeq);
+
+            ref var packetSeqBufferValue = ref _packetSeqBuffer[index];
+            if (packetSeqBufferValue.HasValue && packetSeqBufferValue.Value == packetSeq)
+            {
+                packetSeqBufferValue = null;
+                _messageBuffer[index].Clear();
+            }
+        }
+
+        private int GetIndex(SeqNo packetSeq)
+        {
+            return packetSeq.Value % _bufferSize;
         }
     }
 }
