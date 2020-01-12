@@ -1,32 +1,30 @@
 ﻿using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace Lunet.Channels
 {
-    public class ReliableMessageTracker<TMessage>
-        where TMessage : ReliableMessage
+    public class ReliableMessageTracker
     {
         private readonly int _bufferSize;
 
         private readonly SeqNo?[] _packetSeqBuffer;
-        private readonly List<TMessage>[] _messageBuffer;
+        private readonly List<ReliableMessage>[] _messageBuffer;
 
         public ReliableMessageTracker(int bufferSize)
         {
             _bufferSize = bufferSize;
 
             _packetSeqBuffer = new SeqNo?[_bufferSize];
-            _messageBuffer = new List<TMessage>[_bufferSize];
+            _messageBuffer = new List<ReliableMessage>[_bufferSize];
             for (var i = 0; i < _bufferSize; i++)
             {
-                _messageBuffer[i] = new List<TMessage>();
+                _messageBuffer[i] = new List<ReliableMessage>();
             }
         }
 
         /// <summary>
         /// Tracks messages.
         /// </summary>
-        public void Track(SeqNo packetSeq, List<TMessage> messageSeqs)
+        public void Track(SeqNo packetSeq, List<ReliableMessage> messageSeqs)
         {
             var index = GetIndex(packetSeq);
 
@@ -42,7 +40,7 @@ namespace Lunet.Channels
         /// </summary>
         /// <returns>May return <c>null</c>.</returns>
         /// <remarks>Do not modify returned list.</remarks>
-        public List<TMessage>? Get(SeqNo packetSeq)
+        public List<ReliableMessage>? Get(SeqNo packetSeq)
         {
             var index = GetIndex(packetSeq);
 

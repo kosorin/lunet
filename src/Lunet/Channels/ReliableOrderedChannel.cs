@@ -19,7 +19,7 @@ namespace Lunet.Channels
         private readonly BitVector _incomingPacketAckBuffer = new BitVector(AckBufferLength);
         private bool _requireAckPacket;
 
-        private readonly ReliableMessageTracker<ReliableMessage> _outgoingMessageTracker = new ReliableMessageTracker<ReliableMessage>(AckBufferLength * 2);
+        private readonly ReliableMessageTracker _outgoingMessageTracker = new ReliableMessageTracker(AckBufferLength * 2);
         private readonly Dictionary<SeqNo, ReliableMessage> _outgoingMessageQueue = new Dictionary<SeqNo, ReliableMessage>();
         private SeqNo _outgoingMessageSeq = SeqNo.Zero;
 
