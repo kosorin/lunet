@@ -18,7 +18,7 @@ namespace Pegi.Server
             var localEndPoint = new UdpEndPoint("127.0.0.1", 45685);
 
             var channelSettings = new ChannelSettings();
-            channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new UnreliableChannel(channelId, connection));
+            channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new ReliableOrderedChannel(channelId, connection));
 
             using (var listener = new ConnectionListener(localEndPoint, channelSettings))
             using (var resetEvent = new ManualResetEventSlim(false))

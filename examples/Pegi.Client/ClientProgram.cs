@@ -17,7 +17,7 @@ namespace Pegi.Client
             var remoteEndPoint = new UdpEndPoint("127.0.0.1", 45685);
 
             var channelSettings = new ChannelSettings();
-            channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new UnreliableChannel(channelId, connection));
+            channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new ReliableOrderedChannel(channelId, connection));
 
             using (var connection = new ClientConnection(remoteEndPoint, channelSettings))
             using (var resetEvent = new ManualResetEventSlim(false))
@@ -28,7 +28,7 @@ namespace Pegi.Client
                     Log.Information("Ctrl+C");
                     resetEvent.Set();
                 };
-                Thread.Sleep(500);
+                Thread.Sleep(200);
 
                 connection.MessageReceived += (_, data) =>
                 {
@@ -41,7 +41,7 @@ namespace Pegi.Client
                 Log.Information("Connected");
 
                 var updateTime = 60;
-                var sendTime = 10;
+                var sendTime = 4;
                 var time = Timestamp.GetCurrent();
                 var i = 0;
                 while (!resetEvent.IsSet && connection.State == ConnectionState.Connected)
@@ -57,9 +57,10 @@ namespace Pegi.Client
                     }
 
                     var now = Timestamp.GetCurrent();
-                    if (now - time > sendTime)
+                    var delta = 1000 / sendTime;
+                    if (now - time > delta)
                     {
-                        time += sendTime;
+                        time += delta;
 
                         for (var n = 0; n < 10; n++)
                         {
