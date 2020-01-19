@@ -105,6 +105,8 @@ namespace Lunet.Channels
                 }
 
                 Log.Trace($"Received packet: {packet.Seq} => {string.Join(", ", packet.Messages.Select(x => x.Seq))}");
+                Log.Trace($"Acked packets: {string.Join(", ", packet.AckBuffer.AsBits().Select((x, i) => x ? packet.Ack - i : (SeqNo?)null).Where(x => x != null))}");
+                Log.Trace($"             : {packet.Ack} - {packet.AckBuffer}");
                 AcknowledgeOutgoingPackets(packet.Ack, packet.AckBuffer!);
 
                 if (!_requireAckPacket)
@@ -168,7 +170,7 @@ namespace Lunet.Channels
                     {
                         if (message.FirstSendTimestamp.HasValue && message.FirstSendTimestamp.Value + Connection.Timeout < now)
                         {
-                            throw new Exception($"Outgoing reliable message timeout: {message.Seq}");
+                            throw new Exception($"Outgoing reliable message {message.Seq} timeout.");
                         }
                         else if (message.SendTimestamp.HasValue && message.SendTimestamp.Value + (Connection.RTT * 2.5) >= now)
                         {
@@ -351,6 +353,7 @@ namespace Lunet.Channels
 
             Log.Trace($"Sending packet: {packet.Seq} => {string.Join(", ", packet.Messages.Select(x => x.Seq))}");
             Log.Trace($"Acking packets: {string.Join(", ", packet.AckBuffer.AsBits().Select((x, i) => x ? packet.Ack - i : (SeqNo?)null).Where(x => x != null))}");
+            Log.Trace($"              : {packet.Ack} - {packet.AckBuffer}");
             foreach (var message in packet.Messages)
             {
                 OnOutgoingMessage(message, now);
