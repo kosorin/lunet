@@ -520,9 +520,10 @@ namespace Lunet.Data
         {
             for (int i = 0, b = 0; i < _data.Length; i++)
             {
+                var data = _data[i];
                 for (int j = 0; j < sizeof(int); j++)
                 {
-                    var @byte = (byte)((_data[i] >> (j * NC.BitsPerByte)) & NC.Byte);
+                    var @byte = (byte)((data >> (j * NC.BitsPerByte)) & NC.Byte);
                     yield return @byte;
                     if (++b >= ByteCapacity)
                     {
