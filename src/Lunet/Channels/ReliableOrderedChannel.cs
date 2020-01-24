@@ -348,7 +348,7 @@ namespace Lunet.Channels
         {
             packet.Seq = _outgoingPacketSeq++;
             packet.Ack = _incomingPacketAck;
-            packet.AckBuffer = _incomingPacketAckBuffer.Clone(0, ReliablePacket.AckBufferLength);
+            packet.AckBuffer = _incomingPacketAckBuffer.Clone();
 
             _outgoingMessageTracker.Track(packet.Seq, packet.Messages);
 
