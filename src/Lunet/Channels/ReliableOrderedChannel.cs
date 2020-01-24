@@ -104,9 +104,9 @@ namespace Lunet.Channels
                     return;
                 }
 
-                Log.Trace($"Received packet: {packet.Seq} => {string.Join(", ", packet.Messages.Select(x => x.Seq))}");
-                Log.Trace($"Acked packets: {string.Join(", ", packet.AckBuffer.AsBits().Select((x, i) => x ? packet.Ack - i : (SeqNo?)null).Where(x => x != null))}");
-                Log.Trace($"             : {packet.Ack} - {packet.AckBuffer}");
+                Log.Trace($"Received packet: PI-{packet.Seq} => {string.Join(", ", packet.Messages.Select(x => $"MI-{x.Seq}"))}");
+                Log.Trace($"Acked packets: PO-{packet.Ack} - {packet.AckBuffer}");
+                Log.Trace($"             : {string.Join(", ", packet.AckBuffer.AsBits().Select((x, i) => x ? $"PO-{packet.Ack - i}" : null).Where(x => x != null))}");
                 AcknowledgeOutgoingPackets(packet.Ack, packet.AckBuffer!);
 
                 if (!_requireAckPacket)
@@ -326,7 +326,7 @@ namespace Lunet.Channels
                 var messages = _outgoingMessageTracker.Get(ack);
                 if (messages != null)
                 {
-                    Log.Trace($"Acked packet: {ack} => {string.Join(", ", messages.Select(x => x.Seq))}");
+                    Log.Trace($"Acked packet: PO-{ack} => {string.Join(", ", messages.Select(x => $"MO-{x.Seq}"))}");
                     foreach (var message in messages)
                     {
                         _outgoingMessageQueue.Remove(message.Seq);
@@ -339,7 +339,7 @@ namespace Lunet.Channels
 
         private static void OnIncomingMessage(ReliableMessage message, long now)
         {
-            Log.Trace($"Receive message: {message.Seq}");
+            Log.Trace($"Receive message: MI-{message.Seq}");
         }
 
 
@@ -351,9 +351,9 @@ namespace Lunet.Channels
 
             _outgoingMessageTracker.Track(packet.Seq, packet.Messages);
 
-            Log.Trace($"Sending packet: {packet.Seq} => {string.Join(", ", packet.Messages.Select(x => x.Seq))}");
-            Log.Trace($"Acking packets: {string.Join(", ", packet.AckBuffer.AsBits().Select((x, i) => x ? packet.Ack - i : (SeqNo?)null).Where(x => x != null))}");
-            Log.Trace($"              : {packet.Ack} - {packet.AckBuffer}");
+            Log.Trace($"Sending packet: PO-{packet.Seq} => {string.Join(", ", packet.Messages.Select(x => $"MO-{x.Seq}"))}");
+            Log.Trace($"Acking packets: PI-{packet.Ack} - {packet.AckBuffer}");
+            Log.Trace($"              : {string.Join(", ", packet.AckBuffer.AsBits().Select((x, i) => x ? $"PI-{packet.Ack - i}" : null).Where(x => x != null))}");
             foreach (var message in packet.Messages)
             {
                 OnOutgoingMessage(message, now);
