@@ -199,6 +199,7 @@ namespace Lunet.Channels
             if (_isFirstIncomingPacketAck)
             {
                 _incomingPacketAck = seq - 1;
+                _incomingPacketAckBuffer.ClearAll();
                 _isFirstIncomingPacketAck = false;
             }
 
