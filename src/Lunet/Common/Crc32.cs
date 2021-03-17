@@ -2,14 +2,16 @@
 
 namespace Lunet.Common
 {
+    // https://crccalc.com/
     // https://github.com/force-net/Crc32.NET with Span<T> support
+    // TODO: Consider CRC-32C (Castagnoli)
     internal static class Crc32
     {
-        public const uint CheckHash = 0x2144DF1Cu;
-
         public const int HashLength = sizeof(uint);
 
-        private const uint Polynomial = 0xEDB88320u;
+        public const uint CheckHash = 0x2144DF1Cu; // 0x48674BC7u for CRC-32C
+
+        private const uint Polynomial = 0xEDB88320u; // 0x82F63B78u for CRC-32C
 
         private static readonly uint[] Table = new uint[16 * 256];
 
