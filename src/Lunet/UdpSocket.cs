@@ -185,7 +185,7 @@ namespace Lunet
 
         private void IO_Completed(object sender, SocketAsyncEventArgs operation)
         {
-            var packet = (UdpPacket)operation.UserToken;
+            var packet = (UdpPacket)operation.UserToken!;
 
             if (IsDisposed)
             {

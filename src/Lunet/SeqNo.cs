@@ -1,5 +1,4 @@
-﻿using Anoprsst;
-using Lunet.Common;
+﻿using Lunet.Common;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -44,7 +43,13 @@ namespace Lunet
                 outputItems[i] = new SortItem(i, GetDifference(input[i].Value, Value));
             }
 
-            outputItems.WithOrder(new Ordering()).Sort();
+
+#warning TODO: SeqNo.Sort
+            //public bool LessThan(SortItem a, SortItem b)
+            //{
+            //    return a.Value < b.Value;
+            //}
+            // TODO: outputItems.WithOrder(new Ordering()).Sort();
         }
 
         public int CompareTo(SeqNo other)
@@ -57,7 +62,7 @@ namespace Lunet
             return _value == other._value;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is SeqNo other && _value == other._value;
         }
@@ -72,8 +77,6 @@ namespace Lunet
             return _value.ToString();
         }
 
-
-        #region Operators
 
         public static SeqNo operator ++(SeqNo seq)
         {
@@ -147,9 +150,6 @@ namespace Lunet
             return new SeqNo(value);
         }
 
-        #endregion Operators
-
-        #region Static methods
 
         /// <summary>
         /// Gets a difference of two sequence numbers.
@@ -160,16 +160,6 @@ namespace Lunet
         private static int GetDifference(ushort left, ushort right)
         {
             return -(((right - left + Range + HalfRange) % Range) - HalfRange);
-        }
-
-        #endregion Static methods
-
-        private struct Ordering : IOrdering<SortItem>
-        {
-            public bool LessThan(SortItem a, SortItem b)
-            {
-                return a.Value < b.Value;
-            }
         }
     }
 }

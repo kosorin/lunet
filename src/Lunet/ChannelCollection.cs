@@ -1,17 +1,20 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Lunet
 {
+    // TODO: Channel auto remove
+    // Each channel can notify that it can be removed from collection because of inactivity
     internal class ChannelCollection : IEnumerable<Channel>
     {
-        private readonly IChannelFactory _factory;
+        private readonly ChannelFactory _channelFactory;
         private readonly Dictionary<byte, Channel> _channels = new Dictionary<byte, Channel>();
 
-        public ChannelCollection(IChannelFactory factory)
+        public ChannelCollection(ChannelFactory channelFactory)
         {
-            _factory = factory;
+            _channelFactory = channelFactory;
         }
 
         public Channel Get(byte channelId, Connection connection)
@@ -24,20 +27,20 @@ namespace Lunet
             return channel;
         }
 
-        public bool TryGet(byte channelId, Connection connection, out Channel channel)
+        public bool TryGet(byte channelId, Connection connection, [MaybeNullWhen(false)] out Channel channel)
         {
             if (_channels.TryGetValue(channelId, out channel))
             {
                 return true;
             }
 
-            if (_factory.TryCreate(channelId, connection, out channel))
+            if (_channelFactory.TryCreate(channelId, connection, out channel))
             {
                 _channels[channelId] = channel;
                 return true;
             }
 
-            channel = null!;
+            channel = null;
             return false;
         }
 

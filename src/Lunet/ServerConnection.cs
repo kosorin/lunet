@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Threading;
 
 namespace Lunet
@@ -7,7 +8,7 @@ namespace Lunet
     {
         private readonly UdpSocket _socket;
 
-        internal ServerConnection(UdpSocket socket, UdpEndPoint remoteEndPoint, ChannelSettings channelSettings) : base(remoteEndPoint, channelSettings)
+        internal ServerConnection(UdpSocket socket, UdpEndPoint remoteEndPoint, ChannelFactory channelFactory, ILogger logger) : base(remoteEndPoint, channelFactory, logger)
         {
             _socket = socket;
 

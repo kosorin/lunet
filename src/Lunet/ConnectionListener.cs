@@ -1,4 +1,5 @@
 ﻿using Lunet.Common;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -11,18 +12,17 @@ namespace Lunet
 
         private readonly Dictionary<UdpEndPoint, ServerConnection> _connections = new Dictionary<UdpEndPoint, ServerConnection>();
         private readonly object _connectionsLock = new object();
-        private readonly ChannelSettings _channelSettings;
+        private readonly ChannelFactory _channelFactory;
 
-        public ConnectionListener(UdpEndPoint remoteEndPoint) : this(remoteEndPoint, ChannelSettings.Default)
-        {
-        }
+        private readonly ILogger _logger;
 
-        public ConnectionListener(UdpEndPoint localEndPoint, ChannelSettings channelSettings)
+        internal ConnectionListener(UdpEndPoint localEndPoint, ChannelFactory channelFactory, ILogger logger)
         {
             // TODO: new
             _socket = new UdpSocket(localEndPoint.EndPoint);
             _socket.PacketReceived += Socket_PacketReceived;
-            _channelSettings = channelSettings;
+            _channelFactory = channelFactory;
+            _logger = logger;
         }
 
 
@@ -50,7 +50,7 @@ namespace Lunet
                 if (connection == null)
                 {
                     // TODO: new
-                    connection = new ServerConnection(_socket, packet.RemoteEndPoint, _channelSettings);
+                    connection = new ServerConnection(_socket, packet.RemoteEndPoint, _channelFactory, _logger);
                     _connections.Add(packet.RemoteEndPoint, connection);
 
                     connection.Disconnected += Connection_Disconnected;

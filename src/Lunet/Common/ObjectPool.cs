@@ -1,4 +1,4 @@
-﻿using Lunet.Logging;
+﻿using Lunet.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -8,8 +8,6 @@ namespace Lunet.Common
     internal class ObjectPool<TItem> : IDisposable
         where TItem : class, IPoolableObject<TItem>
     {
-        private static ILog Log { get; } = LogProvider.GetCurrentClassLogger();
-
         private readonly bool _isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
         private readonly Func<TItem> _activator;
         private readonly ConcurrentBag<TItem> _objects;
@@ -133,11 +131,11 @@ namespace Lunet.Common
 
             if (disposing)
             {
-                Log.Debug("Disposed object pool of {ItemType} (Created={Created}; Rented={Rented}; Returned={Returned}).", typeof(TItem), _created, _rented, _returned);
-                if (_rented > _returned)
-                {
-                    Log.Warn("Several {ItemType} items ({Count}) were not returned.", typeof(TItem), _rented - _returned);
-                }
+                //Log.Debug("Disposed object pool of {ItemType} (Created={Created}; Rented={Rented}; Returned={Returned}).", typeof(TItem), _created, _rented, _returned);
+                //if (_rented > _returned)
+                //{
+                //    Log.Warn("Several {ItemType} items ({Count}) were not returned.", typeof(TItem), _rented - _returned);
+                //}
 
                 if (_isItemDisposable)
                 {

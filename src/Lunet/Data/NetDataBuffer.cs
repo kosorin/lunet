@@ -15,7 +15,7 @@ namespace Lunet.Data
         {
             if (length < 0)
             {
-                throw new ArgumentOutOfRangeException("Length must be greater or equal to 0.");
+                throw new ArgumentOutOfRangeException(nameof(length), "Length must be greater or equal to 0.");
             }
 
             IsDataOwner = true;
@@ -29,7 +29,7 @@ namespace Lunet.Data
         {
             if (offset + length > data.Length)
             {
-                throw new ArgumentOutOfRangeException("Offset + length must not be greater than data length.");
+                throw new ArgumentOutOfRangeException(nameof(length), "Offset + length must not be greater than data length.");
             }
 
             IsDataOwner = false;

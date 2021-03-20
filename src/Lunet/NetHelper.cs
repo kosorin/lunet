@@ -9,12 +9,12 @@ namespace Lunet
         /// Gets a number of elements required to store all bits.
         /// </summary>
         /// <param name="bits">Number of bits.</param>
-        /// <param name="bytes">Number of bits per element.</param>
+        /// <param name="bitsPerElement">Number of bits per element.</param>
         public static int GetElementCapacity(int bits, int bitsPerElement)
         {
             if (bitsPerElement <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(bitsPerElement), $"Argument must be greater than 0.");
+                throw new ArgumentOutOfRangeException(nameof(bitsPerElement), "Argument must be greater than 0.");
             }
 
             return bits > 0

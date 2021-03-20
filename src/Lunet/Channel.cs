@@ -1,4 +1,5 @@
 ﻿using Lunet.Data;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 
@@ -10,12 +11,15 @@ namespace Lunet
         {
             Id = id;
             Connection = connection;
+            Logger = connection.Logger;
         }
 
 
         public byte Id { get; }
 
         public Connection Connection { get; }
+
+        protected ILogger Logger { get; }
 
 
         public abstract List<byte[]>? GetReceivedMessages();
@@ -37,4 +41,6 @@ namespace Lunet
 
         protected abstract Func<TPacket> PacketActivator { get; }
     }
+
+    public delegate Channel ChannelConstructor(byte id, Connection connection);
 }

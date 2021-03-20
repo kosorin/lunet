@@ -45,7 +45,7 @@ namespace Lunet
         internal SystemNet_IPEndPoint EndPoint { get; }
 
 
-        public bool Equals(UdpEndPoint other)
+        public bool Equals(UdpEndPoint? other)
         {
             if (ReferenceEquals(other, this))
             {
@@ -67,7 +67,7 @@ namespace Lunet
             return obj is UdpEndPoint other && EqualsCore(other);
         }
 
-        public static bool operator ==(UdpEndPoint left, UdpEndPoint right)
+        public static bool operator ==(UdpEndPoint? left, UdpEndPoint? right)
         {
             if (ReferenceEquals(left, right))
             {

@@ -1,16 +1,14 @@
-﻿using System.Threading;
+﻿using Microsoft.Extensions.Logging;
+using System.Threading;
 
 namespace Lunet
 {
+
     public class ClientConnection : Connection
     {
         private readonly UdpSocket _socket;
 
-        public ClientConnection(UdpEndPoint remoteEndPoint) : this(remoteEndPoint, ChannelSettings.Default)
-        {
-        }
-
-        public ClientConnection(UdpEndPoint remoteEndPoint, ChannelSettings channelSettings) : base(remoteEndPoint, channelSettings)
+        internal ClientConnection(UdpEndPoint remoteEndPoint, ChannelFactory channelFactory, ILogger logger) : base(remoteEndPoint, channelFactory, logger)
         {
             // TODO: new
             _socket = new UdpSocket(remoteEndPoint.EndPoint.AddressFamily);

@@ -1,6 +1,6 @@
 ﻿using Lunet.Common;
 using Lunet.Data;
-using Lunet.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,8 +14,6 @@ namespace Lunet
         public static Guid Version { get; } = Guid.Parse("1EDEFE8C-9469-4D68-9F3E-40A4A1971B90");
 
         public static uint VersionHash { get; } = Crc32.Compute(Version.ToByteArray());
-
-        private static ILog Log { get; } = LogProvider.GetCurrentClassLogger();
 
 
         private volatile ConnectionState _state;
@@ -34,9 +32,11 @@ namespace Lunet
         private long _keepAliveTimestamp = Timestamp.GetCurrent();
         private int _rtt = 500;
 
-        protected Connection(UdpEndPoint remoteEndPoint, ChannelSettings channelSettings)
+        private protected Connection(UdpEndPoint remoteEndPoint, ChannelFactory channelFactory, ILogger logger)
         {
-            _channels = new ChannelCollection(channelSettings);
+            Logger = logger;
+
+            _channels = new ChannelCollection(channelFactory);
 
             State = ConnectionState.Disconnected;
             RemoteEndPoint = remoteEndPoint;
@@ -50,6 +50,8 @@ namespace Lunet
         public int RTT => _rtt;
 
         public int MTU => 508;
+
+        internal ILogger Logger { get; }
 
 
         public ConnectionState State

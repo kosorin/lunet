@@ -1,11 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="MessagePack" Version="2.2.85" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0-preview.2.21154.6" />
+    <PackageReference Update="Serilog" Version="2.10.0" />
+    <PackageReference Update="Serilog.Sinks.Debug" Version="2.0.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="3.0.2-dev-10284" />
   </ItemGroup>
 
 </Project>

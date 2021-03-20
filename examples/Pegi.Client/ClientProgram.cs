@@ -1,4 +1,5 @@
 ﻿using Lunet;
+using Lunet.Builders;
 using Lunet.Channels;
 using Lunet.Extensions;
 using MessagePack;
@@ -12,14 +13,13 @@ namespace Pegi.Client
     {
         private static void Main()
         {
-            PegiLogging.Configure("Client");
+            var builder = new ClientConnectionBuilder()
+                .ConnectTo(new UdpEndPoint("127.0.0.1", 45685))
+                .ConfigureChannels(builder => builder.AddChannel<ReliableOrderedChannel>(0))
+                .UseLogger(PegiLogging.Configure("Client"))
+                ;
 
-            var remoteEndPoint = new UdpEndPoint("127.0.0.1", 45685);
-
-            var channelSettings = new ChannelSettings();
-            channelSettings.SetChannel(ChannelSettings.DefaultChannelId, (channelId, connection) => new ReliableOrderedChannel(channelId, connection));
-
-            using (var connection = new ClientConnection(remoteEndPoint, channelSettings))
+            using (var connection = builder.Build())
             using (var resetEvent = new ManualResetEventSlim(false))
             {
                 Console.CancelKeyPress += (_, e) =>
@@ -62,7 +62,7 @@ namespace Pegi.Client
                     {
                         time += delta;
 
-                        for (var n = 0; n < 10; n++)
+                        for (var n = 0; n < 1; n++)
                         {
                             var message = new DebugMessage
                             {
