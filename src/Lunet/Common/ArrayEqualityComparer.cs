@@ -17,7 +17,7 @@ namespace Lunet.Common
         }
 
 
-        public bool Equals(TElement[] x, TElement[] y)
+        public bool Equals(TElement[]? x, TElement[]? y)
         {
             if (ReferenceEquals(x, y))
             {

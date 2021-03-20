@@ -20,7 +20,7 @@ namespace Lunet.Benchmarks
         {
             public Config()
             {
-                Add(MemoryDiagnoser.Default);
+                AddDiagnoser(MemoryDiagnoser.Default);
             }
         }
 

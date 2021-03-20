@@ -588,7 +588,7 @@ namespace Lunet.Data
             return !(left == right);
         }
 
-        public bool Equals(BitVector other)
+        public bool Equals(BitVector? other)
         {
             if (ReferenceEquals(this, other))
             {
@@ -601,7 +601,7 @@ namespace Lunet.Data
             return EqualsCore(other);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(this, obj))
             {

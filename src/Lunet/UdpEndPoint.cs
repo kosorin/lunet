@@ -58,7 +58,7 @@ namespace Lunet
             return EqualsCore(other);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(obj, this))
             {

@@ -337,7 +337,7 @@ namespace Lunet.Channels
 
         private void OnIncomingMessage(ReliableMessage message, long now)
         {
-            Logger.LogTrace($"Receive message: MI-{message.Seq}");
+            Logger.LogTrace($"Receive message: MI-{message.Seq} (at {now})");
         }
 
 

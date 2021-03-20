@@ -183,7 +183,7 @@ namespace Lunet
         }
 
 
-        private void IO_Completed(object sender, SocketAsyncEventArgs operation)
+        private void IO_Completed(object? sender, SocketAsyncEventArgs operation)
         {
             var packet = (UdpPacket)operation.UserToken!;
 

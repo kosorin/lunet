@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿/*
+using Microsoft.Extensions.Logging;
 using System;
 
 namespace Lunet
@@ -17,3 +18,4 @@ namespace Lunet
         public static void Hello(string name) => _hello.Invoke(Logger, name, null);
     }
 }
+*/

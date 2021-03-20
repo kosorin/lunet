@@ -5,16 +5,10 @@ using System.Reflection;
 
 namespace Lunet.Common
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "HAA0101:Array allocation for params parameter", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "HAA0301:Closure Allocation Source", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "HAA0302:Display class allocation to capture closure", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "HAA0303:Lambda or anonymous method in a generic method allocates a delegate instance", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "HAA0501:Explicit new array type allocation", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "HAA0502:Explicit new reference type allocation", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "HAA0504:Implicit new array creation allocation", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "HAA0601:Value type to reference type conversion causing boxing allocation", Justification = "<Pending>")]
     internal static class ObjectActivatorFactory
     {
+        private const string ConstructorNotFoundMessage = "Constructor not found.";
+
         public static Func<TObject> Create<TObject>()
         {
             return CreateAs<TObject>(typeof(TObject));
@@ -54,56 +48,65 @@ namespace Lunet.Common
 
         public static Func<TObject> CreateParameterized<TObject>(params Type[] parameterTypes)
         {
-            var ctor = typeof(TObject).GetConstructor(parameterTypes);
+            var ctor = typeof(TObject).GetConstructor(parameterTypes)
+                ?? throw new NullReferenceException(ConstructorNotFoundMessage);
             return CreateParameterizedParamsCore<Func<TObject>, TObject>(ctor);
         }
 
         public static Func<TArg, TObject> CreateParameterized<TArg, TObject>()
         {
-            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg) });
+            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg) })
+                ?? throw new NullReferenceException(ConstructorNotFoundMessage);
             return CreateParameterizedCore<Func<TArg, TObject>, TObject>(ctor);
         }
 
         public static Func<TArg1, TArg2, TObject> CreateParameterized<TArg1, TArg2, TObject>()
         {
-            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2) });
+            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2) })
+                ?? throw new NullReferenceException(ConstructorNotFoundMessage);
             return CreateParameterizedCore<Func<TArg1, TArg2, TObject>, TObject>(ctor);
         }
 
         public static Func<TArg1, TArg2, TArg3, TObject> CreateParameterized<TArg1, TArg2, TArg3, TObject>()
         {
-            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2), typeof(TArg3) });
+            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2), typeof(TArg3) })
+                ?? throw new NullReferenceException(ConstructorNotFoundMessage);
             return CreateParameterizedCore<Func<TArg1, TArg2, TArg3, TObject>, TObject>(ctor);
         }
 
         public static Func<TArg1, TArg2, TArg3, TArg4, TObject> CreateParameterized<TArg1, TArg2, TArg3, TArg4, TObject>()
         {
-            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2), typeof(TArg3), typeof(TArg4) });
+            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2), typeof(TArg3), typeof(TArg4) })
+                ?? throw new NullReferenceException(ConstructorNotFoundMessage);
             return CreateParameterizedCore<Func<TArg1, TArg2, TArg3, TArg4, TObject>, TObject>(ctor);
         }
 
 
         public static Func<TArg, TAs> CreateParameterizedAs<TArg, TObject, TAs>()
         {
-            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg) });
+            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg) })
+                ?? throw new NullReferenceException(ConstructorNotFoundMessage);
             return CreateParameterizedCore<Func<TArg, TAs>, TAs>(ctor);
         }
 
         public static Func<TArg1, TArg2, TAs> CreateParameterizedAs<TArg1, TArg2, TObject, TAs>()
         {
-            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2) });
+            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2) })
+                ?? throw new NullReferenceException(ConstructorNotFoundMessage);
             return CreateParameterizedCore<Func<TArg1, TArg2, TAs>, TAs>(ctor);
         }
 
         public static Func<TArg1, TArg2, TArg3, TAs> CreateParameterizedAs<TArg1, TArg2, TArg3, TObject, TAs>()
         {
-            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2), typeof(TArg3) });
+            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2), typeof(TArg3) })
+                ?? throw new NullReferenceException(ConstructorNotFoundMessage);
             return CreateParameterizedCore<Func<TArg1, TArg2, TArg3, TAs>, TAs>(ctor);
         }
 
         public static Func<TArg1, TArg2, TArg3, TArg4, TAs> CreateParameterizedAs<TArg1, TArg2, TArg3, TArg4, TObject, TAs>()
         {
-            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2), typeof(TArg3), typeof(TArg4) });
+            var ctor = typeof(TObject).GetConstructor(new[] { typeof(TArg1), typeof(TArg2), typeof(TArg3), typeof(TArg4) })
+                ?? throw new NullReferenceException(ConstructorNotFoundMessage);
             return CreateParameterizedCore<Func<TArg1, TArg2, TArg3, TArg4, TAs>, TAs>(ctor);
         }
 

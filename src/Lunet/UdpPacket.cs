@@ -1,6 +1,7 @@
 ﻿using Lunet.Common;
 using Lunet.Data;
 using Lunet.Extensions;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -51,7 +52,7 @@ namespace Lunet
                 Reader.Reset(Operation.BytesTransferred);
 
                 // TODO: new
-                RemoteEndPoint = new UdpEndPoint(Operation.RemoteEndPoint);
+                RemoteEndPoint = new UdpEndPoint(Operation.RemoteEndPoint ?? throw new NullReferenceException());
                 return true;
             }
             else
