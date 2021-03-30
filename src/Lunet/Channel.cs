@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 
+// TODO: List -> Array if possible
+
 namespace Lunet
 {
     public abstract class Channel
