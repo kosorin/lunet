@@ -1,69 +1,66 @@
-﻿using System;
+﻿namespace Lunet.Common;
 
-namespace Lunet.Common
+internal class PoolableObject<TItem> : IPoolableObject<TItem>, IDisposable
+    where TItem : PoolableObject<TItem>
 {
-    internal class PoolableObject<TItem> : IPoolableObject<TItem>, IDisposable
-        where TItem : PoolableObject<TItem>
+    private ObjectPool<TItem>? _owner;
+
+
+    private bool _disposed;
+
+    public void Dispose()
     {
-        private ObjectPool<TItem>? _owner;
+        Dispose(true);
+    }
 
-
-        ObjectPool<TItem>? IPoolableObject<TItem>.Owner
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
         {
-            get => _owner;
-            set => _owner = value;
+            return;
         }
 
-
-        public void Return()
+        if (disposing)
         {
-            if (_owner == null)
-            {
-                throw new InvalidOperationException("Item is not owned by any object pool.");
-            }
-
-            _owner.Return((TItem)this);
+            _owner = null;
         }
 
-        protected virtual void OnRent()
+        _disposed = true;
+    }
+
+
+    ObjectPool<TItem>? IPoolableObject<TItem>.Owner
+    {
+        get => _owner;
+        set => _owner = value;
+    }
+
+
+    public void Return()
+    {
+        if (_owner == null)
         {
+            throw new InvalidOperationException("Item is not owned by any object pool.");
         }
 
-        protected virtual void OnReturn()
-        {
-        }
+        _owner.Return((TItem)this);
+    }
 
-        void IPoolableObject<TItem>.OnRent()
-        {
-            OnRent();
-        }
+    protected virtual void OnRent()
+    {
+    }
 
-        void IPoolableObject<TItem>.OnReturn()
-        {
-            OnReturn();
-        }
+    protected virtual void OnReturn()
+    {
+    }
 
+    void IPoolableObject<TItem>.OnRent()
+    {
+        OnRent();
+    }
 
-        private bool _disposed;
-
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                _owner = null;
-            }
-
-            _disposed = true;
-        }
+    void IPoolableObject<TItem>.OnReturn()
+    {
+        OnReturn();
     }
 }

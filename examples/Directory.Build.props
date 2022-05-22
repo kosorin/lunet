@@ -1,18 +1,18 @@
 <Project>
 
-  <PropertyGroup>
-    <LangVersion>8.0</LangVersion>
-  </PropertyGroup>
+    <PropertyGroup>
+        <LangVersion>8.0</LangVersion>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Serilog" Version="2.8.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
-    <PackageReference Include="Serilog.Sinks.Debug" Version="1.0.1" />
-    <PackageReference Include="MessagePack" Version="1.7.3.7" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Serilog" Version="2.8.0"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1"/>
+        <PackageReference Include="Serilog.Sinks.Debug" Version="1.0.1"/>
+        <PackageReference Include="MessagePack" Version="1.7.3.7"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Lunet\Lunet.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Lunet\Lunet.csproj"/>
+    </ItemGroup>
 
 </Project>

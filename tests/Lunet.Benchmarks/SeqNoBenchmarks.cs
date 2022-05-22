@@ -3,103 +3,100 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
 using Lunet.Channels;
 using Lunet.Common;
-using System;
-using System.Collections.Generic;
 
-namespace Lunet.Benchmarks
+namespace Lunet.Benchmarks;
+
+[Config(typeof(Config))]
+public class SeqNoBenchmarks
 {
-    [Config(typeof(Config))]
-    public class SeqNoBenchmarks
+    private Random _random;
+    private SeqNo _pivot;
+    private List<ReliableMessage> _messages;
+    private Comparison<ReliableMessage> _messageComparison;
+
+
+    [Params(1, 2, 3, 8, 12, 50, 150, 1_500, 15_000)]
+    public int Count;
+
+
+    [GlobalSetup]
+    public void GlobalSetup()
     {
-        private Random _random;
-        private SeqNo _pivot;
-        private List<ReliableMessage> _messages;
-        private Comparison<ReliableMessage> _messageComparison;
+        _pivot = new SeqNo((int)(SeqNo.Range * 0.75));
+    }
 
-        private class Config : ManualConfig
+    [GlobalCleanup]
+    public void GlobalCleanup()
+    {
+    }
+
+    [IterationSetup]
+    public void IterationSetup()
+    {
+        _random = new Random(500);
+        _messages = new List<ReliableMessage>(Count);
+        for (var i = 0; i < Count; i++)
         {
-            public Config()
+            _messages.Add(new ReliableMessage
             {
-                AddDiagnoser(MemoryDiagnoser.Default);
-            }
+                Seq = new SeqNo(_random.Next(0, SeqNo.Range)),
+            });
         }
 
+        _messageComparison = (a, b) => a.Seq.CompareTo(b.Seq);
+    }
 
-        [Params(1, 2, 3, 8, 12, 50, 150, 1_500, 15_000)]
-        public int Count;
+    [IterationCleanup]
+    public void IterationCleanup()
+    {
+        _messages = null;
+    }
 
 
-        [GlobalSetup]
-        public void GlobalSetup()
+    [Benchmark]
+    public int ArraySort()
+    {
+        var result = 0;
+
+        _messages.Sort(_messageComparison);
+
+        foreach (var message in _messages)
         {
-            _pivot = new SeqNo((int)(SeqNo.Range * 0.75));
+            result++;
         }
 
-        [GlobalCleanup]
-        public void GlobalCleanup()
+        return result;
+    }
+
+    [Benchmark]
+    public int StackAllocSort()
+    {
+        var result = 0;
+
+        Span<SeqNo> input = stackalloc SeqNo[_messages.Count];
+        Span<SortItem> outputItems = stackalloc SortItem[_messages.Count];
+
+        for (var i = 0; i < _messages.Count; i++)
         {
+            input[i] = _messages[i].Seq;
         }
 
-        [IterationSetup]
-        public void IterationSetup()
-        {
-            _random = new Random(500);
-            _messages = new List<ReliableMessage>(Count);
-            for (var i = 0; i < Count; i++)
-            {
-                _messages.Add(new ReliableMessage
-                {
-                    Seq = new SeqNo(_random.Next(0, SeqNo.Range)),
-                });
-            }
+        _pivot.Sort(input, outputItems);
 
-            _messageComparison = (a, b) => a.Seq.CompareTo(b.Seq);
+        foreach (var item in outputItems)
+        {
+            var message = _messages[item.Index];
+            result++;
         }
 
-        [IterationCleanup]
-        public void IterationCleanup()
+        return result;
+    }
+
+    private class Config : ManualConfig
+    {
+        public Config()
         {
-            _messages = null;
-        }
-
-
-        [Benchmark]
-        public int ArraySort()
-        {
-            var result = 0;
-
-            _messages.Sort(_messageComparison);
-
-            foreach (var message in _messages)
-            {
-                result++;
-            }
-
-            return result;
-        }
-
-        [Benchmark]
-        public int StackAllocSort()
-        {
-            var result = 0;
-
-            Span<SeqNo> input = stackalloc SeqNo[_messages.Count];
-            Span<SortItem> outputItems = stackalloc SortItem[_messages.Count];
-
-            for (var i = 0; i < _messages.Count; i++)
-            {
-                input[i] = _messages[i].Seq;
-            }
-
-            _pivot.Sort(input, outputItems);
-
-            foreach (var item in outputItems)
-            {
-                var message = _messages[item.Index];
-                result++;
-            }
-
-            return result;
+            AddDiagnoser(MemoryDiagnoser.Default);
         }
     }
 }

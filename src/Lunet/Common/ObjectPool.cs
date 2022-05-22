@@ -1,150 +1,147 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Threading;
+﻿using System.Collections.Concurrent;
 
-namespace Lunet.Common
+namespace Lunet.Common;
+
+internal class ObjectPool<TItem> : IDisposable
+    where TItem : class, IPoolableObject<TItem>
 {
-    internal class ObjectPool<TItem> : IDisposable
-        where TItem : class, IPoolableObject<TItem>
+    private readonly bool _isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
+    private readonly Func<TItem> _activator;
+    private readonly ConcurrentBag<TItem> _objects;
+
+    private long _created;
+    private long _rented;
+    private long _returned;
+
+
+    private int _disposed;
+
+    public ObjectPool()
+        : this(0)
     {
-        private readonly bool _isItemDisposable = typeof(IDisposable).IsAssignableFrom(typeof(TItem));
-        private readonly Func<TItem> _activator;
-        private readonly ConcurrentBag<TItem> _objects;
+    }
 
-        private long _created = 0;
-        private long _rented = 0;
-        private long _returned = 0;
-
-        public ObjectPool()
-            : this(0)
+    public ObjectPool(Func<TItem> activator)
+        : this(activator, 0)
+    {
+        if (activator == null)
         {
+            throw new ArgumentNullException(nameof(activator));
         }
 
-        public ObjectPool(Func<TItem> activator)
-            : this(activator, 0)
-        {
-            if (activator == null)
-            {
-                throw new ArgumentNullException(nameof(activator));
-            }
+        _activator = activator;
+        _objects = new ConcurrentBag<TItem>();
+    }
 
-            _activator = activator;
-            _objects = new ConcurrentBag<TItem>();
+    public ObjectPool(int initialCapacity)
+        : this(ObjectActivatorFactory.Create<TItem>(), initialCapacity)
+    {
+    }
+
+    public ObjectPool(Func<TItem> activator, int initialCapacity)
+    {
+        if (activator == null)
+        {
+            throw new ArgumentNullException(nameof(activator));
         }
 
-        public ObjectPool(int initialCapacity)
-            : this(ObjectActivatorFactory.Create<TItem>(), initialCapacity)
+        _activator = activator;
+        _objects = new ConcurrentBag<TItem>();
+
+        for (var i = 0; i < initialCapacity; i++)
         {
+            _objects.Add(CreateItem());
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
+        {
+            return;
         }
 
-        public ObjectPool(Func<TItem> activator, int initialCapacity)
+        if (disposing)
         {
-            if (activator == null)
+            //Log.Debug("Disposed object pool of {ItemType} (Created={Created}; Rented={Rented}; Returned={Returned}).", typeof(TItem), _created, _rented, _returned);
+            //if (_rented > _returned)
+            //{
+            //    Log.Warn("Several {ItemType} items ({Count}) were not returned.", typeof(TItem), _rented - _returned);
+            //}
+
+            if (_isItemDisposable)
             {
-                throw new ArgumentNullException(nameof(activator));
-            }
-
-            _activator = activator;
-            _objects = new ConcurrentBag<TItem>();
-
-            for (var i = 0; i < initialCapacity; i++)
-            {
-                _objects.Add(CreateItem());
-            }
-        }
-
-        public TItem Rent()
-        {
-            if (IsDisposed)
-            {
-                throw new ObjectDisposedException(GetType().FullName);
-            }
-
-            if (!_objects.TryTake(out var item))
-            {
-                item = CreateItem();
-            }
-
-            Interlocked.Increment(ref _rented);
-            item.OnRent();
-
-            return item;
-        }
-
-        public void Return(TItem item)
-        {
-            if (item == null)
-            {
-                return;
-            }
-
-            if (item.Owner != this)
-            {
-                throw new InvalidOperationException("Item is not owned by object pool.");
-            }
-
-            Interlocked.Increment(ref _returned);
-            item.OnReturn();
-
-            if (IsDisposed)
-            {
-                // Throwing ObjectDisposedException is not needed unlike Rent method
-                if (_isItemDisposable)
+                foreach (IDisposable item in _objects)
                 {
-                    ((IDisposable)item).Dispose();
+                    item.Dispose();
                 }
-                return;
             }
+            _objects.Clear();
+        }
+    }
 
-            _objects.Add(item);
+    public virtual bool IsDisposed => _disposed == 1;
+
+    public TItem Rent()
+    {
+        if (IsDisposed)
+        {
+            throw new ObjectDisposedException(GetType().FullName);
         }
 
-
-        private TItem CreateItem()
+        if (!_objects.TryTake(out var item))
         {
-            var item = _activator.Invoke();
-            item.Owner = this;
-
-            Interlocked.Increment(ref _created);
-
-            return item;
+            item = CreateItem();
         }
 
+        Interlocked.Increment(ref _rented);
+        item.OnRent();
 
-        private int _disposed;
+        return item;
+    }
 
-        public virtual bool IsDisposed => _disposed == 1;
-
-        public void Dispose()
+    public void Return(TItem item)
+    {
+        if (item == null)
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            return;
         }
 
-        protected virtual void Dispose(bool disposing)
+        if (item.Owner != this)
         {
-            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
+            throw new InvalidOperationException("Item is not owned by object pool.");
+        }
+
+        Interlocked.Increment(ref _returned);
+        item.OnReturn();
+
+        if (IsDisposed)
+        {
+            // Throwing ObjectDisposedException is not needed unlike Rent method
+            if (_isItemDisposable)
             {
-                return;
+                ((IDisposable)item).Dispose();
             }
-
-            if (disposing)
-            {
-                //Log.Debug("Disposed object pool of {ItemType} (Created={Created}; Rented={Rented}; Returned={Returned}).", typeof(TItem), _created, _rented, _returned);
-                //if (_rented > _returned)
-                //{
-                //    Log.Warn("Several {ItemType} items ({Count}) were not returned.", typeof(TItem), _rented - _returned);
-                //}
-
-                if (_isItemDisposable)
-                {
-                    foreach (IDisposable item in _objects)
-                    {
-                        item.Dispose();
-                    }
-                }
-                _objects.Clear();
-            }
+            return;
         }
+
+        _objects.Add(item);
+    }
+
+
+    private TItem CreateItem()
+    {
+        var item = _activator.Invoke();
+        item.Owner = this;
+
+        Interlocked.Increment(ref _created);
+
+        return item;
     }
 }

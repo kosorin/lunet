@@ -1,56 +1,53 @@
 ﻿using Microsoft.Extensions.Logging;
-using System;
-using System.Threading;
 
-namespace Lunet
+namespace Lunet;
+
+internal class ServerConnection : Connection
 {
-    internal class ServerConnection : Connection
+    private readonly UdpSocket _socket;
+
+
+    private int _disposed;
+
+    internal ServerConnection(UdpSocket socket, UdpEndPoint remoteEndPoint, ChannelFactory channelFactory, ILogger logger) : base(remoteEndPoint, channelFactory, logger)
     {
-        private readonly UdpSocket _socket;
+        _socket = socket;
 
-        internal ServerConnection(UdpSocket socket, UdpEndPoint remoteEndPoint, ChannelFactory channelFactory, ILogger logger) : base(remoteEndPoint, channelFactory, logger)
+        State = ConnectionState.Connected;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
         {
-            _socket = socket;
-
-            State = ConnectionState.Connected;
+            return;
         }
 
-
-        public override void Connect()
+        if (disposing)
         {
-            throw new InvalidOperationException($"{nameof(ServerConnection)} is automatically connected by listener.");
+            State = ConnectionState.Disconnected;
+            OnDisconnected();
         }
 
-
-        private protected override void SendPacket(UdpPacket packet)
-        {
-            _socket.SendPacket(packet);
-        }
-
-        private protected override UdpPacket RentPacket()
-        {
-            var packet = _socket.RentPacket();
-            packet.RemoteEndPoint = RemoteEndPoint;
-            return packet;
-        }
+        base.Dispose(disposing);
+    }
 
 
-        private int _disposed;
+    public override void Connect()
+    {
+        throw new InvalidOperationException($"{nameof(ServerConnection)} is automatically connected by listener.");
+    }
 
-        protected override void Dispose(bool disposing)
-        {
-            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
-            {
-                return;
-            }
 
-            if (disposing)
-            {
-                State = ConnectionState.Disconnected;
-                OnDisconnected();
-            }
+    private protected override void SendPacket(UdpPacket packet)
+    {
+        _socket.SendPacket(packet);
+    }
 
-            base.Dispose(disposing);
-        }
+    private protected override UdpPacket RentPacket()
+    {
+        var packet = _socket.RentPacket();
+        packet.RemoteEndPoint = RemoteEndPoint;
+        return packet;
     }
 }
