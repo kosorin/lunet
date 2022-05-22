@@ -1,6 +1,5 @@
-﻿namespace Lunet.Channels
+﻿namespace Lunet.Channels;
+
+public class UnreliableMessage : Message
 {
-    public class UnreliableMessage : Message
-    {
-    }
 }

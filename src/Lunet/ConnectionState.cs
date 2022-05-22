@@ -1,10 +1,9 @@
-﻿namespace Lunet
+﻿namespace Lunet;
+
+public enum ConnectionState
 {
-    public enum ConnectionState
-    {
-        Disconnected,
-        Connected,
-        Disconnecting,
-        Connecting,
-    }
+    Disconnected,
+    Connected,
+    Disconnecting,
+    Connecting,
 }

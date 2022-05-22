@@ -1,39 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 
-namespace Lunet
+namespace Lunet;
+
+internal class ChannelFactory
 {
-    internal class ChannelFactory
+    private readonly Dictionary<byte, ChannelConstructor> _activators;
+
+    public ChannelFactory(Dictionary<byte, ChannelConstructor> activators)
     {
-        private readonly Dictionary<byte, ChannelConstructor> _activators;
+        _activators = activators;
+    }
 
-        public ChannelFactory(Dictionary<byte, ChannelConstructor> activators)
+    public Channel Create(byte channelId, Connection connection)
+    {
+        if (!TryCreate(channelId, connection, out var channel))
         {
-            _activators = activators;
+            throw new Exception($"Unknown channel '{channelId}'.");
         }
 
-        public Channel Create(byte channelId, Connection connection)
-        {
-            if (!TryCreate(channelId, connection, out var channel))
-            {
-                throw new Exception($"Unknown channel '{channelId}'.");
-            }
+        return channel;
+    }
 
-            return channel;
+    public bool TryCreate(byte channelId, Connection connection, [MaybeNullWhen(false)] out Channel channel)
+    {
+        if (!_activators.TryGetValue(channelId, out var activator))
+        {
+            channel = null;
+            return false;
         }
 
-        public bool TryCreate(byte channelId, Connection connection, [MaybeNullWhen(false)] out Channel channel)
-        {
-            if (!_activators.TryGetValue(channelId, out var activator))
-            {
-                channel = null;
-                return false;
-            }
-
-            channel = activator.Invoke(channelId, connection);
-            return true;
-        }
+        channel = activator.Invoke(channelId, connection);
+        return true;
     }
 }
-

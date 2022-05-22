@@ -1,10 +1,11 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
-namespace Lunet
+namespace Lunet;
+
+public static class Timestamp
 {
-    public static class Timestamp
+    public static long GetCurrent()
     {
-        public static long GetCurrent() => Stopwatch.GetTimestamp() / TimeSpan.TicksPerMillisecond;
+        return Stopwatch.GetTimestamp() / TimeSpan.TicksPerMillisecond;
     }
 }

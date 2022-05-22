@@ -1,92 +1,89 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Lunet
+namespace Lunet;
+
+// TODO: Channel auto remove
+// Each channel can notify that it can be removed from collection because of inactivity
+internal class ChannelCollection : IEnumerable<Channel>
 {
-    // TODO: Channel auto remove
-    // Each channel can notify that it can be removed from collection because of inactivity
-    internal class ChannelCollection : IEnumerable<Channel>
+    private readonly ChannelFactory _channelFactory;
+    private readonly Dictionary<byte, Channel> _channels = new Dictionary<byte, Channel>();
+
+    public ChannelCollection(ChannelFactory channelFactory)
     {
-        private readonly ChannelFactory _channelFactory;
-        private readonly Dictionary<byte, Channel> _channels = new Dictionary<byte, Channel>();
+        _channelFactory = channelFactory;
+    }
 
-        public ChannelCollection(ChannelFactory channelFactory)
+    public Channel Get(byte channelId, Connection connection)
+    {
+        if (!TryGet(channelId, connection, out var channel))
         {
-            _channelFactory = channelFactory;
+            throw new Exception("Unknown channel '" + channelId + "'.");
         }
 
-        public Channel Get(byte channelId, Connection connection)
-        {
-            if (!TryGet(channelId, connection, out var channel))
-            {
-                throw new Exception($"Unknown channel '" + channelId.ToString() + "'.");
-            }
+        return channel;
+    }
 
-            return channel;
+    public bool TryGet(byte channelId, Connection connection, [MaybeNullWhen(false)] out Channel channel)
+    {
+        if (_channels.TryGetValue(channelId, out channel))
+        {
+            return true;
         }
 
-        public bool TryGet(byte channelId, Connection connection, [MaybeNullWhen(false)] out Channel channel)
+        if (_channelFactory.TryCreate(channelId, connection, out channel))
         {
-            if (_channels.TryGetValue(channelId, out channel))
-            {
-                return true;
-            }
-
-            if (_channelFactory.TryCreate(channelId, connection, out channel))
-            {
-                _channels[channelId] = channel;
-                return true;
-            }
-
-            channel = null;
-            return false;
+            _channels[channelId] = channel;
+            return true;
         }
 
-        public Enumerator GetEnumerator()
+        channel = null;
+        return false;
+    }
+
+    public Enumerator GetEnumerator()
+    {
+        return new Enumerator(_channels);
+    }
+
+    IEnumerator<Channel> IEnumerable<Channel>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public struct Enumerator : IEnumerator<Channel>
+    {
+        private Dictionary<byte, Channel>.ValueCollection.Enumerator _enumerator;
+
+        internal Enumerator(Dictionary<byte, Channel> channels)
         {
-            return new Enumerator(_channels);
+            _enumerator = channels.Values.GetEnumerator();
         }
 
-        IEnumerator<Channel> IEnumerable<Channel>.GetEnumerator()
+        public Channel Current => _enumerator.Current;
+
+        public bool MoveNext()
         {
-            return GetEnumerator();
+            return _enumerator.MoveNext();
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
+        public void Dispose()
         {
-            return GetEnumerator();
+            _enumerator.Dispose();
         }
 
-        public struct Enumerator : IEnumerator<Channel>
+
+        object IEnumerator.Current => Current;
+
+        void IEnumerator.Reset()
         {
-            private Dictionary<byte, Channel>.ValueCollection.Enumerator _enumerator;
-
-            internal Enumerator(Dictionary<byte, Channel> channels)
-            {
-                _enumerator = channels.Values.GetEnumerator();
-            }
-
-            public Channel Current => _enumerator.Current;
-
-            public bool MoveNext()
-            {
-                return _enumerator.MoveNext();
-            }
-
-            public void Dispose()
-            {
-                _enumerator.Dispose();
-            }
-
-
-            object IEnumerator.Current => Current;
-
-            void IEnumerator.Reset()
-            {
-                ((IEnumerator)_enumerator).Reset();
-            }
+            ((IEnumerator)_enumerator).Reset();
         }
     }
 }

@@ -1,10 +1,9 @@
-﻿namespace Lunet
+﻿namespace Lunet;
+
+public enum ChannelType
 {
-    public enum ChannelType
-    {
-        Raw,
-        Unreliable,
-        UnreliableSequenced,
-        Reliable,
-    }
+    Raw,
+    Unreliable,
+    UnreliableSequenced,
+    Reliable,
 }

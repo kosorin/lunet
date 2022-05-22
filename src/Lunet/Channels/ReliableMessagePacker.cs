@@ -1,56 +1,52 @@
-﻿using System;
-using System.Collections.Generic;
+﻿namespace Lunet.Channels;
 
-namespace Lunet.Channels
+public class ReliableMessagePacker<TPacket, TMessage> : MessagePacker<TPacket, TMessage>
+    where TPacket : MessagePacket<TMessage>
+    where TMessage : ReliableMessage
 {
-    public class ReliableMessagePacker<TPacket, TMessage> : MessagePacker<TPacket, TMessage>
-        where TPacket : MessagePacket<TMessage>
-        where TMessage : ReliableMessage
+    public ReliableMessagePacker(Func<TPacket> packetActivator) : base(packetActivator)
     {
-        public ReliableMessagePacker(Func<TPacket> packetActivator) : base(packetActivator)
+    }
+
+    public override List<TPacket>? Pack(List<TMessage>? messages, int maxPacketSize)
+    {
+        if (messages == null || messages.Count == 0)
         {
+            return null;
         }
 
-        public override List<TPacket>? Pack(List<TMessage>? messages, int maxPacketSize)
+        // TODO: new
+        var packets = new List<TPacket>();
+
+        var currentPacket = CreatePacket();
+        var currentLength = currentPacket.HeaderLength;
+
+        if (currentPacket.HeaderLength >= maxPacketSize)
         {
-            if (messages == null || messages.Count == 0)
-            {
-                return null;
-            }
+            throw new NetException("Too big packet header.");
+        }
 
-            // TODO: new
-            var packets = new List<TPacket>();
-
-            var currentPacket = CreatePacket();
-            var currentLength = currentPacket.HeaderLength;
-
-            if (currentPacket.HeaderLength >= maxPacketSize)
-            {
-                throw new NetException("Too big packet header.");
-            }
-
-            foreach (var message in messages)
-            {
-                if (currentLength + message.Length > maxPacketSize && currentPacket.Messages.Count > 0)
-                {
-                    packets.Add(currentPacket);
-
-                    currentPacket = CreatePacket();
-                    currentLength = currentPacket.HeaderLength;
-
-                    // Next packet may be too big even with single message => fragmentation
-                }
-
-                currentPacket.Messages.Add(message);
-                currentLength += message.Length;
-            }
-
-            if (currentPacket.Messages.Count > 0)
+        foreach (var message in messages)
+        {
+            if (currentLength + message.Length > maxPacketSize && currentPacket.Messages.Count > 0)
             {
                 packets.Add(currentPacket);
+
+                currentPacket = CreatePacket();
+                currentLength = currentPacket.HeaderLength;
+
+                // Next packet may be too big even with single message => fragmentation
             }
 
-            return packets;
+            currentPacket.Messages.Add(message);
+            currentLength += message.Length;
         }
+
+        if (currentPacket.Messages.Count > 0)
+        {
+            packets.Add(currentPacket);
+        }
+
+        return packets;
     }
 }

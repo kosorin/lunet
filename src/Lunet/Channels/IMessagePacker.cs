@@ -1,11 +1,8 @@
-﻿using System.Collections.Generic;
+﻿namespace Lunet.Channels;
 
-namespace Lunet.Channels
+public interface IMessagePacker<TPacket, TMessage>
+    where TPacket : MessagePacket<TMessage>
+    where TMessage : Message
 {
-    public interface IMessagePacker<TPacket, TMessage>
-        where TPacket : MessagePacket<TMessage>
-        where TMessage : Message
-    {
-        List<TPacket>? Pack(List<TMessage>? messages, int maxPacketSize);
-    }
+    List<TPacket>? Pack(List<TMessage>? messages, int maxPacketSize);
 }

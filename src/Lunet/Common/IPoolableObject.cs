@@ -1,17 +1,16 @@
-﻿namespace Lunet.Common
+﻿namespace Lunet.Common;
+
+internal interface IPoolableObject
 {
-    internal interface IPoolableObject
-    {
-        void Return();
-    }
+    void Return();
+}
 
-    internal interface IPoolableObject<TItem> : IPoolableObject
-        where TItem : class, IPoolableObject<TItem>
-    {
-        ObjectPool<TItem>? Owner { get; set; }
+internal interface IPoolableObject<TItem> : IPoolableObject
+    where TItem : class, IPoolableObject<TItem>
+{
+    ObjectPool<TItem>? Owner { get; set; }
 
-        void OnRent();
+    void OnRent();
 
-        void OnReturn();
-    }
+    void OnReturn();
 }

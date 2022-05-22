@@ -1,15 +1,14 @@
-﻿namespace Lunet.Common
+﻿namespace Lunet.Common;
+
+public readonly struct SortItem
 {
-    public readonly struct SortItem
+    internal SortItem(int index, int value)
     {
-        internal SortItem(int index, int value)
-        {
-            Index = index;
-            Value = value;
-        }
-
-        public int Index { get; }
-
-        internal int Value { get; }
+        Index = index;
+        Value = value;
     }
+
+    public int Index { get; }
+
+    internal int Value { get; }
 }

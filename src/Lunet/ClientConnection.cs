@@ -1,73 +1,69 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.Threading;
 
-namespace Lunet
+namespace Lunet;
+
+public class ClientConnection : Connection
 {
+    private readonly UdpSocket _socket;
 
-    public class ClientConnection : Connection
+    private int _disposed;
+
+    internal ClientConnection(UdpEndPoint remoteEndPoint, ChannelFactory channelFactory, ILogger logger) : base(remoteEndPoint, channelFactory, logger)
     {
-        private readonly UdpSocket _socket;
+        // TODO: new
+        _socket = new UdpSocket(remoteEndPoint.EndPoint.AddressFamily);
+        _socket.PacketReceived += Socket_PacketReceived;
 
-        internal ClientConnection(UdpEndPoint remoteEndPoint, ChannelFactory channelFactory, ILogger logger) : base(remoteEndPoint, channelFactory, logger)
+        State = ConnectionState.Disconnected;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
         {
-            // TODO: new
-            _socket = new UdpSocket(remoteEndPoint.EndPoint.AddressFamily);
-            _socket.PacketReceived += Socket_PacketReceived;
+            return;
+        }
+
+        if (disposing)
+        {
+            State = ConnectionState.Disconnecting;
+            _socket.Dispose();
 
             State = ConnectionState.Disconnected;
+            OnDisconnected();
         }
 
+        base.Dispose(disposing);
+    }
 
-        public override void Connect()
+
+    public override void Connect()
+    {
+        State = ConnectionState.Connecting;
+        _socket.Bind();
+
+        State = ConnectionState.Connected;
+    }
+
+
+    private protected override void SendPacket(UdpPacket packet)
+    {
+        _socket.SendPacket(packet);
+    }
+
+    private protected override UdpPacket RentPacket()
+    {
+        var packet = _socket.RentPacket();
+        packet.RemoteEndPoint = RemoteEndPoint;
+        return packet;
+    }
+
+
+    private void Socket_PacketReceived(UdpSocket socket, UdpPacket packet)
+    {
+        if (RemoteEndPoint == packet.RemoteEndPoint)
         {
-            State = ConnectionState.Connecting;
-            _socket.Bind();
-
-            State = ConnectionState.Connected;
-        }
-
-
-        private protected override void SendPacket(UdpPacket packet)
-        {
-            _socket.SendPacket(packet);
-        }
-
-        private protected override UdpPacket RentPacket()
-        {
-            var packet = _socket.RentPacket();
-            packet.RemoteEndPoint = RemoteEndPoint;
-            return packet;
-        }
-
-
-        private void Socket_PacketReceived(UdpSocket socket, UdpPacket packet)
-        {
-            if (RemoteEndPoint == packet.RemoteEndPoint)
-            {
-                HandleIncomingPacket(packet);
-            }
-        }
-
-
-        private int _disposed;
-
-        protected override void Dispose(bool disposing)
-        {
-            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                State = ConnectionState.Disconnecting;
-                _socket.Dispose();
-
-                State = ConnectionState.Disconnected;
-                OnDisconnected();
-            }
-
-            base.Dispose(disposing);
+            HandleIncomingPacket(packet);
         }
     }
 }

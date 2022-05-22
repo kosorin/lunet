@@ -1,21 +1,18 @@
-﻿using System;
+﻿namespace Lunet;
 
-namespace Lunet
+public class NetSerializationException : NetException
 {
-    public class NetSerializationException : NetException
+    public NetSerializationException()
     {
-        public NetSerializationException()
-        {
-        }
+    }
 
-        public NetSerializationException(string message)
-            : base(message)
-        {
-        }
+    public NetSerializationException(string message)
+        : base(message)
+    {
+    }
 
-        public NetSerializationException(string message, Exception inner)
-            : base(message, inner)
-        {
-        }
+    public NetSerializationException(string message, Exception inner)
+        : base(message, inner)
+    {
     }
 }

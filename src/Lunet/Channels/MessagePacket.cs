@@ -1,105 +1,101 @@
 ﻿using Lunet.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace Lunet.Channels
+namespace Lunet.Channels;
+
+public abstract class MessagePacket<TMessage> : ChannelPacket
+    where TMessage : Message
 {
-    public abstract class MessagePacket<TMessage> : ChannelPacket
-        where TMessage : Message
+    private readonly Func<TMessage> _messageActivator;
+
+    protected MessagePacket(Func<TMessage> messageActivator)
     {
-        private readonly Func<TMessage> _messageActivator;
+        _messageActivator = messageActivator;
+    }
 
-        protected MessagePacket(Func<TMessage> messageActivator)
+    public List<TMessage> Messages { get; } = new List<TMessage>();
+
+    public override int DataLength => Messages.Sum(x => x.Length);
+
+    public override void DeserializeHeader(NetDataReader reader)
+    {
+        try
         {
-            _messageActivator = messageActivator;
+            DeserializeHeaderCore(reader);
+            reader.PadByte();
+        }
+        catch (Exception e)
+        {
+            throw new NetSerializationException("Could not deserialize packet header.", e);
+        }
+    }
+
+    public override void DeserializeData(NetDataReader reader)
+    {
+        try
+        {
+            DeserializeDataCore(reader);
+        }
+        catch (Exception e)
+        {
+            throw new NetSerializationException("Could not deserialize packet data.", e);
         }
 
-        public List<TMessage> Messages { get; } = new List<TMessage>();
-
-        public override int DataLength => Messages.Sum(x => x.Length);
-
-        public override void DeserializeHeader(NetDataReader reader)
+        if (reader.Position != reader.Length)
         {
-            try
-            {
-                DeserializeHeaderCore(reader);
-                reader.PadByte();
-            }
-            catch (Exception e)
-            {
-                throw new NetSerializationException("Could not deserialize packet header.", e);
-            }
+            throw new NetSerializationException($"Remaining data in a packet ({reader.Length - reader.Position} bytes).");
         }
+    }
 
-        public override void DeserializeData(NetDataReader reader)
+    public override void SerializeHeader(NetDataWriter writer)
+    {
+        try
         {
-            try
-            {
-                DeserializeDataCore(reader);
-            }
-            catch (Exception e)
-            {
-                throw new NetSerializationException("Could not deserialize packet data.", e);
-            }
-
-            if (reader.Position != reader.Length)
-            {
-                throw new NetSerializationException($"Remaining data in a packet ({reader.Length - reader.Position} bytes).");
-            }
+            SerializeHeaderCore(writer);
+            writer.PadByte();
         }
-
-        public override void SerializeHeader(NetDataWriter writer)
+        catch (Exception e)
         {
-            try
-            {
-                SerializeHeaderCore(writer);
-                writer.PadByte();
-            }
-            catch (Exception e)
-            {
-                throw new NetSerializationException("Could not serialize packet header.", e);
-            }
+            throw new NetSerializationException("Could not serialize packet header.", e);
         }
+    }
 
-        public override void SerializeData(NetDataWriter writer)
+    public override void SerializeData(NetDataWriter writer)
+    {
+        try
         {
-            try
-            {
-                SerializeDataCore(writer);
-                writer.PadByte();
-            }
-            catch (Exception e)
-            {
-                throw new NetSerializationException("Could not serialize packet data.", e);
-            }
+            SerializeDataCore(writer);
+            writer.PadByte();
         }
-
-        protected virtual void DeserializeHeaderCore(NetDataReader reader)
+        catch (Exception e)
         {
+            throw new NetSerializationException("Could not serialize packet data.", e);
         }
+    }
 
-        protected virtual void DeserializeDataCore(NetDataReader reader)
+    protected virtual void DeserializeHeaderCore(NetDataReader reader)
+    {
+    }
+
+    protected virtual void DeserializeDataCore(NetDataReader reader)
+    {
+        Messages.Clear();
+        while (reader.Position < reader.Length)
         {
-            Messages.Clear();
-            while (reader.Position < reader.Length)
-            {
-                var message = _messageActivator();
-                message.Deserialize(reader);
-                Messages.Add(message);
-            }
+            var message = _messageActivator();
+            message.Deserialize(reader);
+            Messages.Add(message);
         }
+    }
 
-        protected virtual void SerializeHeaderCore(NetDataWriter writer)
-        {
-        }
+    protected virtual void SerializeHeaderCore(NetDataWriter writer)
+    {
+    }
 
-        protected virtual void SerializeDataCore(NetDataWriter writer)
+    protected virtual void SerializeDataCore(NetDataWriter writer)
+    {
+        foreach (var message in Messages)
         {
-            foreach (var message in Messages)
-            {
-                message.Serialize(writer);
-            }
+            message.Serialize(writer);
         }
     }
 }

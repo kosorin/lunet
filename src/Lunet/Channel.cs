@@ -1,48 +1,45 @@
 ﻿using Lunet.Data;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
 
 // TODO: List -> Array if possible
 
-namespace Lunet
+namespace Lunet;
+
+public abstract class Channel
 {
-    public abstract class Channel
+    protected Channel(byte id, Connection connection)
     {
-        protected Channel(byte id, Connection connection)
-        {
-            Id = id;
-            Connection = connection;
-            Logger = connection.Logger;
-        }
-
-
-        public byte Id { get; }
-
-        public Connection Connection { get; }
-
-        protected ILogger Logger { get; }
-
-
-        public abstract List<byte[]>? GetReceivedMessages();
-
-        public abstract void SendMessage(byte[] data);
-
-
-        internal abstract void HandleIncomingPacket(NetDataReader reader);
-
-        internal abstract List<ChannelPacket>? CollectOutgoingPackets();
+        Id = id;
+        Connection = connection;
+        Logger = connection.Logger;
     }
 
-    public abstract class Channel<TPacket> : Channel
-        where TPacket : ChannelPacket
-    {
-        protected Channel(byte id, Connection connection) : base(id, connection)
-        {
-        }
 
-        protected abstract Func<TPacket> PacketActivator { get; }
-    }
+    public byte Id { get; }
 
-    public delegate Channel ChannelConstructor(byte id, Connection connection);
+    public Connection Connection { get; }
+
+    protected ILogger Logger { get; }
+
+
+    public abstract List<byte[]>? GetReceivedMessages();
+
+    public abstract void SendMessage(byte[] data);
+
+
+    internal abstract void HandleIncomingPacket(NetDataReader reader);
+
+    internal abstract List<ChannelPacket>? CollectOutgoingPackets();
 }
+
+public abstract class Channel<TPacket> : Channel
+    where TPacket : ChannelPacket
+{
+    protected Channel(byte id, Connection connection) : base(id, connection)
+    {
+    }
+
+    protected abstract Func<TPacket> PacketActivator { get; }
+}
+
+public delegate Channel ChannelConstructor(byte id, Connection connection);

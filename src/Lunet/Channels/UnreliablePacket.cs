@@ -1,11 +1,8 @@
-﻿using System;
+﻿namespace Lunet.Channels;
 
-namespace Lunet.Channels
+public class UnreliablePacket : MessagePacket<UnreliableMessage>
 {
-    public class UnreliablePacket : MessagePacket<UnreliableMessage>
+    public UnreliablePacket(Func<UnreliableMessage> messageActivator) : base(messageActivator)
     {
-        public UnreliablePacket(Func<UnreliableMessage> messageActivator) : base(messageActivator)
-        {
-        }
     }
 }
